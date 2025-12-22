@@ -3,8 +3,6 @@
 import Image from "next/image";
 import { useState, useEffect } from "react";
 
-const PASSCODE = "zinda"; // Default passcode - you can change this
-
 export default function Home() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [passcode, setPasscode] = useState("");
@@ -12,31 +10,61 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check if user is already authenticated
-    const authStatus = localStorage.getItem("zinda_authenticated");
-    if (authStatus === "true") {
-      setIsAuthenticated(true);
-    }
-    setIsLoading(false);
+    // Check if user is already authenticated via server
+    const checkAuth = async () => {
+      try {
+        const response = await fetch("/api/auth/check");
+        const data = await response.json();
+        setIsAuthenticated(data.authenticated);
+      } catch (error) {
+        console.error("Failed to check authentication:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    checkAuth();
   }, []);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
 
-    if (passcode === PASSCODE) {
-      setIsAuthenticated(true);
-      localStorage.setItem("zinda_authenticated", "true");
-      setPasscode("");
-    } else {
-      setError("Incorrect passcode. Please try again.");
+    try {
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ passcode }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setIsAuthenticated(true);
+        setPasscode("");
+      } else {
+        setError(data.error || "Incorrect passcode. Please try again.");
+        setPasscode("");
+      }
+    } catch (error) {
+      setError("An error occurred. Please try again.");
       setPasscode("");
     }
   };
 
-  const handleLogout = () => {
-    setIsAuthenticated(false);
-    localStorage.removeItem("zinda_authenticated");
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/auth/logout", {
+        method: "POST",
+      });
+      setIsAuthenticated(false);
+    } catch (error) {
+      console.error("Failed to logout:", error);
+      // Still set authenticated to false even if API call fails
+      setIsAuthenticated(false);
+    }
   };
 
   if (isLoading) {
