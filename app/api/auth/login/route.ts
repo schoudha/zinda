@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 
-const PASSCODE = process.env.ZINDA_PASSCODE || "zinda";
+const PASSCODE = process.env.ZINDA_PASSCODE || "zaara";
 
 export async function POST(request: NextRequest) {
   try {
