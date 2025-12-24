@@ -5,17 +5,10 @@ const nextConfig: NextConfig = {
   /* config options here */
 };
 
-// Only apply Serwist in production (or non-development) environments.
-// Serwist injects a webpack config which causes Turbopack (default in dev) to throw an error.
-// By skipping it in dev, we keep Turbopack fast for general development.
-let configExport = nextConfig;
+const withSerwist = withSerwistInit({
+  swSrc: "app/sw.ts",
+  swDest: "public/sw.js",
+  disable: process.env.NODE_ENV === "development",
+});
 
-if (process.env.NODE_ENV !== "development") {
-  const withSerwist = withSerwistInit({
-    swSrc: "app/sw.ts",
-    swDest: "public/sw.js",
-  });
-  configExport = withSerwist(nextConfig);
-}
-
-export default configExport;
+export default (process.env.NODE_ENV === "development" ? nextConfig : withSerwist(nextConfig));
