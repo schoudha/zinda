@@ -1,0 +1,44 @@
+---
+alwaysApply: true
+---
+
+# Project Context & Architecture
+- **Stack:** Next.js 15 (App Router), TypeScript, Tailwind CSS, shadcn/ui, Supabase.
+- **PWA:** Using `@ducanh2912/next-pwa` for progressive web app capabilities.
+- **State/Validation:** React Hooks for local state, Zod for schema validation.
+- **Testing:** Playwright for E2E testing.
+
+# Critical Rules for AI Agent (Sonnet 4.5 / Gemini 3)
+- **Agentic Planning:** If a request involves multiple files (e.g., "Add a user profile page"), first output a `STEP_BY_STEP_PLAN` comment block outlining the changes to DB schema, Zod types, UI components, and Pages before writing code.
+- **Self-Correction:** If a build or test fails, analyze the error log *first*. Do not blindly regenerate code. Explain *why* it failed, then fix it.
+- **"Headless" Ownership:** When modifying UI, assume we own the component code (shadcn/ui). Do not install new libraries for trivial UI changes; modify the existing `components/ui` files if needed.
+
+# Code Style & Structure
+- **TypeScript:** strict mode. Always define interfaces for props. Avoid `any` types.
+- **Functional Components:** Use `const` definitions for components (e.g., `const Component = () => {}`).
+- **Imports:** Group imports: 1. React/Next.js, 2. External Libraries, 3. Internal Components, 4. Styles/Types.
+- **Icons:** Use `lucide-react`.
+
+# Next.js App Router Specifics
+- **Server Components:** Default to Server Components. Use `'use client'` directive only when necessary (e.g., `useState`, `useEffect`, event handlers).
+- **Data Fetching:** Fetch data in Server Components and pass down as props. Use Supabase directly in server components.
+- **Routing:** Use `next/link` for internal navigation.
+
+# Tailwind CSS Preferences
+- Use utility classes for all styling. Do not create `.css` files (except `globals.css`).
+- Use `cn()` utility (clsx + tailwind-merge) for conditional class names.
+- Follow the mobile-first approach.
+
+# Supabase & Database
+- **Schema:** Refer to `supabase/types.ts` for database types.
+- **RLS:** Always consider Row Level Security (RLS) when writing database queries.
+- **Edge Functions:** Logic that requires heavy computation or secrets should be placed in Supabase Edge Functions, not client-side code.
+
+# PWA Specifics
+- Ensure the `manifest.json` includes `display: standalone` and proper icons.
+- When generating new pages, ensure they are responsive and touch-friendly (min touch target size 44px).
+- **Offline:** If adding data fetching, consider how the UI behaves offline (use placeholders or cached data if available).
+
+# Testing (Playwright)
+- When generating new features, offer to write a corresponding Playwright test (`tests/e2e/feature-name.spec.ts`).
+- Tests should target user-visible locators (e.g., `getByRole('button', { name: 'Login' })`) rather than CSS classes.
