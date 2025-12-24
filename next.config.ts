@@ -1,4 +1,4 @@
-import withSerwistInit from "@serwist/next";
+import withSerwistInit from "@serwist/turbopack";
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
