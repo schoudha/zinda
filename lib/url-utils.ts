@@ -19,6 +19,15 @@ export function containsUrl(text: string): boolean {
 }
 
 /**
+ * Checks if a URL is a YouTube URL
+ * @param url The URL to check
+ * @returns True if URL is a YouTube URL
+ */
+export function isYoutubeUrl(url: string): boolean {
+  return /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+$/.test(url);
+}
+
+/**
  * Gets the first URL from text, if any
  * @param text The text to extract URL from
  * @returns The first URL found, or null

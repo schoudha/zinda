@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { YoutubeTranscript } from 'youtube-transcript';
+import { isYoutubeUrl } from '@/lib/url-utils';
 
 export async function POST(request: NextRequest) {
   try {
@@ -19,34 +21,59 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Fetch the page content
     let pageContent = '';
-    try {
-      const response = await fetch(url, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        },
-      });
+    let isYoutube = isYoutubeUrl(url);
 
-      if (response.ok) {
-        const html = await response.text();
-        // Simple text extraction - remove script and style tags
-        pageContent = html
-          .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
-          .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
-          .replace(/<[^>]+>/g, ' ')
-          .replace(/\s+/g, ' ')
-          .trim()
-          .substring(0, 10000); // Limit to 10k chars
+    if (isYoutube) {
+      try {
+        const transcript = await YoutubeTranscript.fetchTranscript(url);
+        pageContent = transcript.map((item: { text: string }) => item.text).join(' ');
+        // Limit transcript length if needed, though Gemini Flash handles large context
+        if (pageContent.length > 20000) {
+            pageContent = pageContent.substring(0, 20000);
+        }
+      } catch (error) {
+        console.error('Error fetching YouTube transcript:', error);
+        // Fallback to regular summary if transcript fails (might get metadata)
+        isYoutube = false; 
       }
-    } catch (error) {
-      console.error('Error fetching page content:', error);
+    }
+
+    // If not YouTube or transcript failed, fetch regular page content
+    if (!pageContent) {
+      try {
+        const response = await fetch(url, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+          },
+        });
+
+        if (response.ok) {
+          const html = await response.text();
+          // Simple text extraction - remove script and style tags
+          pageContent = html
+            .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+            .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+            .replace(/<[^>]+>/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim()
+            .substring(0, 10000); // Limit to 10k chars
+        }
+      } catch (error) {
+        console.error('Error fetching page content:', error);
+      }
     }
 
     // Call Gemini API to summarize
-    const prompt = pageContent
-      ? `Please provide a comprehensive summary of this webpage content in under 500 words. Include the main points, key takeaways, and important details:\n\n${pageContent}\n\nURL: ${url}`
-      : `Please provide a comprehensive summary (under 500 words) of what this URL is about: ${url}`;
+    let prompt = '';
+    
+    if (isYoutube && pageContent) {
+        prompt = `Please provide a comprehensive summary of this YouTube video transcript in under 500 words. Include the main points, key takeaways, and important details. The content is a transcript, so ignore timestamps or conversational filler:\n\n${pageContent}\n\nVideo URL: ${url}`;
+    } else if (pageContent) {
+        prompt = `Please provide a comprehensive summary of this webpage content in under 500 words. Include the main points, key takeaways, and important details:\n\n${pageContent}\n\nURL: ${url}`;
+    } else {
+        prompt = `Please provide a comprehensive summary (under 500 words) of what this URL is about: ${url}`;
+    }
 
     const geminiResponse = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`,

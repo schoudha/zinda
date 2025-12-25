@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { isYoutubeUrl } from '@/lib/url-utils';
 
 export async function POST(request: NextRequest) {
   try {
@@ -19,6 +20,24 @@ export async function POST(request: NextRequest) {
         { error: 'Invalid URL format' },
         { status: 400 }
       );
+    }
+
+    // Special handling for YouTube URLs using oEmbed
+    if (isYoutubeUrl(url)) {
+        try {
+            const oembedUrl = `https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`;
+            const response = await fetch(oembedUrl);
+            if (response.ok) {
+                const data = await response.json();
+                return NextResponse.json({ 
+                    title: data.title || 'YouTube Video', 
+                    url 
+                });
+            }
+        } catch (error) {
+            console.error('Error fetching YouTube oEmbed:', error);
+            // Fallback to regular fetch
+        }
     }
 
     // Fetch the page

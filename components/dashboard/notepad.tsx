@@ -13,7 +13,8 @@ import {
   DialogBody,
 } from "@/components/ui/dialog";
 import { Note } from "@/app/page";
-import { ExternalLink, Sparkles, Loader2 } from "lucide-react";
+import { ExternalLink, Sparkles, Loader2, Youtube } from "lucide-react";
+import { isYoutubeUrl } from "@/lib/url-utils";
 
 interface NotepadCardProps {
   notes: Note[];
@@ -95,7 +96,11 @@ export function NotepadCard({ notes, onToggleNote }: NotepadCardProps) {
                               : "text-blue-600"
                           }`}
                         >
-                          <ExternalLink className="h-3.5 w-3.5" />
+                          {isYoutubeUrl(note.url) ? (
+                            <Youtube className="h-3.5 w-3.5 text-red-600" />
+                          ) : (
+                            <ExternalLink className="h-3.5 w-3.5" />
+                          )}
                           {note.urlTitle}
                         </a>
                         <Button
