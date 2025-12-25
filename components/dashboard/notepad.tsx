@@ -207,7 +207,7 @@ export function NotepadCard({ notes, onToggleNote, onAddNote, onUpdateNote, onDe
                           size="sm"
                           onClick={() => handleGetSummary(note.id, note.url!, note.urlTitle || note.text)}
                           disabled={loadingSummaries.has(note.id)}
-                          className="h-7 w-7 p-0 rounded-full hover:bg-purple-50 text-purple-600 opacity-0 group-hover:opacity-100 transition-all duration-200"
+                          className="h-7 w-7 p-0 rounded-full hover:bg-purple-50 text-purple-600 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all duration-200 shrink-0"
                         >
                           {loadingSummaries.has(note.id) ? (
                             <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -220,7 +220,7 @@ export function NotepadCard({ notes, onToggleNote, onAddNote, onUpdateNote, onDe
                             variant="ghost"
                             size="sm"
                             onClick={() => onDeleteNote(note.id)}
-                            className="h-7 w-7 p-0 rounded-full hover:bg-red-50 text-red-500 opacity-0 group-hover:opacity-100 transition-all duration-200"
+                            className="h-7 w-7 p-0 rounded-full hover:bg-red-50 text-red-500 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all duration-200 shrink-0"
                           >
                             <Trash2 className="h-3.5 w-3.5" />
                           </Button>
@@ -241,7 +241,7 @@ export function NotepadCard({ notes, onToggleNote, onAddNote, onUpdateNote, onDe
                           variant="ghost"
                           size="sm"
                           onClick={() => onDeleteNote(note.id)}
-                          className="h-7 w-7 p-0 rounded-full hover:bg-red-50 text-red-500 opacity-0 group-hover:opacity-100 transition-all duration-200 shrink-0"
+                          className="h-7 w-7 p-0 rounded-full hover:bg-red-50 text-red-500 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all duration-200 shrink-0"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
