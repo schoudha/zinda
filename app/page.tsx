@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Header } from "@/components/dashboard/header";
 import { DateTabs } from "@/components/dashboard/date-tabs";
 import { NotepadCard } from "@/components/dashboard/notepad";
@@ -10,14 +10,66 @@ import { InputBar } from "@/components/dashboard/input-bar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { PasswordGate } from "@/components/auth/password-gate";
 
-export default function Home() {
-  const [notes, setNotes] = useState<string[]>([]);
+export interface Note {
+  id: string;
+  text: string;
+  checked: boolean;
+  checkedAt: Date | null;
+  createdAt: Date;
+}
 
-  const handleAddNote = (note: string) => {
-    if (note.trim()) {
-      setNotes([...notes, note.trim()]);
+export default function Home() {
+  const [notes, setNotes] = useState<Note[]>([]);
+
+  const handleAddNote = (noteText: string) => {
+    if (noteText.trim()) {
+      const newNote: Note = {
+        id: Date.now().toString(),
+        text: noteText.trim(),
+        checked: false,
+        checkedAt: null,
+        createdAt: new Date(),
+      };
+      setNotes((prev) => [...prev, newNote]);
     }
   };
+
+  const handleToggleNote = useCallback((noteId: string) => {
+    setNotes((prev) =>
+      prev.map((note) =>
+        note.id === noteId
+          ? {
+              ...note,
+              checked: !note.checked,
+              checkedAt: !note.checked ? new Date() : null,
+            }
+          : note
+      )
+    );
+  }, []);
+
+  // Clean up notes checked more than 1 week ago
+  useEffect(() => {
+    const cleanup = () => {
+      const oneWeekAgo = new Date();
+      oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+
+      setNotes((prev) =>
+        prev.filter(
+          (note) =>
+            !note.checked ||
+            !note.checkedAt ||
+            new Date(note.checkedAt) > oneWeekAgo
+        )
+      );
+    };
+
+    // Run cleanup on mount and then every hour
+    cleanup();
+    const interval = setInterval(cleanup, 60 * 60 * 1000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <PasswordGate>
@@ -34,7 +86,7 @@ export default function Home() {
               </div>
               
               <div className="flex flex-col gap-4 px-6">
-                <NotepadCard notes={notes} />
+                <NotepadCard notes={notes} onToggleNote={handleToggleNote} />
                 <WellbeingCard />
                 <HealthCard />
               </div>

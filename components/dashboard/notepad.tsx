@@ -1,12 +1,15 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Note } from "@/app/page";
 
 interface NotepadCardProps {
-  notes?: string[];
+  notes: Note[];
+  onToggleNote: (noteId: string) => void;
 }
 
-export function NotepadCard({ notes = [] }: NotepadCardProps) {
+export function NotepadCard({ notes, onToggleNote }: NotepadCardProps) {
   return (
     <Card className="border-none bg-white shadow-sm">
       <CardHeader className="pb-2 pt-6">
@@ -21,10 +24,20 @@ export function NotepadCard({ notes = [] }: NotepadCardProps) {
           </p>
         ) : (
           <ul className="space-y-3">
-            {notes.map((note, index) => (
-              <li key={index} className="flex items-start gap-3">
-                <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-black" />
-                <span className="text-sm font-medium text-gray-900">{note}</span>
+            {notes.map((note) => (
+              <li key={note.id} className="flex items-start gap-3">
+                <Checkbox
+                  checked={note.checked}
+                  onCheckedChange={() => onToggleNote(note.id)}
+                  className="mt-0.5"
+                />
+                <span
+                  className={`text-sm font-medium text-gray-900 flex-1 ${
+                    note.checked ? "line-through text-gray-400" : ""
+                  }`}
+                >
+                  {note.text}
+                </span>
               </li>
             ))}
           </ul>
