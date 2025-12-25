@@ -27,6 +27,21 @@ const dayOptions: { value: NotificationDays; label: string; description: string 
   { value: "weekend", label: "Weekend", description: "Friday evening to Sunday night" },
 ];
 
+function urlBase64ToUint8Array(base64String: string) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding)
+    .replace(/-/g, '+')
+    .replace(/_/g, '/');
+
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
+
 export function NotificationDialog({
   open,
   onOpenChange,
@@ -49,9 +64,62 @@ export function NotificationDialog({
 
   const handleSave = async () => {
     setIsSaving(true);
+
+    // Request notification permission if not already granted
+    if ("Notification" in window && Notification.permission !== "granted") {
+      const permission = await Notification.requestPermission();
+      if (permission !== "granted") {
+        alert("Please enable notifications to receive reminders.");
+        setIsSaving(false);
+        return;
+      }
+    }
+
+    // Subscribe to push notifications
+    try {
+      if ("serviceWorker" in navigator) {
+        const registration = await navigator.serviceWorker.ready;
+        const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+        
+        if (vapidPublicKey) {
+           const subscription = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
+          });
+
+          // Send subscription to backend
+          await fetch("/api/notifications/subscribe", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ subscription }),
+          });
+        } else {
+           console.warn("VAPID public key not found");
+        }
+      }
+    } catch (error) {
+      console.error("Error subscribing to push notifications:", error);
+      // We continue even if push subscription fails, as local notifications/email might still work (in theory)
+    }
+
     try {
       await onSave(selectedTime, selectedDays);
       onOpenChange(false);
+
+      // Show a confirmation notification
+      if ("Notification" in window && Notification.permission === "granted") {
+        // Find labels for confirmation message
+        const timeLabel = timeOptions.find(t => t.value === selectedTime)?.time;
+        const dayLabel = dayOptions.find(d => d.value === selectedDays)?.label;
+        
+        new Notification("Goal Reminder Set", { 
+          body: `We'll remind you about this goal ${dayLabel?.toLowerCase()} at ${timeLabel}.`,
+          icon: "/icon-192x192.png",
+          badge: "/icon-192x192.png"
+        });
+      }
     } catch (error) {
       console.error("Error saving notification settings:", error);
     } finally {
