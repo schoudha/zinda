@@ -12,8 +12,11 @@ export default function Home() {
     <PasswordGate>
       <main className="flex min-h-screen justify-center bg-gray-50">
         <div className="flex h-full w-full max-w-md flex-col bg-white shadow-2xl overflow-hidden min-h-screen relative">
+          <div className="p-6 pb-4 bg-white border-b border-gray-100">
+            <InputBar />
+          </div>
           <ScrollArea className="flex-1">
-            <div className="flex flex-col gap-6 pb-32">
+            <div className="flex flex-col gap-6 pb-6">
               <Header />
               <div className="px-6">
                 <DateTabs />
@@ -26,10 +29,6 @@ export default function Home() {
               </div>
             </div>
           </ScrollArea>
-          
-          <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-white via-white to-transparent pt-12">
-            <InputBar />
-          </div>
         </div>
       </main>
     </PasswordGate>
