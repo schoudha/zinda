@@ -51,6 +51,15 @@ export function NotepadCard({ notes, onToggleNote, onAddNote }: NotepadCardProps
     if (summaries[noteId]) return;
 
     // Otherwise, fetch it (fallback for old notes without summaries)
+    // Skip summary fetching for YouTube URLs (disabled due to blocking issues)
+    if (isYoutubeUrl(url)) {
+      setSummaries((prev) => ({ 
+        ...prev, 
+        [noteId]: "Summary generation is not available for YouTube videos at this time." 
+      }));
+      return;
+    }
+
     setLoadingSummaries((prev) => new Set(prev).add(noteId));
 
     fetch("/api/url/summarize", {
@@ -58,18 +67,25 @@ export function NotepadCard({ notes, onToggleNote, onAddNote }: NotepadCardProps
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ url }),
     })
-      .then((response) => {
+      .then(async (response) => {
         if (response.ok) {
-          return response.json();
+          const data = await response.json();
+          return data;
         }
-        throw new Error("Failed to fetch summary");
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(errorData.error || `Failed to fetch summary: ${response.status}`);
       })
       .then((data) => {
-        setSummaries((prev) => ({ ...prev, [noteId]: data.summary }));
+        if (data.summary) {
+          setSummaries((prev) => ({ ...prev, [noteId]: data.summary }));
+        } else {
+          setSummaries((prev) => ({ ...prev, [noteId]: "No summary available." }));
+        }
       })
       .catch((error) => {
         console.error("Error fetching summary:", error);
-        setSummaries((prev) => ({ ...prev, [noteId]: "Error loading summary. Please try again." }));
+        const errorMessage = error.message || "Error loading summary. Please try again.";
+        setSummaries((prev) => ({ ...prev, [noteId]: errorMessage }));
       })
       .finally(() => {
         setLoadingSummaries((prev) => {

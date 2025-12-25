@@ -23,22 +23,19 @@ export async function POST(request: NextRequest) {
     let pageContent = '';
     const isYoutube = isYoutubeUrl(url);
 
-    // If transcript is provided (client-side fetched for YouTube), use it
+    // Skip YouTube URLs - transcript fetching is disabled
     if (isYoutube) {
-      if (transcript && typeof transcript === 'string') {
-        pageContent = transcript;
-      } else {
-        // If no transcript provided, return error message
-        // This happens when client-side transcript fetch fails
-        return NextResponse.json(
-          { error: 'Could not fetch video transcript. The video may not have captions available, or there was an error fetching them.' },
-          { status: 400 }
-        );
-      }
+      return NextResponse.json(
+        { 
+          error: 'Summary generation is not available for YouTube videos at this time.',
+          url 
+        },
+        { status: 400 }
+      );
     }
 
-    // If not YouTube or transcript failed, fetch regular page content
-    if (!pageContent) {
+    // If not YouTube, fetch regular page content
+    if (!isYoutube && !pageContent) {
       try {
         const response = await fetch(url, {
           headers: {
@@ -56,10 +53,23 @@ export async function POST(request: NextRequest) {
             .replace(/\s+/g, ' ')
             .trim()
             .substring(0, 10000); // Limit to 10k chars
+        } else {
+          console.error('Failed to fetch page content:', response.status);
         }
       } catch (error) {
         console.error('Error fetching page content:', error);
       }
+    }
+
+    // If we still don't have content, return an error
+    if (!pageContent || pageContent.trim().length === 0) {
+      return NextResponse.json(
+        { 
+          error: 'Could not extract content from the URL. Please make sure the URL is accessible and contains readable content.',
+          url 
+        },
+        { status: 400 }
+      );
     }
 
     // Call Gemini API to summarize

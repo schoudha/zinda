@@ -14,7 +14,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PasswordGate } from "@/components/auth/password-gate";
 import { getFirstUrl } from "@/lib/url-utils";
 import { isYoutubeUrl } from "@/lib/url-utils";
-import { fetchYouTubeTranscript } from "@/lib/youtube-transcript-client";
 
 export interface Note {
   id: string;
@@ -63,42 +62,40 @@ function HomeContent() {
       // Fetch URL title and summary if URL is found
       if (url) {
         try {
-          // For YouTube URLs, fetch transcript on client side first
-          let transcript: string | undefined;
-          if (isYoutubeUrl(url)) {
-            try {
-              transcript = await fetchYouTubeTranscript(url) || undefined;
-            } catch (error) {
-              console.error("Error fetching YouTube transcript:", error);
-              // Continue without transcript - the API will handle the error gracefully
-            }
-          }
+          // Skip transcript fetching for YouTube URLs (disabled due to blocking issues)
+          // For YouTube URLs, we'll skip summary generation
+          const isYouTube = isYoutubeUrl(url);
 
-          // Fetch title and summary in parallel
-          const [titleResponse, summaryResponse] = await Promise.all([
-            fetch("/api/url/title", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ url }),
-            }),
-            fetch("/api/url/summarize", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ 
-                url,
-                transcript, // Pass transcript if available (for YouTube)
-              }),
-            }),
-          ]);
+          // Fetch title
+          const titleResponse = await fetch("/api/url/title", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ url }),
+          });
 
           if (titleResponse.ok) {
             const titleData = await titleResponse.json();
             urlTitle = titleData.title;
+          } else {
+            const errorData = await titleResponse.json().catch(() => null);
+            console.error("Title fetch failed:", titleResponse.status, errorData);
           }
 
-          if (summaryResponse.ok) {
-            const summaryData = await summaryResponse.json();
-            summary = summaryData.summary;
+          // Only fetch summary for non-YouTube URLs
+          if (!isYouTube) {
+            const summaryResponse = await fetch("/api/url/summarize", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ url }),
+            });
+
+            if (summaryResponse.ok) {
+              const summaryData = await summaryResponse.json();
+              summary = summaryData.summary;
+            } else {
+              const errorData = await summaryResponse.json().catch(() => null);
+              console.error("Summary fetch failed:", summaryResponse.status, errorData);
+            }
           }
         } catch (error) {
           console.error("Error fetching URL data:", error);
