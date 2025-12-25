@@ -5,38 +5,119 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
-export function InputBar() {
+interface InputBarProps {
+  onGoalCreated?: () => void;
+}
+
+export function InputBar({ onGoalCreated }: InputBarProps) {
   const [message, setMessage] = useState("");
-  const [response, setResponse] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Detect period from goal text
+  const detectPeriod = (text: string): "week" | "month" | "year" => {
+    const lowerText = text.toLowerCase();
+    if (lowerText.includes("year") || lowerText.includes("yearly") || lowerText.includes("annual")) {
+      return "year";
+    }
+    if (lowerText.includes("month") || lowerText.includes("monthly")) {
+      return "month";
+    }
+    return "week"; // Default to weekly
+  };
+
+  // Parse tips from Gemini response
+  const parseTips = (response: string): string[] => {
+    // Try to extract numbered or bulleted tips
+    const lines = response.split("\n").filter(line => line.trim().length > 0);
+    const tips: string[] = [];
+    
+    for (const line of lines) {
+      // Match numbered lists (1., 2., 3., etc.)
+      const numberedMatch = line.match(/^\d+[\.\)]\s*(.+)$/);
+      if (numberedMatch) {
+        tips.push(numberedMatch[1].trim());
+        continue;
+      }
+      
+      // Match bullet points (-, •, *, etc.)
+      const bulletMatch = line.match(/^[-•*]\s*(.+)$/);
+      if (bulletMatch) {
+        tips.push(bulletMatch[1].trim());
+        continue;
+      }
+      
+      // If line starts with a tip-like pattern
+      if (line.length > 20 && line.length < 200 && !line.includes(":")) {
+        tips.push(line.trim());
+      }
+    }
+    
+    // If we couldn't parse structured tips, split by sentences and take first 3
+    if (tips.length === 0) {
+      const sentences = response.split(/[.!?]+/).filter(s => s.trim().length > 20);
+      tips.push(...sentences.slice(0, 3).map(s => s.trim()));
+    }
+    
+    // Limit to 2-3 tips
+    return tips.slice(0, 3).filter(tip => tip.length > 0);
+  };
 
   const handleSubmit = async () => {
     if (!message.trim() || isLoading) return;
 
     setIsLoading(true);
-    setResponse(null);
 
     try {
-      const res = await fetch("/api/chat", {
+      const goalText = message.trim();
+      const period = detectPeriod(goalText);
+
+      // Get tips from Gemini
+      const tipsResponse = await fetch("/api/chat", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ 
-          message: `Create this goal: ${message}`
+          message: `Provide the user with 2-3 tips on how to achieve this goal: ${goalText}`
         }),
       });
 
-      if (!res.ok) {
-        throw new Error("Failed to get response");
+      if (!tipsResponse.ok) {
+        throw new Error("Failed to get tips from AI");
       }
 
-      const data = await res.json();
-      setResponse(data.response);
-      setMessage(""); // Clear input after successful send
+      const tipsData = await tipsResponse.json();
+      const tips = parseTips(tipsData.response);
+
+      // Create the goal
+      const goalId = Date.now().toString();
+      const goalResponse = await fetch("/api/goals", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id: goalId,
+          text: goalText,
+          period: period,
+          tips: tips,
+          createdAt: new Date().toISOString(),
+        }),
+      });
+
+      if (!goalResponse.ok) {
+        throw new Error("Failed to create goal");
+      }
+
+      setMessage(""); // Clear input after successful creation
+      
+      // Notify parent to refresh goals
+      if (onGoalCreated) {
+        onGoalCreated();
+      }
     } catch (error) {
-      console.error("Error sending message:", error);
-      setResponse("Sorry, there was an error processing your message.");
+      console.error("Error creating goal:", error);
+      alert("Sorry, there was an error creating your goal. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -61,33 +142,23 @@ export function InputBar() {
             placeholder="What's your main goal today?"
             disabled={isLoading}
           />
-          <div className="px-4 pb-4 flex justify-end">
-            <Button
-              onClick={handleSubmit}
-              disabled={isLoading || !message.trim()}
-              className="rounded-xl bg-black text-white hover:bg-gray-800 hover:scale-105 transition-all duration-200 px-6 h-10 font-medium text-sm shadow-lg shadow-gray-900/20"
-            >
-              {isLoading ? (
-                <div className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              ) : (
-                "Create Goal"
-              )}
-            </Button>
-          </div>
         </CardContent>
       </Card>
-
-      {response && (
-        <div className="bg-white border border-gray-100 rounded-2xl p-6 shadow-lg shadow-purple-500/5 ring-1 ring-purple-500/10 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="h-6 w-6 rounded-full bg-purple-100 flex items-center justify-center">
-              <div className="h-3 w-3 rounded-full bg-purple-600" />
-            </div>
-            <span className="text-xs font-bold text-purple-600 uppercase tracking-wider">AI Analysis</span>
+      
+      <Button
+        onClick={handleSubmit}
+        disabled={isLoading || !message.trim()}
+        className="w-full h-12 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 font-semibold text-base shadow-lg shadow-blue-500/25 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+      >
+        {isLoading ? (
+          <div className="flex items-center gap-2">
+            <div className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            <span>Creating Goal...</span>
           </div>
-          <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{response}</p>
-        </div>
-      )}
+        ) : (
+          "Create Goal"
+        )}
+      </Button>
     </div>
   );
 }

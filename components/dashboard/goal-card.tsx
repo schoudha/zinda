@@ -1,0 +1,73 @@
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+
+export interface Goal {
+  id: string;
+  text: string;
+  period: "week" | "month" | "year";
+  tips: string[];
+  createdAt: Date;
+  userId?: string;
+}
+
+interface GoalCardProps {
+  goal: Goal;
+  onDelete?: (goalId: string) => void;
+}
+
+export function GoalCard({ goal, onDelete }: GoalCardProps) {
+  const periodLabels = {
+    week: "Weekly",
+    month: "Monthly",
+    year: "Yearly",
+  };
+
+  const periodColors = {
+    week: "from-blue-50 to-indigo-50 text-blue-600/80",
+    month: "from-purple-50 to-pink-50 text-purple-600/80",
+    year: "from-orange-50 to-amber-50 text-orange-600/80",
+  };
+
+  return (
+    <Card className={`border-none bg-gradient-to-br ${periodColors[goal.period]} shadow-xl shadow-blue-900/5 rounded-3xl ring-1 ring-black/5 overflow-hidden transition-all duration-300 hover:shadow-blue-900/10 hover:scale-[1.01] relative`}>
+      {onDelete && (
+        <Button
+          variant="ghost"
+          size="icon"
+          className="absolute top-2 right-2 h-8 w-8 rounded-full opacity-60 hover:opacity-100 hover:bg-white/50"
+          onClick={() => onDelete(goal.id)}
+        >
+          <X className="h-4 w-4" />
+        </Button>
+      )}
+      <CardHeader className="pb-2 pt-6 px-6">
+        <CardTitle className={`text-[10px] font-bold uppercase tracking-widest ${periodColors[goal.period].split(' ')[2]} flex items-center gap-2`}>
+          <div className={`h-1.5 w-1.5 rounded-full ${goal.period === 'week' ? 'bg-blue-500' : goal.period === 'month' ? 'bg-purple-500' : 'bg-orange-500'} animate-pulse`} />
+          {periodLabels[goal.period]} Goal
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4 px-6 pb-6">
+        <h3 className="text-lg font-bold text-gray-900 leading-tight">
+          {goal.text}
+        </h3>
+        {goal.tips.length > 0 && (
+          <div className="space-y-3 pt-2">
+            <p className="text-xs font-semibold text-gray-600 uppercase tracking-wider">
+              Tips to achieve this goal:
+            </p>
+            <ul className="space-y-2">
+              {goal.tips.map((tip, index) => (
+                <li key={index} className="flex items-start gap-3 text-sm text-gray-700 leading-relaxed">
+                  <div className={`h-1.5 w-1.5 rounded-full ${goal.period === 'week' ? 'bg-blue-500' : goal.period === 'month' ? 'bg-purple-500' : 'bg-orange-500'} mt-2 shrink-0`} />
+                  <span className="flex-1">{tip}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+

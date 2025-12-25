@@ -9,6 +9,7 @@ import { WellbeingCard } from "@/components/dashboard/wellbeing-card";
 import { HealthCard } from "@/components/dashboard/health-card";
 import { InputBar } from "@/components/dashboard/input-bar";
 import { BottomNav } from "@/components/dashboard/bottom-nav";
+import { GoalCard, Goal } from "@/components/dashboard/goal-card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PasswordGate } from "@/components/auth/password-gate";
@@ -28,29 +29,38 @@ export interface Note {
 
 function HomeContent() {
   const [notes, setNotes] = useState<Note[]>([]);
+  const [goals, setGoals] = useState<Goal[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"goals" | "notepad">("goals");
   const [selectedPeriod, setSelectedPeriod] = useState<"week" | "month" | "year">("week");
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  // Load notes from database on mount
+  // Load notes and goals from database on mount
   useEffect(() => {
-    const loadNotes = async () => {
+    const loadData = async () => {
       try {
-        const response = await fetch("/api/notes");
-        if (response.ok) {
-          const data = await response.json();
-          setNotes(data.notes || []);
+        // Load notes
+        const notesResponse = await fetch("/api/notes");
+        if (notesResponse.ok) {
+          const notesData = await notesResponse.json();
+          setNotes(notesData.notes || []);
+        }
+
+        // Load goals
+        const goalsResponse = await fetch("/api/goals");
+        if (goalsResponse.ok) {
+          const goalsData = await goalsResponse.json();
+          setGoals(goalsData.goals || []);
         }
       } catch (error) {
-        console.error("Error loading notes:", error);
+        console.error("Error loading data:", error);
       } finally {
         setIsLoading(false);
       }
     };
 
-    loadNotes();
+    loadData();
   }, []);
 
   const handleAddNote = async (noteText: string) => {
@@ -218,6 +228,51 @@ function HomeContent() {
     }
   }, []);
 
+  const handleDeleteGoal = useCallback(async (goalId: string) => {
+    // Optimistically remove from local state
+    setGoals((prev) => prev.filter((g) => g.id !== goalId));
+
+    // Delete from database
+    try {
+      await fetch(`/api/goals?id=${goalId}`, {
+        method: "DELETE",
+      });
+    } catch (error) {
+      console.error("Error deleting goal:", error);
+      // Revert on error
+      const goalsResponse = await fetch("/api/goals");
+      if (goalsResponse.ok) {
+        const goalsData = await goalsResponse.json();
+        setGoals(goalsData.goals || []);
+      }
+    }
+  }, []);
+
+  const handleGoalCreated = useCallback(async () => {
+    // Reload goals after creation
+    try {
+      const goalsResponse = await fetch("/api/goals");
+      if (goalsResponse.ok) {
+        const goalsData = await goalsResponse.json();
+        setGoals(goalsData.goals || []);
+      }
+    } catch (error) {
+      console.error("Error reloading goals:", error);
+    }
+  }, []);
+
+  // Filter goals based on selected period
+  // Show weekly goals in week view
+  // Show monthly goals in month and week views
+  // Show yearly goals in all views
+  const getGoalsForPeriod = (period: "week" | "month" | "year"): Goal[] => {
+    return goals.filter((goal) => {
+      if (goal.period === "year") return true; // Yearly goals show in all views
+      if (goal.period === "month") return period === "month" || period === "week"; // Monthly goals show in month and week
+      return goal.period === period; // Weekly goals only in week view
+    });
+  };
+
   // Handle shared content from share target
   useEffect(() => {
     const handleSharedContent = async () => {
@@ -299,63 +354,37 @@ function HomeContent() {
             {activeTab === "goals" ? (
               <>
                 <div className="px-6">
-                  <InputBar />
+                  <InputBar onGoalCreated={handleGoalCreated} />
                 </div>
                 <div className="px-6">
                   <DateTabs value={selectedPeriod} onValueChange={setSelectedPeriod} />
                 </div>
-                {selectedPeriod === "week" && (
-                  <div className="flex flex-col gap-4 px-6">
-                    <WellbeingCard />
-                    <HealthCard />
-                  </div>
-                )}
-                {selectedPeriod === "month" && (
-                  <div className="flex flex-col gap-4 px-6">
-                    <Card className="border-none bg-white shadow-sm">
-                      <CardHeader className="pb-2 pt-6">
-                        <CardTitle className="text-xs font-bold uppercase tracking-wider text-gray-500">
-                          Monthly Overview
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <p className="text-sm text-gray-600">
-                          View your monthly progress and goals here.
-                        </p>
-                      </CardContent>
-                    </Card>
-                    <WellbeingCard />
-                    <HealthCard />
-                  </div>
-                )}
-                {selectedPeriod === "year" && (
-                  <div className="flex flex-col gap-4 px-6">
-                    <Card className="border-none bg-white shadow-sm">
-                      <CardHeader className="pb-2 pt-6">
-                        <CardTitle className="text-xs font-bold uppercase tracking-wider text-gray-500">
-                          Yearly Goals
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <p className="text-sm text-gray-600">
-                          Track your long-term goals and annual progress.
-                        </p>
-                      </CardContent>
-                    </Card>
-                    <Card className="border-none bg-white shadow-sm">
-                      <CardHeader className="pb-2 pt-6">
-                        <CardTitle className="text-xs font-bold uppercase tracking-wider text-gray-500">
-                          Annual Summary
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <p className="text-sm text-gray-600">
-                          Your yearly achievements and milestones.
-                        </p>
-                      </CardContent>
-                    </Card>
-                  </div>
-                )}
+                <div className="flex flex-col gap-4 px-6">
+                  {/* Display goals for the selected period */}
+                  {getGoalsForPeriod(selectedPeriod).map((goal) => (
+                    <GoalCard key={goal.id} goal={goal} onDelete={handleDeleteGoal} />
+                  ))}
+                  
+                  {/* Show other cards based on period */}
+                  {selectedPeriod === "week" && (
+                    <>
+                      <WellbeingCard />
+                      <HealthCard />
+                    </>
+                  )}
+                  {selectedPeriod === "month" && (
+                    <>
+                      <WellbeingCard />
+                      <HealthCard />
+                    </>
+                  )}
+                  {selectedPeriod === "year" && (
+                    <>
+                      <WellbeingCard />
+                      <HealthCard />
+                    </>
+                  )}
+                </div>
               </>
             ) : (
               <div className="flex flex-col gap-4 px-4 overflow-hidden">
