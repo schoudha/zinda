@@ -1,6 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { YoutubeTranscript } from 'youtube-transcript';
 import { isYoutubeUrl } from '@/lib/url-utils';
+
+/**
+ * Extract video ID from YouTube URL
+ */
+function extractVideoId(url: string): string | null {
+  const patterns = [
+    /(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?#]+)/,
+    /youtube\.com\/embed\/([^&\n?#]+)/,
+    /youtube\.com\/v\/([^&\n?#]+)/,
+  ];
+  
+  for (const pattern of patterns) {
+    const match = url.match(pattern);
+    if (match && match[1]) {
+      return match[1];
+    }
+  }
+  return null;
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -26,15 +44,109 @@ export async function POST(request: NextRequest) {
 
     if (isYoutube) {
       try {
-        const transcript = await YoutubeTranscript.fetchTranscript(url);
-        pageContent = transcript.map((item: { text: string }) => item.text).join(' ');
-        // Limit transcript length if needed, though Gemini Flash handles large context
+        const videoId = extractVideoId(url);
+        if (!videoId) {
+          throw new Error('Could not extract video ID');
+        }
+
+        // Fetch the YouTube watch page
+        const ytResponse = await fetch(`https://www.youtube.com/watch?v=${videoId}`, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.5',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'DNT': '1',
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1',
+          },
+        });
+
+        if (!ytResponse.ok) {
+          throw new Error(`YouTube request failed: ${ytResponse.status}`);
+        }
+
+        const html = await ytResponse.text();
+        
+        // Extract ytInitialPlayerResponse which contains caption tracks
+        // Handle both single-line and multiline JSON - use [\s\S] to match any character including newlines
+        let playerResponseMatch = html.match(/var ytInitialPlayerResponse = ([\s\S]+?});/);
+        if (!playerResponseMatch) {
+          // Try alternative pattern without semicolon (may be at end of script tag)
+          playerResponseMatch = html.match(/var ytInitialPlayerResponse = ([\s\S]+?)\s*<\/script>/);
+        }
+        
+        if (!playerResponseMatch) {
+          throw new Error('Could not find player response data');
+        }
+
+        let playerData;
+        try {
+          playerData = JSON.parse(playerResponseMatch[1]);
+        } catch (parseError) {
+          throw new Error('Could not parse player response data');
+        }
+
+        const captions = playerData?.captions?.playerCaptionsTracklistRenderer?.captionTracks;
+        
+        if (!captions || captions.length === 0) {
+          throw new Error('No captions available for this video');
+        }
+
+        // Try to find English captions first, otherwise use the first available
+        let captionTrack = captions.find((track: { languageCode: string }) => 
+          track.languageCode === 'en' || track.languageCode?.startsWith('en')
+        ) || captions[0];
+
+        if (!captionTrack?.baseUrl) {
+          throw new Error('No valid caption track URL found');
+        }
+
+        // Fetch the caption XML
+        const captionResponse = await fetch(captionTrack.baseUrl, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'Accept': '*/*',
+          },
+        });
+
+        if (!captionResponse.ok) {
+          throw new Error(`Caption fetch failed: ${captionResponse.status}`);
+        }
+
+        const captionXml = await captionResponse.text();
+        
+        // Parse XML to extract text - handle both <text> tags and <transcript> structure
+        const textRegex = /<text[^>]*>([^<]+)<\/text>/gi;
+        const matches = captionXml.matchAll(textRegex);
+        const textParts: string[] = [];
+        
+        for (const match of matches) {
+          const text = match[1]
+            .replace(/&amp;/g, '&')
+            .replace(/&lt;/g, '<')
+            .replace(/&gt;/g, '>')
+            .replace(/&quot;/g, '"')
+            .replace(/&#39;/g, "'")
+            .trim();
+          if (text) {
+            textParts.push(text);
+          }
+        }
+
+        if (textParts.length === 0) {
+          throw new Error('No text found in captions');
+        }
+
+        pageContent = textParts.join(' ');
+        
+        // Limit transcript length
         if (pageContent.length > 20000) {
-            pageContent = pageContent.substring(0, 20000);
+          pageContent = pageContent.substring(0, 20000);
         }
       } catch (error) {
         console.error('Error fetching YouTube transcript:', error);
-        // Fallback to regular summary if transcript fails (might get metadata)
+        // Fallback to regular summary if transcript fails
         isYoutube = false; 
       }
     }
