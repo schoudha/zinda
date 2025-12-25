@@ -5,24 +5,13 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
-interface InputBarProps {
-  onAddNote?: (note: string) => void;
-}
-
-export function InputBar({ onAddNote }: InputBarProps) {
+export function InputBar() {
   const [message, setMessage] = useState("");
   const [response, setResponse] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = async (action: "note" | "goal") => {
+  const handleSubmit = async () => {
     if (!message.trim() || isLoading) return;
-
-    if (action === "note" && onAddNote) {
-      // Add note directly without API call
-      onAddNote(message);
-      setMessage("");
-      return;
-    }
 
     setIsLoading(true);
     setResponse(null);
@@ -56,7 +45,7 @@ export function InputBar({ onAddNote }: InputBarProps) {
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      handleSubmit("goal");
+      handleSubmit();
     }
   };
 
@@ -69,23 +58,15 @@ export function InputBar({ onAddNote }: InputBarProps) {
             onChange={(e) => setMessage(e.target.value)}
             onKeyDown={handleKeyDown}
             className="w-full border-none bg-transparent p-0 text-sm shadow-none focus-visible:ring-0 placeholder:text-gray-400 overflow-visible"
-            placeholder="What are you trying to achieve? Or just add a note to track later"
+            placeholder="What are you trying to achieve?"
             disabled={isLoading}
           />
         </CardContent>
       </Card>
 
-      <div className="flex gap-2">
+      <div className="flex">
         <Button
-          onClick={() => handleSubmit("note")}
-          disabled={isLoading || !message.trim()}
-          variant="outline"
-          className="flex-1"
-        >
-          Add Note
-        </Button>
-        <Button
-          onClick={() => handleSubmit("goal")}
+          onClick={handleSubmit}
           disabled={isLoading || !message.trim()}
           variant="default"
           className="flex-1 bg-black text-white hover:bg-gray-800"

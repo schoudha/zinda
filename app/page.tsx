@@ -233,7 +233,7 @@ function HomeContent() {
             {activeTab === "goals" ? (
               <>
                 <div className="px-6">
-                  <InputBar onAddNote={handleAddNote} />
+                  <InputBar />
                 </div>
                 <div className="px-6">
                   <DateTabs value={selectedPeriod} onValueChange={setSelectedPeriod} />
@@ -293,7 +293,11 @@ function HomeContent() {
               </>
             ) : (
               <div className="flex flex-col gap-4 px-6">
-                <NotepadCard notes={notes} onToggleNote={handleToggleNote} />
+                <NotepadCard 
+                  notes={notes} 
+                  onToggleNote={handleToggleNote} 
+                  onAddNote={handleAddNote}
+                />
               </div>
             )}
           </div>

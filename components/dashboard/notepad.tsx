@@ -13,18 +13,29 @@ import {
   DialogBody,
 } from "@/components/ui/dialog";
 import { Note } from "@/app/page";
-import { ExternalLink, Sparkles, Loader2, Youtube } from "lucide-react";
+import { ExternalLink, Sparkles, Loader2, Youtube, Plus } from "lucide-react";
 import { isYoutubeUrl } from "@/lib/url-utils";
+import { Input } from "@/components/ui/input";
 
 interface NotepadCardProps {
   notes: Note[];
   onToggleNote: (noteId: string) => void;
+  onAddNote: (text: string) => void;
 }
 
-export function NotepadCard({ notes, onToggleNote }: NotepadCardProps) {
+export function NotepadCard({ notes, onToggleNote, onAddNote }: NotepadCardProps) {
+  const [newNoteText, setNewNoteText] = useState("");
   const [openDialogId, setOpenDialogId] = useState<string | null>(null);
   const [loadingSummaries, setLoadingSummaries] = useState<Set<string>>(new Set());
   const [summaries, setSummaries] = useState<Record<string, string>>({});
+
+  const handleAddSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newNoteText.trim()) {
+      onAddNote(newNoteText);
+      setNewNoteText("");
+    }
+  };
 
   const handleGetSummary = async (noteId: string, url: string, title: string) => {
     setOpenDialogId(noteId);
@@ -68,7 +79,20 @@ export function NotepadCard({ notes, onToggleNote }: NotepadCardProps) {
           Notes
         </CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-4">
+        <form onSubmit={handleAddSubmit} className="flex gap-2">
+          <Input
+            value={newNoteText}
+            onChange={(e) => setNewNoteText(e.target.value)}
+            placeholder="Add a new note..."
+            className="flex-1 h-9 text-sm"
+          />
+          <Button type="submit" size="sm" className="h-9 px-3 bg-black text-white hover:bg-gray-800">
+            <Plus className="h-4 w-4 mr-1" />
+            Add
+          </Button>
+        </form>
+
         {notes.length === 0 ? (
           <p className="text-sm text-gray-400 italic py-4">
             No notes yet. Add a note using the input above.
