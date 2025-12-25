@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, Suspense } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { Header } from "@/components/dashboard/header";
 import { DateTabs } from "@/components/dashboard/date-tabs";
 import { NotepadCard } from "@/components/dashboard/notepad";
@@ -21,9 +22,11 @@ export interface Note {
   urlTitle?: string;
 }
 
-export default function Home() {
+function HomeContent() {
   const [notes, setNotes] = useState<Note[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const searchParams = useSearchParams();
+  const router = useRouter();
 
   // Load notes from database on mount
   useEffect(() => {
@@ -148,10 +151,9 @@ export default function Home() {
   // Handle shared content from share target
   useEffect(() => {
     const handleSharedContent = async () => {
-      const urlParams = new URLSearchParams(window.location.search);
-      const title = urlParams.get('title');
-      const text = urlParams.get('text');
-      const url = urlParams.get('url');
+      const title = searchParams.get('title');
+      const text = searchParams.get('text');
+      const url = searchParams.get('url');
       
       // Determine what to save - prioritize URL if present, otherwise use text or title
       const sharedContent = url || text || title || null;
@@ -160,13 +162,13 @@ export default function Home() {
         // Add it as a note using the existing handler
         await handleAddNote(sharedContent);
         
-        // Clean up the URL parameters
-        window.history.replaceState({}, '', window.location.pathname);
+        // Clean up the URL parameters using router.replace
+        router.replace('/', { scroll: false });
       }
     };
 
     handleSharedContent();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [searchParams, router]); // React to search params changes
 
   // Clean up notes checked more than 1 week ago
   useEffect(() => {
@@ -219,28 +221,36 @@ export default function Home() {
   }, []);
 
   return (
-    <PasswordGate>
-      <main className="flex min-h-screen justify-center bg-gray-50">
-        <div className="flex h-full w-full max-w-md flex-col bg-white shadow-2xl overflow-hidden min-h-screen relative">
-          <ScrollArea className="flex-1">
-            <div className="flex flex-col gap-6 pb-6">
-              <Header />
-              <div className="px-6">
-                <InputBar onAddNote={handleAddNote} />
-              </div>
-              <div className="px-6">
-                <DateTabs />
-              </div>
-              
-              <div className="flex flex-col gap-4 px-6">
-                <NotepadCard notes={notes} onToggleNote={handleToggleNote} />
-                <WellbeingCard />
-                <HealthCard />
-              </div>
+    <main className="flex min-h-screen justify-center bg-gray-50">
+      <div className="flex h-full w-full max-w-md flex-col bg-white shadow-2xl overflow-hidden min-h-screen relative">
+        <ScrollArea className="flex-1">
+          <div className="flex flex-col gap-6 pb-6">
+            <Header />
+            <div className="px-6">
+              <InputBar onAddNote={handleAddNote} />
             </div>
-          </ScrollArea>
-        </div>
-      </main>
+            <div className="px-6">
+              <DateTabs />
+            </div>
+            
+            <div className="flex flex-col gap-4 px-6">
+              <NotepadCard notes={notes} onToggleNote={handleToggleNote} />
+              <WellbeingCard />
+              <HealthCard />
+            </div>
+          </div>
+        </ScrollArea>
+      </div>
+    </main>
+  );
+}
+
+export default function Home() {
+  return (
+    <PasswordGate>
+      <Suspense fallback={<div className="flex min-h-screen items-center justify-center bg-gray-50">Loading...</div>}>
+        <HomeContent />
+      </Suspense>
     </PasswordGate>
   );
 }
