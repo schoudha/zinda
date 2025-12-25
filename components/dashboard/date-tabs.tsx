@@ -1,24 +1,47 @@
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+"use client";
 
-export function DateTabs() {
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { cn } from "@/lib/utils";
+
+interface DateTabsProps {
+  value: "week" | "month" | "year";
+  onValueChange: (value: "week" | "month" | "year") => void;
+}
+
+export function DateTabs({ value, onValueChange }: DateTabsProps) {
   return (
-    <Tabs defaultValue="week" className="w-full">
+    <Tabs value={value} onValueChange={(val) => onValueChange(val as "week" | "month" | "year")} className="w-full">
       <TabsList className="grid w-full grid-cols-3 bg-transparent p-0">
         <TabsTrigger
           value="week"
-          className="rounded-full bg-blue-100 font-medium text-blue-700 data-[state=active]:bg-blue-100 data-[state=active]:text-blue-700 data-[state=active]:shadow-none"
+          className={cn(
+            "rounded-full font-medium transition-colors",
+            value === "week"
+              ? "bg-blue-100 text-blue-700 shadow-none"
+              : "bg-transparent text-gray-500 hover:bg-gray-50"
+          )}
         >
           Week
         </TabsTrigger>
         <TabsTrigger
           value="month"
-          className="rounded-full bg-transparent font-medium text-gray-500 data-[state=active]:bg-gray-100 data-[state=active]:text-gray-900"
+          className={cn(
+            "rounded-full font-medium transition-colors",
+            value === "month"
+              ? "bg-blue-100 text-blue-700 shadow-none"
+              : "bg-transparent text-gray-500 hover:bg-gray-50"
+          )}
         >
           Month
         </TabsTrigger>
         <TabsTrigger
           value="year"
-          className="rounded-full bg-transparent font-medium text-gray-500 data-[state=active]:bg-gray-100 data-[state=active]:text-gray-900"
+          className={cn(
+            "rounded-full font-medium transition-colors",
+            value === "year"
+              ? "bg-blue-100 text-blue-700 shadow-none"
+              : "bg-transparent text-gray-500 hover:bg-gray-50"
+          )}
         >
           Year
         </TabsTrigger>

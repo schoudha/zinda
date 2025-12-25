@@ -10,6 +10,7 @@ import { HealthCard } from "@/components/dashboard/health-card";
 import { InputBar } from "@/components/dashboard/input-bar";
 import { BottomNav } from "@/components/dashboard/bottom-nav";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PasswordGate } from "@/components/auth/password-gate";
 import { getFirstUrl } from "@/lib/url-utils";
 
@@ -27,6 +28,7 @@ function HomeContent() {
   const [notes, setNotes] = useState<Note[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"goals" | "notepad">("goals");
+  const [selectedPeriod, setSelectedPeriod] = useState<"week" | "month" | "year">("week");
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -234,12 +236,60 @@ function HomeContent() {
                   <InputBar onAddNote={handleAddNote} />
                 </div>
                 <div className="px-6">
-                  <DateTabs />
+                  <DateTabs value={selectedPeriod} onValueChange={setSelectedPeriod} />
                 </div>
-                <div className="flex flex-col gap-4 px-6">
-                  <WellbeingCard />
-                  <HealthCard />
-                </div>
+                {selectedPeriod === "week" && (
+                  <div className="flex flex-col gap-4 px-6">
+                    <WellbeingCard />
+                    <HealthCard />
+                  </div>
+                )}
+                {selectedPeriod === "month" && (
+                  <div className="flex flex-col gap-4 px-6">
+                    <Card className="border-none bg-white shadow-sm">
+                      <CardHeader className="pb-2 pt-6">
+                        <CardTitle className="text-xs font-bold uppercase tracking-wider text-gray-500">
+                          Monthly Overview
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-sm text-gray-600">
+                          View your monthly progress and goals here.
+                        </p>
+                      </CardContent>
+                    </Card>
+                    <WellbeingCard />
+                    <HealthCard />
+                  </div>
+                )}
+                {selectedPeriod === "year" && (
+                  <div className="flex flex-col gap-4 px-6">
+                    <Card className="border-none bg-white shadow-sm">
+                      <CardHeader className="pb-2 pt-6">
+                        <CardTitle className="text-xs font-bold uppercase tracking-wider text-gray-500">
+                          Yearly Goals
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-sm text-gray-600">
+                          Track your long-term goals and annual progress.
+                        </p>
+                      </CardContent>
+                    </Card>
+                    <Card className="border-none bg-white shadow-sm">
+                      <CardHeader className="pb-2 pt-6">
+                        <CardTitle className="text-xs font-bold uppercase tracking-wider text-gray-500">
+                          Annual Summary
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-sm text-gray-600">
+                          Your yearly achievements and milestones.
+                        </p>
+                      </CardContent>
+                    </Card>
+                  </div>
+                )}
               </>
             ) : (
               <div className="flex flex-col gap-4 px-6">
