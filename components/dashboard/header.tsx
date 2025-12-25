@@ -48,10 +48,7 @@ export function Header({
       </h1>
       {quote && (
         <div className="space-y-1">
-          <p className="text-sm text-gray-700 leading-relaxed italic" dir="rtl" lang="ar">
-            {quote.arabic}
-          </p>
-          <p className="text-xs text-gray-600">
+          <p className="text-sm text-gray-700 leading-relaxed">
             {quote.english}
           </p>
           <p className="text-xs text-gray-400">
