@@ -20,6 +20,15 @@
       "purpose": "maskable"
     }
   ],
-  "orientation": "portrait"
+  "orientation": "portrait",
+  "share_target": {
+    "action": "/",
+    "method": "GET",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  }
 }
 

@@ -73,6 +73,29 @@ export default function Home() {
     );
   }, []);
 
+  // Handle shared content from share target
+  useEffect(() => {
+    const handleSharedContent = async () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const title = urlParams.get('title');
+      const text = urlParams.get('text');
+      const url = urlParams.get('url');
+      
+      // Determine what to save - prioritize URL if present, otherwise use text or title
+      const sharedContent = url || text || title || null;
+      
+      if (sharedContent) {
+        // Add it as a note using the existing handler
+        await handleAddNote(sharedContent);
+        
+        // Clean up the URL parameters
+        window.history.replaceState({}, '', window.location.pathname);
+      }
+    };
+
+    handleSharedContent();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Clean up notes checked more than 1 week ago
   useEffect(() => {
     const cleanup = () => {
