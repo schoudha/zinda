@@ -203,6 +203,21 @@ function HomeContent() {
     }
   }, []);
 
+  const handleDeleteNote = useCallback(async (noteId: string) => {
+    // Optimistically remove from local state
+    setNotes((prev) => prev.filter((n) => n.id !== noteId));
+
+    // Delete from database
+    try {
+      await fetch(`/api/notes?id=${noteId}`, {
+        method: "DELETE",
+      });
+    } catch (error) {
+      console.error("Error deleting note:", error);
+      // We could revert here if needed, but for deletion it's often better to just fail silently or show a toast
+    }
+  }, []);
+
   // Handle shared content from share target
   useEffect(() => {
     const handleSharedContent = async () => {
@@ -349,6 +364,7 @@ function HomeContent() {
                   onToggleNote={handleToggleNote} 
                   onAddNote={handleAddNote}
                   onUpdateNote={handleUpdateNote}
+                  onDeleteNote={handleDeleteNote}
                 />
               </div>
             )}

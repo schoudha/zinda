@@ -13,7 +13,7 @@ import {
   DialogBody,
 } from "@/components/ui/dialog";
 import { Note } from "@/app/page";
-import { ExternalLink, Sparkles, Loader2, Youtube, Plus, FileText } from "lucide-react";
+import { ExternalLink, Sparkles, Loader2, Youtube, Plus, FileText, Trash2 } from "lucide-react";
 import { isYoutubeUrl } from "@/lib/url-utils";
 import { Input } from "@/components/ui/input";
 
@@ -22,9 +22,10 @@ interface NotepadCardProps {
   onToggleNote: (noteId: string) => void;
   onAddNote: (text: string) => void;
   onUpdateNote?: (noteId: string, updates: Partial<Note>) => void;
+  onDeleteNote?: (noteId: string) => void;
 }
 
-export function NotepadCard({ notes, onToggleNote, onAddNote, onUpdateNote }: NotepadCardProps) {
+export function NotepadCard({ notes, onToggleNote, onAddNote, onUpdateNote, onDeleteNote }: NotepadCardProps) {
   const [newNoteText, setNewNoteText] = useState("");
   const [openDialogId, setOpenDialogId] = useState<string | null>(null);
   const [loadingSummaries, setLoadingSummaries] = useState<Set<string>>(new Set());
@@ -214,16 +215,38 @@ export function NotepadCard({ notes, onToggleNote, onAddNote, onUpdateNote }: No
                             <Sparkles className="h-3.5 w-3.5" />
                           )}
                         </Button>
+                        {onDeleteNote && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => onDeleteNote(note.id)}
+                            className="h-7 w-7 p-0 rounded-full hover:bg-red-50 text-red-500 opacity-0 group-hover:opacity-100 transition-all duration-200"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
                       </div>
                     </div>
                   ) : (
-                    <span
-                      className={`text-sm font-medium transition-all duration-200 block leading-relaxed break-words whitespace-pre-wrap ${
-                        note.checked ? "line-through text-gray-400 decoration-gray-300" : "text-gray-700"
-                      }`}
-                    >
-                      {note.text}
-                    </span>
+                    <div className="flex items-start justify-between gap-2">
+                      <span
+                        className={`text-sm font-medium transition-all duration-200 block leading-relaxed break-words whitespace-pre-wrap flex-1 ${
+                          note.checked ? "line-through text-gray-400 decoration-gray-300" : "text-gray-700"
+                        }`}
+                      >
+                        {note.text}
+                      </span>
+                      {onDeleteNote && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => onDeleteNote(note.id)}
+                          className="h-7 w-7 p-0 rounded-full hover:bg-red-50 text-red-500 opacity-0 group-hover:opacity-100 transition-all duration-200 shrink-0"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                    </div>
                   )}
                 </div>
               </li>
