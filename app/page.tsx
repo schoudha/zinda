@@ -174,20 +174,20 @@ function HomeContent() {
     handleSharedContent();
   }, [searchParams, router]); // React to search params changes
 
-  // Clean up notes checked more than 1 week ago
+  // Clean up notes checked more than 1 day ago
   useEffect(() => {
     const cleanup = async () => {
       // Use functional update to avoid dependency on notes
       setNotes((currentNotes) => {
-        const oneWeekAgo = new Date();
-        oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+        const oneDayAgo = new Date();
+        oneDayAgo.setDate(oneDayAgo.getDate() - 1);
 
         // Find notes to delete
         const notesToDelete = currentNotes.filter(
           (note) =>
             note.checked &&
             note.checkedAt &&
-            new Date(note.checkedAt) <= oneWeekAgo
+            new Date(note.checkedAt) <= oneDayAgo
         );
 
         if (notesToDelete.length > 0) {
@@ -203,7 +203,7 @@ function HomeContent() {
             (note) =>
               !note.checked ||
               !note.checkedAt ||
-              new Date(note.checkedAt) > oneWeekAgo
+              new Date(note.checkedAt) > oneDayAgo
           );
         }
         
