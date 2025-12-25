@@ -12,12 +12,15 @@ export default function Home() {
     <PasswordGate>
       <main className="flex min-h-screen justify-center bg-gray-50">
         <div className="flex h-full w-full max-w-md flex-col bg-white shadow-2xl overflow-hidden min-h-screen relative">
-          <div className="p-6 pb-4 bg-white border-b border-gray-100">
-            <InputBar />
-          </div>
           <ScrollArea className="flex-1">
+            <p className="text-center text-xs font-medium text-gray-900 px-6">
+              Spending velocity is high. <span className="text-purple-600">$45 remaining today.</span>
+            </p>
             <div className="flex flex-col gap-6 pb-6">
               <Header />
+              <div className="px-6">
+                <InputBar />
+              </div>
               <div className="px-6">
                 <DateTabs />
               </div>
