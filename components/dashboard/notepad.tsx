@@ -178,12 +178,12 @@ export function NotepadCard({ notes, onToggleNote, onAddNote, onUpdateNote, onDe
                 <div className="flex-1 min-w-0 pt-0.5">
                   {note.url ? (
                     <div className="space-y-1.5">
-                      <div className="flex items-start justify-between gap-4">
+                      <div className="flex items-start gap-2">
                         <a
                           href={note.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className={`text-sm font-medium flex items-start gap-2 hover:underline transition-colors ${
+                          className={`text-sm font-medium flex items-start gap-2 hover:underline transition-colors flex-1 min-w-0 ${
                             note.checked
                               ? "line-through text-gray-400 decoration-gray-300"
                               : "text-blue-600 hover:text-blue-700"
@@ -202,35 +202,37 @@ export function NotepadCard({ notes, onToggleNote, onAddNote, onUpdateNote, onDe
                             {note.urlTitle || (loadingTitles.has(note.id) ? "Fetching title..." : note.text)}
                           </span>
                         </a>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleGetSummary(note.id, note.url!, note.urlTitle || note.text)}
-                          disabled={loadingSummaries.has(note.id)}
-                          className="h-7 w-7 p-0 rounded-full hover:bg-purple-50 text-purple-600 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all duration-200 shrink-0"
-                        >
-                          {loadingSummaries.has(note.id) ? (
-                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                          ) : (
-                            <Sparkles className="h-3.5 w-3.5" />
-                          )}
-                        </Button>
-                        {onDeleteNote && (
+                        <div className="flex items-center gap-1 shrink-0">
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => onDeleteNote(note.id)}
-                            className="h-7 w-7 p-0 rounded-full hover:bg-red-50 text-red-500 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all duration-200 shrink-0"
+                            onClick={() => handleGetSummary(note.id, note.url!, note.urlTitle || note.text)}
+                            disabled={loadingSummaries.has(note.id)}
+                            className="h-7 w-7 p-0 rounded-full hover:bg-purple-50 text-purple-600 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all duration-200"
                           >
-                            <Trash2 className="h-3.5 w-3.5" />
+                            {loadingSummaries.has(note.id) ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <Sparkles className="h-3.5 w-3.5" />
+                            )}
                           </Button>
-                        )}
+                          {onDeleteNote && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => onDeleteNote(note.id)}
+                              className="h-7 w-7 p-0 rounded-full hover:bg-red-50 text-red-500 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all duration-200"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
+                        </div>
                       </div>
                     </div>
                   ) : (
-                    <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-start gap-2">
                       <span
-                        className={`text-sm font-medium transition-all duration-200 block leading-relaxed break-words whitespace-pre-wrap flex-1 ${
+                        className={`text-sm font-medium transition-all duration-200 block leading-relaxed break-words whitespace-pre-wrap flex-1 min-w-0 ${
                           note.checked ? "line-through text-gray-400 decoration-gray-300" : "text-gray-700"
                         }`}
                       >
