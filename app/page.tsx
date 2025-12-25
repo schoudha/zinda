@@ -182,6 +182,27 @@ function HomeContent() {
     }
   }, [notes]);
 
+  const handleUpdateNote = useCallback(async (noteId: string, updates: Partial<Note>) => {
+    // Update local state
+    setNotes((prev) =>
+      prev.map((n) => (n.id === noteId ? { ...n, ...updates } : n))
+    );
+
+    // Update in database
+    try {
+      await fetch("/api/notes", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: noteId,
+          ...updates,
+        }),
+      });
+    } catch (error) {
+      console.error("Error updating note:", error);
+    }
+  }, []);
+
   // Handle shared content from share target
   useEffect(() => {
     const handleSharedContent = async () => {
@@ -327,6 +348,7 @@ function HomeContent() {
                   notes={notes} 
                   onToggleNote={handleToggleNote} 
                   onAddNote={handleAddNote}
+                  onUpdateNote={handleUpdateNote}
                 />
               </div>
             )}

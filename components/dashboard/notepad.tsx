@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
@@ -21,13 +21,42 @@ interface NotepadCardProps {
   notes: Note[];
   onToggleNote: (noteId: string) => void;
   onAddNote: (text: string) => void;
+  onUpdateNote?: (noteId: string, updates: Partial<Note>) => void;
 }
 
-export function NotepadCard({ notes, onToggleNote, onAddNote }: NotepadCardProps) {
+export function NotepadCard({ notes, onToggleNote, onAddNote, onUpdateNote }: NotepadCardProps) {
   const [newNoteText, setNewNoteText] = useState("");
   const [openDialogId, setOpenDialogId] = useState<string | null>(null);
   const [loadingSummaries, setLoadingSummaries] = useState<Set<string>>(new Set());
+  const [loadingTitles, setLoadingTitles] = useState<Set<string>>(new Set());
   const [summaries, setSummaries] = useState<Record<string, string>>({});
+
+  // Effect to fetch missing titles for URLs
+  useEffect(() => {
+    notes.forEach(note => {
+      if (note.url && !note.urlTitle && !loadingTitles.has(note.id) && onUpdateNote) {
+        setLoadingTitles(prev => new Set(prev).add(note.id));
+        fetch("/api/url/title", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url: note.url }),
+        })
+        .then(res => res.ok ? res.json() : null)
+        .then(data => {
+          if (data?.title) {
+            onUpdateNote(note.id, { urlTitle: data.title });
+          }
+        })
+        .finally(() => {
+          setLoadingTitles(prev => {
+            const next = new Set(prev);
+            next.delete(note.id);
+            return next;
+          });
+        });
+      }
+    });
+  }, [notes, onUpdateNote]);
 
   const handleAddSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -146,7 +175,7 @@ export function NotepadCard({ notes, onToggleNote, onAddNote }: NotepadCardProps
                   className="mt-1 border-2 border-gray-300 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600 rounded-md h-5 w-5 transition-all duration-200"
                 />
                 <div className="flex-1 min-w-0 pt-0.5">
-                  {note.url && note.urlTitle ? (
+                  {note.url ? (
                     <div className="space-y-1.5">
                       <div className="flex items-start justify-between gap-4">
                         <a
@@ -168,12 +197,14 @@ export function NotepadCard({ notes, onToggleNote, onAddNote }: NotepadCardProps
                               <ExternalLink className="h-3.5 w-3.5" />
                             </div>
                           )}
-                          <span className="flex-1 min-w-0 break-words whitespace-normal">{note.urlTitle}</span>
+                          <span className="flex-1 min-w-0 break-words whitespace-normal">
+                            {note.urlTitle || (loadingTitles.has(note.id) ? "Fetching title..." : note.text)}
+                          </span>
                         </a>
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleGetSummary(note.id, note.url!, note.urlTitle!)}
+                          onClick={() => handleGetSummary(note.id, note.url!, note.urlTitle || note.text)}
                           disabled={loadingSummaries.has(note.id)}
                           className="h-7 w-7 p-0 rounded-full hover:bg-purple-50 text-purple-600 opacity-0 group-hover:opacity-100 transition-all duration-200"
                         >
