@@ -8,6 +8,7 @@ import { NotepadCard } from "@/components/dashboard/notepad";
 import { WellbeingCard } from "@/components/dashboard/wellbeing-card";
 import { HealthCard } from "@/components/dashboard/health-card";
 import { InputBar } from "@/components/dashboard/input-bar";
+import { BottomNav } from "@/components/dashboard/bottom-nav";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { PasswordGate } from "@/components/auth/password-gate";
 import { getFirstUrl } from "@/lib/url-utils";
@@ -25,6 +26,7 @@ export interface Note {
 function HomeContent() {
   const [notes, setNotes] = useState<Note[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<"goals" | "notepad">("goals");
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -223,23 +225,30 @@ function HomeContent() {
   return (
     <main className="flex min-h-screen justify-center bg-gray-50">
       <div className="flex h-full w-full max-w-md flex-col bg-white shadow-2xl overflow-hidden min-h-screen relative">
-        <ScrollArea className="flex-1">
+        <ScrollArea className="flex-1 pb-16">
           <div className="flex flex-col gap-6 pb-6">
             <Header />
-            <div className="px-6">
-              <InputBar onAddNote={handleAddNote} />
-            </div>
-            <div className="px-6">
-              <DateTabs />
-            </div>
-            
-            <div className="flex flex-col gap-4 px-6">
-              <NotepadCard notes={notes} onToggleNote={handleToggleNote} />
-              <WellbeingCard />
-              <HealthCard />
-            </div>
+            {activeTab === "goals" ? (
+              <>
+                <div className="px-6">
+                  <InputBar onAddNote={handleAddNote} />
+                </div>
+                <div className="px-6">
+                  <DateTabs />
+                </div>
+                <div className="flex flex-col gap-4 px-6">
+                  <WellbeingCard />
+                  <HealthCard />
+                </div>
+              </>
+            ) : (
+              <div className="flex flex-col gap-4 px-6">
+                <NotepadCard notes={notes} onToggleNote={handleToggleNote} />
+              </div>
+            )}
           </div>
         </ScrollArea>
+        <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
       </div>
     </main>
   );
