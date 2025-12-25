@@ -47,20 +47,25 @@ export function GoalCard({ goal, onDelete }: GoalCardProps) {
           {periodLabels[goal.period]} Goal
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4 px-6 pb-6">
-        <h3 className="text-lg font-bold text-gray-900 leading-tight">
-          {goal.text}
-        </h3>
+      <CardContent className="space-y-5 px-6 pb-6">
+        <div className="space-y-1">
+          <h3 className="text-xl font-bold text-gray-900 leading-snug tracking-tight">
+            {goal.text}
+          </h3>
+        </div>
         {goal.tips.length > 0 && (
-          <div className="space-y-3 pt-2">
-            <p className="text-xs font-semibold text-gray-600 uppercase tracking-wider">
-              Tips to achieve this goal:
+          <div className="space-y-4 pt-1 border-t border-white/40">
+            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">
+              Tips to achieve this goal
             </p>
-            <ul className="space-y-2">
+            <ul className="space-y-3.5">
               {goal.tips.map((tip, index) => (
-                <li key={index} className="flex items-start gap-3 text-sm text-gray-700 leading-relaxed">
-                  <div className={`h-1.5 w-1.5 rounded-full ${goal.period === 'week' ? 'bg-blue-500' : goal.period === 'month' ? 'bg-purple-500' : 'bg-orange-500'} mt-2 shrink-0`} />
-                  <span className="flex-1">{tip}</span>
+                <li key={index} className="flex items-start gap-3.5">
+                  <div className={`h-2 w-2 rounded-full ${goal.period === 'week' ? 'bg-blue-500' : goal.period === 'month' ? 'bg-purple-500' : 'bg-orange-500'} mt-1.5 shrink-0`} />
+                  <p 
+                    className="flex-1 text-sm text-gray-700 leading-relaxed font-medium"
+                    dangerouslySetInnerHTML={{ __html: tip }}
+                  />
                 </li>
               ))}
             </ul>

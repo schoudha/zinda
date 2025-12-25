@@ -25,41 +25,88 @@ export function InputBar({ onGoalCreated }: InputBarProps) {
     return "week"; // Default to weekly
   };
 
+  // Convert markdown to HTML (bold and italics only)
+  const markdownToHtml = (text: string): string => {
+    // Use placeholders to avoid conflicts
+    const BOLD_PLACEHOLDER = '___BOLD_START___';
+    const BOLD_END_PLACEHOLDER = '___BOLD_END___';
+    
+    // First, convert **bold** to placeholders
+    let html = text.replace(/\*\*(.+?)\*\*/g, (match, content) => {
+      return `${BOLD_PLACEHOLDER}${content}${BOLD_END_PLACEHOLDER}`;
+    });
+    
+    // Then convert *italic* to <em>italic</em> (single asterisks that remain)
+    html = html.replace(/\*([^*\n]+?)\*/g, '<em>$1</em>');
+    
+    // Finally, convert bold placeholders to <strong>
+    html = html.replace(new RegExp(BOLD_PLACEHOLDER, 'g'), '<strong>');
+    html = html.replace(new RegExp(BOLD_END_PLACEHOLDER, 'g'), '</strong>');
+    
+    return html;
+  };
+
   // Parse tips from Gemini response
   const parseTips = (response: string): string[] => {
+    // Remove markdown headers but keep bold/italics
+    let cleaned = response
+      .replace(/^#{1,6}\s+/gm, '') // Remove markdown headers
+      .trim();
+    
     // Try to extract numbered or bulleted tips
-    const lines = response.split("\n").filter(line => line.trim().length > 0);
+    const lines = cleaned.split("\n").filter(line => line.trim().length > 0);
     const tips: string[] = [];
     
     for (const line of lines) {
+      // Skip headers and section labels
+      if (line.toLowerCase().includes('tips to achieve') || 
+          line.toLowerCase().includes('here are') ||
+          line.toLowerCase().includes('suggestions')) {
+        continue;
+      }
+      
       // Match numbered lists (1., 2., 3., etc.)
       const numberedMatch = line.match(/^\d+[\.\)]\s*(.+)$/);
       if (numberedMatch) {
-        tips.push(numberedMatch[1].trim());
+        const tip = numberedMatch[1].trim();
+        if (tip.length > 15 && tip.length < 300) {
+          tips.push(markdownToHtml(tip));
+        }
         continue;
       }
       
-      // Match bullet points (-, •, *, etc.)
-      const bulletMatch = line.match(/^[-•*]\s*(.+)$/);
+      // Match bullet points (-, •, *, etc.) - but not markdown bold/italic markers
+      const bulletMatch = line.match(/^[-•]\s*(.+)$/);
       if (bulletMatch) {
-        tips.push(bulletMatch[1].trim());
+        const tip = bulletMatch[1].trim();
+        if (tip.length > 15 && tip.length < 300) {
+          tips.push(markdownToHtml(tip));
+        }
         continue;
       }
       
-      // If line starts with a tip-like pattern
-      if (line.length > 20 && line.length < 200 && !line.includes(":")) {
-        tips.push(line.trim());
+      // Match lines that look like tips (not headers, not too short/long)
+      if (line.length > 20 && line.length < 300 && 
+          !line.includes(":") && 
+          !line.match(/^[A-Z\s]+$/) && // Not all caps (likely a header)
+          !line.toLowerCase().startsWith('tip')) {
+        tips.push(markdownToHtml(line.trim()));
       }
     }
     
     // If we couldn't parse structured tips, split by sentences and take first 3
     if (tips.length === 0) {
-      const sentences = response.split(/[.!?]+/).filter(s => s.trim().length > 20);
-      tips.push(...sentences.slice(0, 3).map(s => s.trim()));
+      const sentences = cleaned.split(/[.!?]+/).filter(s => {
+        const trimmed = s.trim();
+        return trimmed.length > 20 && trimmed.length < 300;
+      });
+      tips.push(...sentences.slice(0, 3).map(s => markdownToHtml(s.trim())));
     }
     
-    // Limit to 2-3 tips
-    return tips.slice(0, 3).filter(tip => tip.length > 0);
+    // Limit to 2-3 tips and clean them up
+    return tips.slice(0, 3)
+      .filter(tip => tip.length > 0)
+      .map(tip => tip.replace(/^["']|["']$/g, '').trim()); // Remove quotes
   };
 
   const handleSubmit = async () => {
