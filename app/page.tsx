@@ -171,59 +171,52 @@ export default function Home() {
   // Clean up notes checked more than 1 week ago
   useEffect(() => {
     const cleanup = async () => {
-      const oneWeekAgo = new Date();
-      oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+      // Use functional update to avoid dependency on notes
+      setNotes((currentNotes) => {
+        const oneWeekAgo = new Date();
+        oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
 
-      // Find notes to delete
-      const notesToDelete = notes.filter(
-        (note) =>
-          note.checked &&
-          note.checkedAt &&
-          new Date(note.checkedAt) <= oneWeekAgo
-      );
+        // Find notes to delete
+        const notesToDelete = currentNotes.filter(
+          (note) =>
+            note.checked &&
+            note.checkedAt &&
+            new Date(note.checkedAt) <= oneWeekAgo
+        );
 
-      if (notesToDelete.length > 0) {
-        const idsToDelete = notesToDelete.map((n) => n.id).join(",");
-
-        try {
-          const response = await fetch(`/api/notes?ids=${encodeURIComponent(idsToDelete)}`, {
+        if (notesToDelete.length > 0) {
+          const idsToDelete = notesToDelete.map((n) => n.id).join(",");
+          
+          // Fire and forget API call - don't await inside the state update
+          fetch(`/api/notes?ids=${encodeURIComponent(idsToDelete)}`, {
             method: "DELETE",
-          });
-
-          if (response.ok) {
-            // Remove from local state
-            setNotes((prev) =>
-              prev.filter(
-                (note) =>
-                  !note.checked ||
-                  !note.checkedAt ||
-                  new Date(note.checkedAt) > oneWeekAgo
-              )
-            );
-          }
-        } catch (error) {
-          console.error("Error cleaning up notes:", error);
-        }
-      } else {
-        // Just update local state if no API calls needed
-        setNotes((prev) =>
-          prev.filter(
+          }).catch(err => console.error("Error cleaning up notes:", err));
+          
+          // Return filtered notes
+          return currentNotes.filter(
             (note) =>
               !note.checked ||
               !note.checkedAt ||
               new Date(note.checkedAt) > oneWeekAgo
-          )
-        );
-      }
+          );
+        }
+        
+        // No changes needed
+        return currentNotes;
+      });
     };
 
-    // Run cleanup on mount and then every hour (only if we have notes)
-    if (notes.length > 0) {
-      cleanup();
-      const interval = setInterval(cleanup, 60 * 60 * 1000);
-      return () => clearInterval(interval);
-    }
-  }, [notes]);
+    // Run cleanup on mount and then every hour
+    const interval = setInterval(cleanup, 60 * 60 * 1000);
+    
+    // Initial cleanup after a short delay to allow initial load
+    const timeout = setTimeout(cleanup, 1000);
+
+    return () => {
+      clearInterval(interval);
+      clearTimeout(timeout);
+    };
+  }, []);
 
   return (
     <PasswordGate>
