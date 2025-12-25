@@ -23,6 +23,26 @@ export interface Note {
 
 export default function Home() {
   const [notes, setNotes] = useState<Note[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Load notes from database on mount
+  useEffect(() => {
+    const loadNotes = async () => {
+      try {
+        const response = await fetch("/api/notes");
+        if (response.ok) {
+          const data = await response.json();
+          setNotes(data.notes || []);
+        }
+      } catch (error) {
+        console.error("Error loading notes:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadNotes();
+  }, []);
 
   const handleAddNote = async (noteText: string) => {
     if (noteText.trim()) {
@@ -55,23 +75,75 @@ export default function Home() {
         url: url || undefined,
         urlTitle,
       };
-      setNotes((prev) => [...prev, newNote]);
+
+      // Save to database
+      try {
+        const response = await fetch("/api/notes", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ...newNote,
+            createdAt: newNote.createdAt.toISOString(),
+          }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setNotes((prev) => [data.note, ...prev]);
+        } else {
+          // If save fails, still add to local state as fallback
+          setNotes((prev) => [...prev, newNote]);
+        }
+      } catch (error) {
+        console.error("Error saving note:", error);
+        // If save fails, still add to local state as fallback
+        setNotes((prev) => [...prev, newNote]);
+      }
     }
   };
 
-  const handleToggleNote = useCallback((noteId: string) => {
+  const handleToggleNote = useCallback(async (noteId: string) => {
+    const note = notes.find((n) => n.id === noteId);
+    if (!note) return;
+
+    const updatedNote = {
+      ...note,
+      checked: !note.checked,
+      checkedAt: !note.checked ? new Date() : null,
+    };
+
+    // Optimistically update local state
     setNotes((prev) =>
-      prev.map((note) =>
-        note.id === noteId
-          ? {
-              ...note,
-              checked: !note.checked,
-              checkedAt: !note.checked ? new Date() : null,
-            }
-          : note
-      )
+      prev.map((n) => (n.id === noteId ? updatedNote : n))
     );
-  }, []);
+
+    // Update in database
+    try {
+      const response = await fetch("/api/notes", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: noteId,
+          checked: updatedNote.checked,
+          checkedAt: updatedNote.checkedAt?.toISOString() || null,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        // Update with server response
+        setNotes((prev) =>
+          prev.map((n) => (n.id === noteId ? data.note : n))
+        );
+      }
+    } catch (error) {
+      console.error("Error updating note:", error);
+      // Revert on error
+      setNotes((prev) =>
+        prev.map((n) => (n.id === noteId ? note : n))
+      );
+    }
+  }, [notes]);
 
   // Handle shared content from share target
   useEffect(() => {
@@ -98,26 +170,60 @@ export default function Home() {
 
   // Clean up notes checked more than 1 week ago
   useEffect(() => {
-    const cleanup = () => {
+    const cleanup = async () => {
       const oneWeekAgo = new Date();
       oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
 
-      setNotes((prev) =>
-        prev.filter(
-          (note) =>
-            !note.checked ||
-            !note.checkedAt ||
-            new Date(note.checkedAt) > oneWeekAgo
-        )
+      // Find notes to delete
+      const notesToDelete = notes.filter(
+        (note) =>
+          note.checked &&
+          note.checkedAt &&
+          new Date(note.checkedAt) <= oneWeekAgo
       );
+
+      if (notesToDelete.length > 0) {
+        const idsToDelete = notesToDelete.map((n) => n.id).join(",");
+
+        try {
+          const response = await fetch(`/api/notes?ids=${encodeURIComponent(idsToDelete)}`, {
+            method: "DELETE",
+          });
+
+          if (response.ok) {
+            // Remove from local state
+            setNotes((prev) =>
+              prev.filter(
+                (note) =>
+                  !note.checked ||
+                  !note.checkedAt ||
+                  new Date(note.checkedAt) > oneWeekAgo
+              )
+            );
+          }
+        } catch (error) {
+          console.error("Error cleaning up notes:", error);
+        }
+      } else {
+        // Just update local state if no API calls needed
+        setNotes((prev) =>
+          prev.filter(
+            (note) =>
+              !note.checked ||
+              !note.checkedAt ||
+              new Date(note.checkedAt) > oneWeekAgo
+          )
+        );
+      }
     };
 
-    // Run cleanup on mount and then every hour
-    cleanup();
-    const interval = setInterval(cleanup, 60 * 60 * 1000);
-
-    return () => clearInterval(interval);
-  }, []);
+    // Run cleanup on mount and then every hour (only if we have notes)
+    if (notes.length > 0) {
+      cleanup();
+      const interval = setInterval(cleanup, 60 * 60 * 1000);
+      return () => clearInterval(interval);
+    }
+  }, [notes]);
 
   return (
     <PasswordGate>
