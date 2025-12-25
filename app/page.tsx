@@ -1,6 +1,6 @@
 import { Header } from "@/components/dashboard/header";
 import { DateTabs } from "@/components/dashboard/date-tabs";
-import { GamePlanCard } from "@/components/dashboard/game-plan";
+import { NotepadCard } from "@/components/dashboard/notepad";
 import { WellbeingCard } from "@/components/dashboard/wellbeing-card";
 import { HealthCard } from "@/components/dashboard/health-card";
 import { InputBar } from "@/components/dashboard/input-bar";
@@ -26,7 +26,7 @@ export default function Home() {
               </div>
               
               <div className="flex flex-col gap-4 px-6">
-                <GamePlanCard />
+                <NotepadCard />
                 <WellbeingCard />
                 <HealthCard />
               </div>
