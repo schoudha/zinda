@@ -73,7 +73,7 @@ Your task is to help the user achieve this goal by answering their questions, pr
 Keep your responses concise, encouraging, and actionable. Use bold and italics for emphasis where appropriate.`;
 
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         headers: {
