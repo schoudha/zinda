@@ -2,13 +2,14 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Send } from "lucide-react";
+import { ArrowLeft, Send, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Goal, Message } from "@/types";
 import { markdownToHtml } from "@/lib/utils";
 import { api } from "@/lib/api";
+import { NotificationDialog } from "@/components/goals/notification-dialog";
 
 export default function GoalDetailPage() {
   const params = useParams();
@@ -20,6 +21,7 @@ export default function GoalDetailPage() {
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
+  const [notificationDialogOpen, setNotificationDialogOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -98,6 +100,12 @@ export default function GoalDetailPage() {
     }
   };
 
+  const handleSaveNotification = async (time: Goal["notificationTime"] | null, days: Goal["notificationDays"] | null) => {
+    if (!goal) return;
+    const updatedGoal = await api.goals.updateNotifications(goal.id, time ?? undefined, days ?? undefined);
+    setGoal(updatedGoal);
+  };
+
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-50">
@@ -137,7 +145,25 @@ export default function GoalDetailPage() {
         <h1 className="text-lg font-bold text-gray-900 truncate flex-1">
           Goal Discussion
         </h1>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setNotificationDialogOpen(true)}
+          className="-mr-2"
+        >
+          <Bell className={`h-5 w-5 ${goal.notificationTime && goal.notificationDays ? 'fill-current text-blue-600' : 'text-gray-600'}`} />
+        </Button>
       </div>
+      {goal && (
+        <NotificationDialog
+          open={notificationDialogOpen}
+          onOpenChange={setNotificationDialogOpen}
+          goalId={goal.id}
+          currentTime={goal.notificationTime}
+          currentDays={goal.notificationDays}
+          onSave={handleSaveNotification}
+        />
+      )}
 
       {/* Goal Context Card */}
       <div className="p-4 bg-gray-50 z-10 shrink-0">

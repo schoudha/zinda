@@ -10,6 +10,8 @@ export interface Note {
 }
 
 export type GoalPeriod = "week" | "month" | "year";
+export type NotificationTime = "morning" | "evening" | "night";
+export type NotificationDays = "everyday" | "weekday" | "weekend";
 
 export interface Goal {
   id: string;
@@ -18,6 +20,8 @@ export interface Goal {
   tips: string[];
   createdAt: Date;
   userId?: string;
+  notificationTime?: NotificationTime;
+  notificationDays?: NotificationDays;
 }
 
 export interface Message {

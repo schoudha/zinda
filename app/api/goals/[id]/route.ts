@@ -36,6 +36,8 @@ export async function GET(
       tips: data.tips || [],
       createdAt: new Date(data.created_at),
       userId: data.user_id || undefined,
+      notificationTime: data.notification_time as 'morning' | 'evening' | 'night' | undefined,
+      notificationDays: data.notification_days as 'everyday' | 'weekday' | 'weekend' | undefined,
     };
 
     return NextResponse.json({ goal });

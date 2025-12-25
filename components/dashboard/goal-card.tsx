@@ -1,8 +1,13 @@
+"use client";
+
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { X } from "lucide-react";
+import { X, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { Goal } from "@/types";
+import { NotificationDialog } from "@/components/goals/notification-dialog";
+import { api } from "@/lib/api";
 
 interface GoalCardProps {
   goal: Goal;
@@ -11,6 +16,13 @@ interface GoalCardProps {
 
 export function GoalCard({ goal, onDelete }: GoalCardProps) {
   const router = useRouter();
+  const [notificationDialogOpen, setNotificationDialogOpen] = useState(false);
+  const [currentGoal, setCurrentGoal] = useState<Goal>(goal);
+
+  // Sync goal prop with local state when it changes
+  useEffect(() => {
+    setCurrentGoal(goal);
+  }, [goal]);
 
   const periodLabels = {
     week: "Weekly",
@@ -35,21 +47,55 @@ export function GoalCard({ goal, onDelete }: GoalCardProps) {
     }
   };
 
+  const handleBellClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setNotificationDialogOpen(true);
+  };
+
+  const handleSaveNotification = async (time: Goal["notificationTime"] | null, days: Goal["notificationDays"] | null) => {
+    const updatedGoal = await api.goals.updateNotifications(
+      currentGoal.id,
+      time ?? undefined,
+      days ?? undefined
+    );
+    setCurrentGoal(updatedGoal);
+    // Update parent if needed - but since goal is passed as prop, we might need to handle this differently
+    // For now, we'll just update local state
+  };
+
   return (
     <Card 
       onClick={handleCardClick}
       className={`border-none bg-gradient-to-br ${periodColors[goal.period]} shadow-xl shadow-blue-900/5 rounded-3xl ring-1 ring-black/5 overflow-hidden transition-all duration-300 hover:shadow-blue-900/10 hover:scale-[1.01] relative cursor-pointer`}
     >
-      {onDelete && (
+      <div className="absolute top-2 right-2 flex gap-1 z-10">
         <Button
           variant="ghost"
           size="icon"
-          className="absolute top-2 right-2 h-8 w-8 rounded-full opacity-60 hover:opacity-100 hover:bg-white/50 z-10"
-          onClick={handleDelete}
+          className="h-8 w-8 rounded-full opacity-60 hover:opacity-100 hover:bg-white/50"
+          onClick={handleBellClick}
         >
-          <X className="h-4 w-4" />
+          <Bell className={`h-4 w-4 ${currentGoal.notificationTime && currentGoal.notificationDays ? 'fill-current' : ''}`} />
         </Button>
-      )}
+        {onDelete && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 rounded-full opacity-60 hover:opacity-100 hover:bg-white/50"
+            onClick={handleDelete}
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        )}
+      </div>
+      <NotificationDialog
+        open={notificationDialogOpen}
+        onOpenChange={setNotificationDialogOpen}
+        goalId={currentGoal.id}
+        currentTime={currentGoal.notificationTime}
+        currentDays={currentGoal.notificationDays}
+        onSave={handleSaveNotification}
+      />
       <CardHeader className="pb-2 pt-6 px-6">
         <CardTitle className={`text-[10px] font-bold uppercase tracking-widest ${periodColors[goal.period].split(' ')[2]} flex items-center gap-2`}>
           <div className={`h-1.5 w-1.5 rounded-full ${goal.period === 'week' ? 'bg-blue-500' : goal.period === 'month' ? 'bg-purple-500' : 'bg-orange-500'} animate-pulse`} />

@@ -57,7 +57,14 @@ export const api = {
         }),
       });
       return data.response;
-    }
+    },
+    updateNotifications: async (goalId: string, notificationTime: Goal["notificationTime"] | null | undefined, notificationDays: Goal["notificationDays"] | null | undefined) => {
+      const data = await fetchApi<{ goal: Goal }>(`/api/goals/${goalId}/notifications`, {
+        method: "PATCH",
+        body: JSON.stringify({ notificationTime: notificationTime ?? null, notificationDays: notificationDays ?? null }),
+      });
+      return data.goal;
+    },
   },
   notes: {
     list: async () => {

@@ -25,6 +25,8 @@ export async function GET() {
       tips: string[] | null;
       created_at: string;
       user_id: string | null;
+      notification_time: string | null;
+      notification_days: string | null;
     }) => ({
       id: goal.id,
       text: goal.text,
@@ -32,6 +34,8 @@ export async function GET() {
       tips: goal.tips || [],
       createdAt: new Date(goal.created_at),
       userId: goal.user_id || undefined,
+      notificationTime: goal.notification_time as 'morning' | 'evening' | 'night' | undefined,
+      notificationDays: goal.notification_days as 'everyday' | 'weekday' | 'weekend' | undefined,
     }));
 
     return NextResponse.json({ goals });
@@ -91,6 +95,8 @@ export async function POST(request: NextRequest) {
       tips: data.tips || [],
       createdAt: new Date(data.created_at),
       userId: data.user_id || undefined,
+      notificationTime: data.notification_time as 'morning' | 'evening' | 'night' | undefined,
+      notificationDays: data.notification_days as 'everyday' | 'weekday' | 'weekend' | undefined,
     };
 
     return NextResponse.json({ goal }, { status: 201 });
@@ -132,6 +138,24 @@ export async function PATCH(request: NextRequest) {
     if (tips !== undefined) {
       updateData.tips = tips;
     }
+    if (body.notificationTime !== undefined) {
+      if (body.notificationTime !== null && !['morning', 'evening', 'night'].includes(body.notificationTime)) {
+        return NextResponse.json(
+          { error: 'notificationTime must be morning, evening, or night' },
+          { status: 400 }
+        );
+      }
+      updateData.notification_time = body.notificationTime;
+    }
+    if (body.notificationDays !== undefined) {
+      if (body.notificationDays !== null && !['everyday', 'weekday', 'weekend'].includes(body.notificationDays)) {
+        return NextResponse.json(
+          { error: 'notificationDays must be everyday, weekday, or weekend' },
+          { status: 400 }
+        );
+      }
+      updateData.notification_days = body.notificationDays;
+    }
 
     const { data, error } = await supabase
       .from('goals')
@@ -155,6 +179,8 @@ export async function PATCH(request: NextRequest) {
       tips: data.tips || [],
       createdAt: new Date(data.created_at),
       userId: data.user_id || undefined,
+      notificationTime: data.notification_time as 'morning' | 'evening' | 'night' | undefined,
+      notificationDays: data.notification_days as 'everyday' | 'weekday' | 'weekend' | undefined,
     };
 
     return NextResponse.json({ goal });
