@@ -5,16 +5,10 @@ import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardContent } from "@/components/ui/card";
-import { Goal } from "@/components/dashboard/goal-card";
-
-interface Message {
-  id: string;
-  role: "user" | "assistant";
-  content: string;
-  createdAt: Date;
-}
+import { Goal, Message } from "@/types";
+import { markdownToHtml } from "@/lib/utils";
+import { api } from "@/lib/api";
 
 export default function GoalDetailPage() {
   const params = useParams();
@@ -28,50 +22,21 @@ export default function GoalDetailPage() {
   const [isSending, setIsSending] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Convert markdown to HTML (bold and italics only) - reused from input-bar
-  const markdownToHtml = (text: string): string => {
-    // Use placeholders to avoid conflicts
-    const BOLD_PLACEHOLDER = '___BOLD_START___';
-    const BOLD_END_PLACEHOLDER = '___BOLD_END___';
-    
-    // First, convert **bold** to placeholders
-    let html = text.replace(/\*\*(.+?)\*\*/g, (match, content) => {
-      return `${BOLD_PLACEHOLDER}${content}${BOLD_END_PLACEHOLDER}`;
-    });
-    
-    // Then convert *italic* to <em>italic</em> (single asterisks that remain)
-    html = html.replace(/\*([^*\n]+?)\*/g, '<em>$1</em>');
-    
-    // Finally, convert bold placeholders to <strong>
-    html = html.replace(new RegExp(BOLD_PLACEHOLDER, 'g'), '<strong>');
-    html = html.replace(new RegExp(BOLD_END_PLACEHOLDER, 'g'), '</strong>');
-    
-    return html;
-  };
-
   useEffect(() => {
     if (!id) return;
 
     const loadData = async () => {
       try {
-        // Fetch goal details
-        const goalRes = await fetch(`/api/goals/${id}`);
-        if (goalRes.ok) {
-          const data = await goalRes.json();
-          setGoal(data.goal);
-        } else {
-          console.error("Failed to fetch goal");
-        }
-
-        // Fetch chat history
-        const msgsRes = await fetch(`/api/goals/${id}/messages`);
-        if (msgsRes.ok) {
-          const data = await msgsRes.json();
-          setMessages(data.messages.map((m: any) => ({
-            ...m,
-            createdAt: new Date(m.createdAt)
-          })));
-        }
+        const [goalData, messagesData] = await Promise.all([
+          api.goals.get(id),
+          api.goals.chat.history(id)
+        ]);
+        
+        setGoal(goalData);
+        setMessages(messagesData.map((m) => ({
+          ...m,
+          createdAt: new Date(m.createdAt)
+        })));
       } catch (error) {
         console.error("Error loading data:", error);
       } finally {
@@ -107,29 +72,20 @@ export default function GoalDetailPage() {
     setMessages(prev => [...prev, tempUserMsg]);
 
     try {
-      const response = await fetch(`/api/goals/${id}/chat`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: userMsgText }),
-      });
+      const { userMessage, aiMessage } = await api.goals.chat.send(id, userMsgText);
 
-      if (response.ok) {
-        const data = await response.json();
-        // Replace temp message with real one and add AI response
-        setMessages(prev => {
-          const filtered = prev.filter(m => m.id !== tempId);
-          return [
-            ...filtered,
-            { ...data.userMessage, createdAt: new Date(data.userMessage.createdAt) },
-            { ...data.aiMessage, createdAt: new Date(data.aiMessage.createdAt) }
-          ];
-        });
-      } else {
-        console.error("Failed to send message");
-        // Remove temp message or show error
-      }
+      // Replace temp message with real one and add AI response
+      setMessages(prev => {
+        const filtered = prev.filter(m => m.id !== tempId);
+        return [
+          ...filtered,
+          { ...userMessage, createdAt: new Date(userMessage.createdAt) },
+          { ...aiMessage, createdAt: new Date(aiMessage.createdAt) }
+        ];
+      });
     } catch (error) {
       console.error("Error sending message:", error);
+      // Remove temp message or show error
     } finally {
       setIsSending(false);
     }
@@ -277,4 +233,3 @@ export default function GoalDetailPage() {
     </div>
   );
 }
-

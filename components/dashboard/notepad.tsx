@@ -12,10 +12,11 @@ import {
   DialogClose,
   DialogBody,
 } from "@/components/ui/dialog";
-import { Note } from "@/app/page";
+import { Note } from "@/types";
 import { ExternalLink, Sparkles, Loader2, Youtube, Plus, FileText, Trash2 } from "lucide-react";
 import { isYoutubeUrl } from "@/lib/url-utils";
 import { Input } from "@/components/ui/input";
+import { api } from "@/lib/api";
 
 interface NotepadCardProps {
   notes: Note[];
@@ -37,24 +38,21 @@ export function NotepadCard({ notes, onToggleNote, onAddNote, onUpdateNote, onDe
     notes.forEach(note => {
       if (note.url && !note.urlTitle && !loadingTitles.has(note.id) && onUpdateNote) {
         setLoadingTitles(prev => new Set(prev).add(note.id));
-        fetch("/api/url/title", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ url: note.url }),
-        })
-        .then(res => res.ok ? res.json() : null)
-        .then(data => {
-          if (data?.title) {
-            onUpdateNote(note.id, { urlTitle: data.title });
-          }
-        })
-        .finally(() => {
-          setLoadingTitles(prev => {
-            const next = new Set(prev);
-            next.delete(note.id);
-            return next;
+        
+        api.url.title(note.url)
+          .then(title => {
+            if (title) {
+              onUpdateNote(note.id, { urlTitle: title });
+            }
+          })
+          .catch(() => {}) // Ignore errors
+          .finally(() => {
+            setLoadingTitles(prev => {
+              const next = new Set(prev);
+              next.delete(note.id);
+              return next;
+            });
           });
-        });
       }
     });
   }, [notes, onUpdateNote]);
@@ -92,22 +90,10 @@ export function NotepadCard({ notes, onToggleNote, onAddNote, onUpdateNote, onDe
 
     setLoadingSummaries((prev) => new Set(prev).add(noteId));
 
-    fetch("/api/url/summarize", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ url }),
-    })
-      .then(async (response) => {
-        if (response.ok) {
-          const data = await response.json();
-          return data;
-        }
-        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-        throw new Error(errorData.error || `Failed to fetch summary: ${response.status}`);
-      })
-      .then((data) => {
-        if (data.summary) {
-          setSummaries((prev) => ({ ...prev, [noteId]: data.summary }));
+    api.url.summarize(url)
+      .then((summary) => {
+        if (summary) {
+          setSummaries((prev) => ({ ...prev, [noteId]: summary }));
         } else {
           setSummaries((prev) => ({ ...prev, [noteId]: "No summary available." }));
         }
@@ -289,4 +275,3 @@ export function NotepadCard({ notes, onToggleNote, onAddNote, onUpdateNote, onDe
     </Card>
   );
 }
-

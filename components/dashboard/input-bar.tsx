@@ -4,6 +4,8 @@ import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { detectPeriod, markdownToHtml } from "@/lib/utils";
+import { api } from "@/lib/api";
 
 interface InputBarProps {
   onGoalCreated?: () => void;
@@ -12,39 +14,6 @@ interface InputBarProps {
 export function InputBar({ onGoalCreated }: InputBarProps) {
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-
-  // Detect period from goal text
-  const detectPeriod = (text: string): "week" | "month" | "year" => {
-    const lowerText = text.toLowerCase();
-    if (lowerText.includes("year") || lowerText.includes("yearly") || lowerText.includes("annual")) {
-      return "year";
-    }
-    if (lowerText.includes("month") || lowerText.includes("monthly")) {
-      return "month";
-    }
-    return "week"; // Default to weekly
-  };
-
-  // Convert markdown to HTML (bold and italics only)
-  const markdownToHtml = (text: string): string => {
-    // Use placeholders to avoid conflicts
-    const BOLD_PLACEHOLDER = '___BOLD_START___';
-    const BOLD_END_PLACEHOLDER = '___BOLD_END___';
-    
-    // First, convert **bold** to placeholders
-    let html = text.replace(/\*\*(.+?)\*\*/g, (match, content) => {
-      return `${BOLD_PLACEHOLDER}${content}${BOLD_END_PLACEHOLDER}`;
-    });
-    
-    // Then convert *italic* to <em>italic</em> (single asterisks that remain)
-    html = html.replace(/\*([^*\n]+?)\*/g, '<em>$1</em>');
-    
-    // Finally, convert bold placeholders to <strong>
-    html = html.replace(new RegExp(BOLD_PLACEHOLDER, 'g'), '<strong>');
-    html = html.replace(new RegExp(BOLD_END_PLACEHOLDER, 'g'), '</strong>');
-    
-    return html;
-  };
 
   // Parse tips from Gemini response
   const parseTips = (response: string): string[] => {
@@ -119,42 +88,18 @@ export function InputBar({ onGoalCreated }: InputBarProps) {
       const period = detectPeriod(goalText);
 
       // Get tips from Gemini
-      const tipsResponse = await fetch("/api/chat", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ 
-          message: `Provide the user with 2-3 tips on how to achieve this goal: ${goalText}`
-        }),
-      });
-
-      if (!tipsResponse.ok) {
-        throw new Error("Failed to get tips from AI");
-      }
-
-      const tipsData = await tipsResponse.json();
-      const tips = parseTips(tipsData.response);
+      const tipsResponse = await api.goals.tips(goalText);
+      const tips = parseTips(tipsResponse);
 
       // Create the goal
       const goalId = Date.now().toString();
-      const goalResponse = await fetch("/api/goals", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          id: goalId,
-          text: goalText,
-          period: period,
-          tips: tips,
-          createdAt: new Date().toISOString(),
-        }),
+      await api.goals.create({
+        id: goalId,
+        text: goalText,
+        period: period,
+        tips: tips,
+        createdAt: new Date(),
       });
-
-      if (!goalResponse.ok) {
-        throw new Error("Failed to create goal");
-      }
 
       setMessage(""); // Clear input after successful creation
       
@@ -209,4 +154,3 @@ export function InputBar({ onGoalCreated }: InputBarProps) {
     </div>
   );
 }
-

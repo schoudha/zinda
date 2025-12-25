@@ -2,15 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
-
-export interface Goal {
-  id: string;
-  text: string;
-  period: "week" | "month" | "year";
-  tips: string[];
-  createdAt: Date;
-  userId?: string;
-}
+import { Goal } from "@/types";
 
 interface GoalCardProps {
   goal: Goal;
@@ -92,4 +84,3 @@ export function GoalCard({ goal, onDelete }: GoalCardProps) {
     </Card>
   );
 }
-
