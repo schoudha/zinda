@@ -22,6 +22,7 @@ export interface Note {
   createdAt: Date;
   url?: string;
   urlTitle?: string;
+  summary?: string;
 }
 
 function HomeContent() {
@@ -55,21 +56,35 @@ function HomeContent() {
     if (noteText.trim()) {
       const url = getFirstUrl(noteText.trim());
       let urlTitle: string | undefined;
+      let summary: string | undefined;
 
-      // Fetch URL title if URL is found
+      // Fetch URL title and summary in parallel if URL is found
       if (url) {
         try {
-          const response = await fetch("/api/url/title", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ url }),
-          });
-          if (response.ok) {
-            const data = await response.json();
-            urlTitle = data.title;
+          const [titleResponse, summaryResponse] = await Promise.all([
+            fetch("/api/url/title", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ url }),
+            }),
+            fetch("/api/url/summarize", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ url }),
+            }),
+          ]);
+
+          if (titleResponse.ok) {
+            const titleData = await titleResponse.json();
+            urlTitle = titleData.title;
+          }
+
+          if (summaryResponse.ok) {
+            const summaryData = await summaryResponse.json();
+            summary = summaryData.summary;
           }
         } catch (error) {
-          console.error("Error fetching URL title:", error);
+          console.error("Error fetching URL data:", error);
         }
       }
 
@@ -81,6 +96,7 @@ function HomeContent() {
         createdAt: new Date(),
         url: url || undefined,
         urlTitle,
+        summary,
       };
 
       // Save to database

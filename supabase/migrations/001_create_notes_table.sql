@@ -6,7 +6,8 @@ CREATE TABLE IF NOT EXISTS notes (
   checked_at TIMESTAMP WITH TIME ZONE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   url TEXT,
-  url_title TEXT
+  url_title TEXT,
+  summary TEXT
 );
 
 -- Create index on created_at for faster queries

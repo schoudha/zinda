@@ -26,6 +26,7 @@ export async function GET() {
       created_at: string;
       url: string | null;
       url_title: string | null;
+      summary: string | null;
     }) => ({
       id: note.id,
       text: note.text,
@@ -34,6 +35,7 @@ export async function GET() {
       createdAt: new Date(note.created_at),
       url: note.url || undefined,
       urlTitle: note.url_title || undefined,
+      summary: note.summary || undefined,
     }));
 
     return NextResponse.json({ notes });
@@ -50,7 +52,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { id, text, checked, checkedAt, createdAt, url, urlTitle } = body;
+    const { id, text, checked, checkedAt, createdAt, url, urlTitle, summary } = body;
 
     if (!id || !text) {
       return NextResponse.json(
@@ -69,6 +71,7 @@ export async function POST(request: NextRequest) {
         created_at: createdAt || new Date().toISOString(),
         url: url || null,
         url_title: urlTitle || null,
+        summary: summary || null,
       })
       .select()
       .single();
@@ -146,6 +149,7 @@ export async function PATCH(request: NextRequest) {
       createdAt: new Date(data.created_at),
       url: data.url || undefined,
       urlTitle: data.url_title || undefined,
+      summary: data.summary || undefined,
     };
 
     return NextResponse.json({ note });

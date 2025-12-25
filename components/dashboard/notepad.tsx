@@ -37,37 +37,47 @@ export function NotepadCard({ notes, onToggleNote, onAddNote }: NotepadCardProps
     }
   };
 
-  const handleGetSummary = async (noteId: string, url: string, title: string) => {
+  const handleGetSummary = (noteId: string, url: string, title: string) => {
     setOpenDialogId(noteId);
 
-    // If we already have the summary, just open the dialog
+    // Check if note already has a summary
+    const note = notes.find((n) => n.id === noteId);
+    if (note?.summary) {
+      // Summary already exists, just open dialog
+      return;
+    }
+
+    // If we have it in local state, use that
     if (summaries[noteId]) return;
 
+    // Otherwise, fetch it (fallback for old notes without summaries)
     setLoadingSummaries((prev) => new Set(prev).add(noteId));
 
-    try {
-      const response = await fetch("/api/url/summarize", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
+    fetch("/api/url/summarize", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url }),
+    })
+      .then((response) => {
+        if (response.ok) {
+          return response.json();
+        }
+        throw new Error("Failed to fetch summary");
+      })
+      .then((data) => {
         setSummaries((prev) => ({ ...prev, [noteId]: data.summary }));
-      } else {
-        setSummaries((prev) => ({ ...prev, [noteId]: "Unable to generate summary. Please try again later." }));
-      }
-    } catch (error) {
-      console.error("Error fetching summary:", error);
-      setSummaries((prev) => ({ ...prev, [noteId]: "Error loading summary. Please try again." }));
-    } finally {
-      setLoadingSummaries((prev) => {
-        const next = new Set(prev);
-        next.delete(noteId);
-        return next;
+      })
+      .catch((error) => {
+        console.error("Error fetching summary:", error);
+        setSummaries((prev) => ({ ...prev, [noteId]: "Error loading summary. Please try again." }));
+      })
+      .finally(() => {
+        setLoadingSummaries((prev) => {
+          const next = new Set(prev);
+          next.delete(noteId);
+          return next;
+        });
       });
-    }
   };
 
   const currentNote = notes.find((note) => note.id === openDialogId);
@@ -169,10 +179,10 @@ export function NotepadCard({ notes, onToggleNote, onAddNote }: NotepadCardProps
                 <div className="flex items-center justify-center py-12">
                   <Loader2 className="h-8 w-8 animate-spin text-purple-600" />
                 </div>
-              ) : summaries[currentNote.id] ? (
+              ) : (currentNote.summary || summaries[currentNote.id]) ? (
                 <div className="prose prose-sm max-w-none">
                   <p className="text-gray-700 whitespace-pre-wrap leading-relaxed">
-                    {summaries[currentNote.id]}
+                    {currentNote.summary || summaries[currentNote.id]}
                   </p>
                 </div>
               ) : (
