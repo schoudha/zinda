@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useRouter } from "next/navigation";
 
 export interface Goal {
   id: string;
@@ -17,6 +18,8 @@ interface GoalCardProps {
 }
 
 export function GoalCard({ goal, onDelete }: GoalCardProps) {
+  const router = useRouter();
+
   const periodLabels = {
     week: "Weekly",
     month: "Monthly",
@@ -29,14 +32,28 @@ export function GoalCard({ goal, onDelete }: GoalCardProps) {
     year: "from-orange-50 to-amber-50 text-orange-600/80",
   };
 
+  const handleCardClick = () => {
+    router.push(`/goals/${goal.id}`);
+  };
+
+  const handleDelete = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onDelete) {
+      onDelete(goal.id);
+    }
+  };
+
   return (
-    <Card className={`border-none bg-gradient-to-br ${periodColors[goal.period]} shadow-xl shadow-blue-900/5 rounded-3xl ring-1 ring-black/5 overflow-hidden transition-all duration-300 hover:shadow-blue-900/10 hover:scale-[1.01] relative`}>
+    <Card 
+      onClick={handleCardClick}
+      className={`border-none bg-gradient-to-br ${periodColors[goal.period]} shadow-xl shadow-blue-900/5 rounded-3xl ring-1 ring-black/5 overflow-hidden transition-all duration-300 hover:shadow-blue-900/10 hover:scale-[1.01] relative cursor-pointer`}
+    >
       {onDelete && (
         <Button
           variant="ghost"
           size="icon"
-          className="absolute top-2 right-2 h-8 w-8 rounded-full opacity-60 hover:opacity-100 hover:bg-white/50"
-          onClick={() => onDelete(goal.id)}
+          className="absolute top-2 right-2 h-8 w-8 rounded-full opacity-60 hover:opacity-100 hover:bg-white/50 z-10"
+          onClick={handleDelete}
         >
           <X className="h-4 w-4" />
         </Button>
