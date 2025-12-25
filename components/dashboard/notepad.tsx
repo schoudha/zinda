@@ -4,6 +4,14 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogClose,
+  DialogBody,
+} from "@/components/ui/dialog";
 import { Note } from "@/app/page";
 import { ExternalLink, Sparkles, Loader2 } from "lucide-react";
 
@@ -13,11 +21,15 @@ interface NotepadCardProps {
 }
 
 export function NotepadCard({ notes, onToggleNote }: NotepadCardProps) {
+  const [openDialogId, setOpenDialogId] = useState<string | null>(null);
   const [loadingSummaries, setLoadingSummaries] = useState<Set<string>>(new Set());
   const [summaries, setSummaries] = useState<Record<string, string>>({});
 
-  const handleGetSummary = async (noteId: string, url: string) => {
-    if (summaries[noteId]) return; // Already have summary
+  const handleGetSummary = async (noteId: string, url: string, title: string) => {
+    setOpenDialogId(noteId);
+
+    // If we already have the summary, just open the dialog
+    if (summaries[noteId]) return;
 
     setLoadingSummaries((prev) => new Set(prev).add(noteId));
 
@@ -31,9 +43,12 @@ export function NotepadCard({ notes, onToggleNote }: NotepadCardProps) {
       if (response.ok) {
         const data = await response.json();
         setSummaries((prev) => ({ ...prev, [noteId]: data.summary }));
+      } else {
+        setSummaries((prev) => ({ ...prev, [noteId]: "Unable to generate summary. Please try again later." }));
       }
     } catch (error) {
       console.error("Error fetching summary:", error);
+      setSummaries((prev) => ({ ...prev, [noteId]: "Error loading summary. Please try again." }));
     } finally {
       setLoadingSummaries((prev) => {
         const next = new Set(prev);
@@ -42,6 +57,8 @@ export function NotepadCard({ notes, onToggleNote }: NotepadCardProps) {
       });
     }
   };
+
+  const currentNote = notes.find((note) => note.id === openDialogId);
 
   return (
     <Card className="border-none bg-white shadow-sm">
@@ -84,24 +101,13 @@ export function NotepadCard({ notes, onToggleNote }: NotepadCardProps) {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleGetSummary(note.id, note.url!)}
+                          onClick={() => handleGetSummary(note.id, note.url!, note.urlTitle!)}
                           disabled={loadingSummaries.has(note.id)}
                           className="h-6 w-6 p-0"
                         >
-                          {loadingSummaries.has(note.id) ? (
-                            <Loader2 className="h-3.5 w-3.5 animate-spin text-purple-600" />
-                          ) : (
-                            <Sparkles className="h-3.5 w-3.5 text-purple-600" />
-                          )}
+                          <Sparkles className="h-3.5 w-3.5 text-purple-600" />
                         </Button>
                       </div>
-                      {summaries[note.id] && (
-                        <div className="ml-5 p-2 bg-purple-50 rounded border border-purple-100">
-                          <p className="text-xs text-gray-700 whitespace-pre-wrap">
-                            {summaries[note.id]}
-                          </p>
-                        </div>
-                      )}
                     </div>
                   ) : (
                     <span
@@ -118,6 +124,35 @@ export function NotepadCard({ notes, onToggleNote }: NotepadCardProps) {
           </ul>
         )}
       </CardContent>
+
+      {currentNote && (
+        <Dialog open={openDialogId === currentNote.id} onOpenChange={(open) => !open && setOpenDialogId(null)}>
+          <DialogContent className="max-w-3xl">
+            <DialogHeader>
+              <div className="flex items-center gap-3">
+                <Sparkles className="h-5 w-5 text-purple-600" />
+                <DialogTitle>{currentNote.urlTitle || "Article Summary"}</DialogTitle>
+              </div>
+              <DialogClose onClose={() => setOpenDialogId(null)} />
+            </DialogHeader>
+            <DialogBody>
+              {loadingSummaries.has(currentNote.id) ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-purple-600" />
+                </div>
+              ) : summaries[currentNote.id] ? (
+                <div className="prose prose-sm max-w-none">
+                  <p className="text-gray-700 whitespace-pre-wrap leading-relaxed">
+                    {summaries[currentNote.id]}
+                  </p>
+                </div>
+              ) : (
+                <p className="text-gray-500 text-center py-4">Loading summary...</p>
+              )}
+            </DialogBody>
+          </DialogContent>
+        </Dialog>
+      )}
     </Card>
   );
 }

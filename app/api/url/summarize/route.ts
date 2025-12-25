@@ -45,8 +45,8 @@ export async function POST(request: NextRequest) {
 
     // Call Gemini API to summarize
     const prompt = pageContent
-      ? `Please provide a brief, concise summary (2-3 sentences) of this webpage content:\n\n${pageContent}\n\nURL: ${url}`
-      : `Please provide a brief summary of what this URL is about: ${url}`;
+      ? `Please provide a comprehensive summary of this webpage content in under 500 words. Include the main points, key takeaways, and important details:\n\n${pageContent}\n\nURL: ${url}`
+      : `Please provide a comprehensive summary (under 500 words) of what this URL is about: ${url}`;
 
     const geminiResponse = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`,
