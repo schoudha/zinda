@@ -9,6 +9,7 @@ import { HealthCard } from "@/components/dashboard/health-card";
 import { InputBar } from "@/components/dashboard/input-bar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { PasswordGate } from "@/components/auth/password-gate";
+import { getFirstUrl } from "@/lib/url-utils";
 
 export interface Note {
   id: string;
@@ -16,19 +17,43 @@ export interface Note {
   checked: boolean;
   checkedAt: Date | null;
   createdAt: Date;
+  url?: string;
+  urlTitle?: string;
 }
 
 export default function Home() {
   const [notes, setNotes] = useState<Note[]>([]);
 
-  const handleAddNote = (noteText: string) => {
+  const handleAddNote = async (noteText: string) => {
     if (noteText.trim()) {
+      const url = getFirstUrl(noteText.trim());
+      let urlTitle: string | undefined;
+
+      // Fetch URL title if URL is found
+      if (url) {
+        try {
+          const response = await fetch("/api/url/title", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ url }),
+          });
+          if (response.ok) {
+            const data = await response.json();
+            urlTitle = data.title;
+          }
+        } catch (error) {
+          console.error("Error fetching URL title:", error);
+        }
+      }
+
       const newNote: Note = {
         id: Date.now().toString(),
         text: noteText.trim(),
         checked: false,
         checkedAt: null,
         createdAt: new Date(),
+        url: url || undefined,
+        urlTitle,
       };
       setNotes((prev) => [...prev, newNote]);
     }
