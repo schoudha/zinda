@@ -358,7 +358,7 @@ function HomeContent() {
                 )}
               </>
             ) : (
-              <div className="flex flex-col gap-4 px-6">
+              <div className="flex flex-col gap-4 px-4 overflow-hidden">
                 <NotepadCard 
                   notes={notes} 
                   onToggleNote={handleToggleNote} 
