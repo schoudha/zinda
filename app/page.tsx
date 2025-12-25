@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import { Header } from "@/components/dashboard/header";
 import { DateTabs } from "@/components/dashboard/date-tabs";
 import { NotepadCard } from "@/components/dashboard/notepad";
@@ -8,25 +11,30 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { PasswordGate } from "@/components/auth/password-gate";
 
 export default function Home() {
+  const [notes, setNotes] = useState<string[]>([]);
+
+  const handleAddNote = (note: string) => {
+    if (note.trim()) {
+      setNotes([...notes, note.trim()]);
+    }
+  };
+
   return (
     <PasswordGate>
       <main className="flex min-h-screen justify-center bg-gray-50">
         <div className="flex h-full w-full max-w-md flex-col bg-white shadow-2xl overflow-hidden min-h-screen relative">
           <ScrollArea className="flex-1">
-            <p className="text-center text-xs font-medium text-gray-900 px-6">
-              Spending velocity is high. <span className="text-purple-600">$45 remaining today.</span>
-            </p>
             <div className="flex flex-col gap-6 pb-6">
               <Header />
               <div className="px-6">
-                <InputBar />
+                <InputBar onAddNote={handleAddNote} />
               </div>
               <div className="px-6">
                 <DateTabs />
               </div>
               
               <div className="flex flex-col gap-4 px-6">
-                <NotepadCard />
+                <NotepadCard notes={notes} />
                 <WellbeingCard />
                 <HealthCard />
               </div>
