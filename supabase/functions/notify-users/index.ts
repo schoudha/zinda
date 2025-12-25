@@ -14,30 +14,36 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 serve(async (req) => {
   try {
-    // 1. Determine current "time block" (morning, evening, night) based on UTC time
-    // Adjust these based on your target timezone preference or user settings if stored
-    const now = new Date();
-    const hour = now.getUTCHours();
-    const day = now.getUTCDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
-    
-    // Mapping days to our types
-    // Weekend: Friday evening (5 > 16:00), Saturday (6), Sunday (0)
-    // Weekday: Monday (1) - Friday morning (5 < 16:00)
-    
+    // Allow test mode via query parameter or body
     let timeBlock = null;
+    const url = new URL(req.url);
+    const testTime = url.searchParams.get('testTime') || null;
     
-    // Simple UTC logic (Assuming UTC roughly matches usage or adjusting for offset)
-    // Morning: 8 AM UTC
-    // Evening: 4 PM UTC (16:00)
-    // Night: 7:30 PM UTC (19:00 - rounding to hour for cron)
-    
-    if (hour === 8) timeBlock = 'morning';
-    if (hour === 16) timeBlock = 'evening';
-    if (hour === 19) timeBlock = 'night';
+    if (testTime && ['morning', 'evening', 'night'].includes(testTime)) {
+      // Test mode: use the provided time block
+      timeBlock = testTime;
+    } else {
+      // Production mode: Determine current "time block" (morning, evening, night) based on UTC time
+      const now = new Date();
+      const hour = now.getUTCHours();
+      
+      // Simple UTC logic (Assuming UTC roughly matches usage or adjusting for offset)
+      // Morning: 8 AM UTC
+      // Evening: 4 PM UTC (16:00)
+      // Night: 7:30 PM UTC (19:00 - rounding to hour for cron)
+      
+      if (hour === 8) timeBlock = 'morning';
+      if (hour === 16) timeBlock = 'evening';
+      if (hour === 19) timeBlock = 'night';
 
-    if (!timeBlock) {
-       return new Response(JSON.stringify({ message: `No notifications scheduled for hour ${hour}` }), { headers: { "Content-Type": "application/json" } });
+      if (!timeBlock) {
+         return new Response(JSON.stringify({ message: `No notifications scheduled for hour ${hour}. Use ?testTime=morning|evening|night to test.` }), { headers: { "Content-Type": "application/json" } });
+      }
     }
+    
+    const now = new Date();
+    const day = now.getUTCDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+    const hour = now.getUTCHours();
 
     // 2. Query goals matching this time block
     const { data: goals, error } = await supabase
