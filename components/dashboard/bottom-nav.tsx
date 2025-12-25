@@ -10,34 +10,38 @@ interface BottomNavProps {
 
 export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-gray-200 bg-white">
-      <div className="mx-auto flex max-w-md">
+    <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 shadow-lg shadow-gray-200/50 pb-safe">
+      <nav className="flex justify-around items-center max-w-md mx-auto">
         <button
           onClick={() => onTabChange("goals")}
           className={cn(
-            "flex flex-1 flex-col items-center justify-center gap-1 py-3 transition-colors",
+            "flex flex-1 flex-col items-center justify-center gap-1.5 py-3 transition-colors duration-200",
             activeTab === "goals"
               ? "text-black"
-              : "text-gray-400"
+              : "text-gray-400 hover:text-gray-600"
           )}
         >
-          <Target className="h-5 w-5" />
-          <span className="text-xs font-medium">Goals</span>
+          <div className={cn("p-1 rounded-lg transition-all duration-200", activeTab === "goals" && "bg-gray-100")}>
+            <Target className="h-5 w-5" />
+          </div>
+          <span className="text-[10px] font-semibold tracking-wide">GOALS</span>
         </button>
         <button
           onClick={() => onTabChange("notepad")}
           className={cn(
-            "flex flex-1 flex-col items-center justify-center gap-1 py-3 transition-colors",
+            "flex flex-1 flex-col items-center justify-center gap-1.5 py-3 transition-colors duration-200",
             activeTab === "notepad"
               ? "text-black"
-              : "text-gray-400"
+              : "text-gray-400 hover:text-gray-600"
           )}
         >
-          <FileText className="h-5 w-5" />
-          <span className="text-xs font-medium">Notepad</span>
+          <div className={cn("p-1 rounded-lg transition-all duration-200", activeTab === "notepad" && "bg-gray-100")}>
+            <FileText className="h-5 w-5" />
+          </div>
+          <span className="text-[10px] font-semibold tracking-wide">NOTEPAD</span>
         </button>
-      </div>
-    </nav>
+      </nav>
+    </div>
   );
 }
 

@@ -13,7 +13,7 @@ import {
   DialogBody,
 } from "@/components/ui/dialog";
 import { Note } from "@/app/page";
-import { ExternalLink, Sparkles, Loader2, Youtube, Plus } from "lucide-react";
+import { ExternalLink, Sparkles, Loader2, Youtube, Plus, FileText } from "lucide-react";
 import { isYoutubeUrl } from "@/lib/url-utils";
 import { Input } from "@/components/ui/input";
 
@@ -99,75 +99,96 @@ export function NotepadCard({ notes, onToggleNote, onAddNote }: NotepadCardProps
   const currentNote = notes.find((note) => note.id === openDialogId);
 
   return (
-    <Card className="border-none bg-white shadow-sm">
-      <CardHeader className="pb-2 pt-6">
-        <CardTitle className="text-xs font-bold uppercase tracking-wider text-gray-500">
-          Notes
-        </CardTitle>
+    <Card className="border-none bg-white shadow-xl shadow-gray-200/50 rounded-3xl overflow-hidden ring-1 ring-black/5">
+      <CardHeader className="pb-4 pt-8 px-8 bg-gradient-to-b from-white to-gray-50/50">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-lg font-bold text-gray-900 tracking-tight">
+            Notes
+          </CardTitle>
+          <span className="text-xs font-medium px-2.5 py-1 bg-gray-100 text-gray-600 rounded-full">
+            {notes.length} {notes.length === 1 ? 'item' : 'items'}
+          </span>
+        </div>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <form onSubmit={handleAddSubmit} className="flex gap-2">
+      <CardContent className="px-6 pb-8">
+        <form onSubmit={handleAddSubmit} className="flex gap-2 mb-6 relative group">
           <Input
             value={newNoteText}
             onChange={(e) => setNewNoteText(e.target.value)}
             placeholder="Add a new note..."
-            className="flex-1 h-9 text-sm"
+            className="flex-1 h-12 pl-4 pr-12 text-sm bg-gray-50 border-transparent focus:border-blue-500/20 focus:bg-white focus:ring-4 focus:ring-blue-500/10 rounded-xl transition-all duration-300"
           />
-          <Button type="submit" size="sm" className="h-9 px-3 bg-black text-white hover:bg-gray-800">
-            <Plus className="h-4 w-4 mr-1" />
-            Add
+          <Button 
+            type="submit" 
+            size="sm" 
+            className="absolute right-1.5 top-1.5 h-9 w-9 p-0 rounded-lg bg-black text-white hover:bg-gray-800 hover:scale-105 transition-all duration-200 shadow-md"
+          >
+            <Plus className="h-5 w-5" />
           </Button>
         </form>
 
         {notes.length === 0 ? (
-          <p className="text-sm text-gray-400 italic py-4">
-            No notes yet. Add a note using the input above.
-          </p>
+          <div className="flex flex-col items-center justify-center py-12 text-center space-y-3 opacity-50">
+            <div className="h-12 w-12 rounded-full bg-gray-100 flex items-center justify-center">
+              <FileText className="h-6 w-6 text-gray-400" />
+            </div>
+            <p className="text-sm font-medium text-gray-400">
+              Your notepad is empty
+            </p>
+          </div>
         ) : (
           <ul className="space-y-3">
             {notes.map((note) => (
-              <li key={note.id} className="flex items-start gap-3">
+              <li key={note.id} className="group flex items-start gap-3 p-3 -mx-3 rounded-xl hover:bg-gray-50 transition-colors duration-200">
                 <Checkbox
                   checked={note.checked}
                   onCheckedChange={() => onToggleNote(note.id)}
-                  className="mt-0.5"
+                  className="mt-1 border-2 border-gray-300 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600 rounded-md h-5 w-5 transition-all duration-200"
                 />
-                <div className="flex-1 min-w-0">
+                <div className="flex-1 min-w-0 pt-0.5">
                   {note.url && note.urlTitle ? (
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2 flex-wrap">
+                    <div className="space-y-1.5">
+                      <div className="flex items-start justify-between gap-4">
                         <a
                           href={note.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className={`text-sm font-medium flex items-center gap-1.5 hover:underline ${
+                          className={`text-sm font-medium flex items-start gap-2 hover:underline transition-colors ${
                             note.checked
-                              ? "line-through text-gray-400"
-                              : "text-blue-600"
+                              ? "line-through text-gray-400 decoration-gray-300"
+                              : "text-blue-600 hover:text-blue-700"
                           }`}
                         >
                           {isYoutubeUrl(note.url) ? (
-                            <Youtube className="h-3.5 w-3.5 text-red-600" />
+                            <div className="flex items-center justify-center h-5 w-5 rounded bg-red-50 text-red-600 shrink-0 mt-0.5">
+                              <Youtube className="h-3.5 w-3.5" />
+                            </div>
                           ) : (
-                            <ExternalLink className="h-3.5 w-3.5" />
+                            <div className="flex items-center justify-center h-5 w-5 rounded bg-blue-50 text-blue-600 shrink-0 mt-0.5">
+                              <ExternalLink className="h-3.5 w-3.5" />
+                            </div>
                           )}
-                          {note.urlTitle}
+                          <span className="flex-1 min-w-0 break-words whitespace-normal">{note.urlTitle}</span>
                         </a>
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => handleGetSummary(note.id, note.url!, note.urlTitle!)}
                           disabled={loadingSummaries.has(note.id)}
-                          className="h-6 w-6 p-0"
+                          className="h-7 w-7 p-0 rounded-full hover:bg-purple-50 text-purple-600 opacity-0 group-hover:opacity-100 transition-all duration-200"
                         >
-                          <Sparkles className="h-3.5 w-3.5 text-purple-600" />
+                          {loadingSummaries.has(note.id) ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <Sparkles className="h-3.5 w-3.5" />
+                          )}
                         </Button>
                       </div>
                     </div>
                   ) : (
                     <span
-                      className={`text-sm font-medium text-gray-900 ${
-                        note.checked ? "line-through text-gray-400" : ""
+                      className={`text-sm font-medium transition-all duration-200 block leading-relaxed break-words whitespace-pre-wrap ${
+                        note.checked ? "line-through text-gray-400 decoration-gray-300" : "text-gray-700"
                       }`}
                     >
                       {note.text}
