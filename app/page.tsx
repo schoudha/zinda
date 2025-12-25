@@ -13,6 +13,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PasswordGate } from "@/components/auth/password-gate";
 import { getFirstUrl } from "@/lib/url-utils";
+import { isYoutubeUrl } from "@/lib/url-utils";
+import { fetchYouTubeTranscript } from "@/lib/youtube-transcript-client";
 
 export interface Note {
   id: string;
@@ -58,9 +60,21 @@ function HomeContent() {
       let urlTitle: string | undefined;
       let summary: string | undefined;
 
-      // Fetch URL title and summary in parallel if URL is found
+      // Fetch URL title and summary if URL is found
       if (url) {
         try {
+          // For YouTube URLs, fetch transcript on client side first
+          let transcript: string | undefined;
+          if (isYoutubeUrl(url)) {
+            try {
+              transcript = await fetchYouTubeTranscript(url) || undefined;
+            } catch (error) {
+              console.error("Error fetching YouTube transcript:", error);
+              // Continue without transcript - the API will handle the error gracefully
+            }
+          }
+
+          // Fetch title and summary in parallel
           const [titleResponse, summaryResponse] = await Promise.all([
             fetch("/api/url/title", {
               method: "POST",
@@ -70,7 +84,10 @@ function HomeContent() {
             fetch("/api/url/summarize", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ url }),
+              body: JSON.stringify({ 
+                url,
+                transcript, // Pass transcript if available (for YouTube)
+              }),
             }),
           ]);
 
