@@ -28,7 +28,6 @@ export function useUsageStats() {
     
     try {
       const stats = await UsageStats.getDailyUsage();
-      setTotalTime(stats.totalTime);
       
       const appList = Object.entries(stats.apps)
         .filter(([pkg]) => {
@@ -51,6 +50,10 @@ export function useUsageStats() {
         .sort((a, b) => b.timeInForeground - a.timeInForeground);
         
       setApps(appList);
+      
+      // Calculate total time from filtered apps instead of using raw total
+      const filteredTotalTime = appList.reduce((acc, app) => acc + app.timeInForeground, 0);
+      setTotalTime(filteredTotalTime);
     } catch (e) {
       console.error('Failed to load usage stats', e);
     }
