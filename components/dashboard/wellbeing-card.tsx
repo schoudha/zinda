@@ -26,22 +26,24 @@ function getAppName(pkg: string): string {
   return pkg.split('.').pop() || pkg;
 }
 
-export const WellbeingCard = memo(function WellbeingCard() {
+export const WellbeingCard = memo(function WellbeingCard({ period = "today" }: { period?: string }) {
   const router = useRouter();
-  const { isNative, hasPermission, totalTime, apps, requestPermission } = useUsageStats();
+  const { isNative, hasPermission, totalTime, apps, requestPermission } = useUsageStats(period);
 
   // Mock data for web / fallback
-  const displayTime = isNative ? totalTime : 3 * 60 * 60 * 1000 + 12 * 60 * 1000; // 3h 12m
-  const limitTime = 4 * 60 * 60 * 1000; // 4h 00m
+  const multiplier = period === "week" ? 7 : period === "month" ? 30 : period === "year" ? 365 : 1;
+  const mockTime = (3 * 60 * 60 * 1000 + 12 * 60 * 1000) * multiplier; // 3h 12m * multiplier
+  const displayTime = isNative ? totalTime : mockTime;
+  const limitTime = (4 * 60 * 60 * 1000) * multiplier; // 4h 00m * multiplier
   const percentage = Math.min(100, (displayTime / limitTime) * 100);
 
   const topApps = isNative ? apps.slice(0, 3) : [
-    { packageName: "com.instagram.android", timeInForeground: 45 * 60 * 1000 },
-    { packageName: "com.zhiliaoapp.musically", timeInForeground: 32 * 60 * 1000 }
+    { packageName: "com.instagram.android", timeInForeground: 45 * 60 * 1000 * multiplier },
+    { packageName: "com.zhiliaoapp.musically", timeInForeground: 32 * 60 * 1000 * multiplier }
   ];
 
   const handleCardClick = () => {
-    router.push("/wellbeing");
+    // router.push("/wellbeing");
   };
 
   const handlePermissionClick = (e: React.MouseEvent) => {
@@ -52,7 +54,7 @@ export const WellbeingCard = memo(function WellbeingCard() {
   return (
     <Card 
       onClick={handleCardClick}
-      className="border-none bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 shadow-xl shadow-blue-900/5 dark:shadow-black/20 rounded-3xl ring-1 ring-black/5 dark:ring-white/10 overflow-hidden transition-all duration-300 hover:shadow-blue-900/10 dark:hover:shadow-black/30 hover:scale-[1.02] cursor-pointer active:scale-95"
+      className="border-none bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 shadow-xl shadow-blue-900/5 dark:shadow-black/20 rounded-3xl ring-1 ring-black/5 dark:ring-white/10 overflow-hidden transition-all duration-300 hover:shadow-blue-900/10 dark:hover:shadow-black/30 cursor-default"
     >
       <CardHeader className="pb-2 pt-6 px-6">
         <CardTitle className="text-[10px] font-bold uppercase tracking-widest text-blue-600/80 dark:text-blue-400 flex items-center gap-2">

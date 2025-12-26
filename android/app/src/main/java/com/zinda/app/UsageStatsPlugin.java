@@ -24,18 +24,42 @@ import java.util.Map;
 public class UsageStatsPlugin extends Plugin {
 
     @PluginMethod
-    public void getDailyUsage(PluginCall call) {
+    public void getUsage(PluginCall call) {
+        String period = call.getString("period", "today");
+
         Context context = getContext();
         PackageManager pm = context.getPackageManager();
         UsageStatsManager usm = (UsageStatsManager) context.getSystemService(Context.USAGE_STATS_SERVICE);
         
         Calendar calendar = Calendar.getInstance();
         long endTime = calendar.getTimeInMillis();
-        calendar.add(Calendar.DAY_OF_YEAR, -1);
-        long startTime = calendar.getTimeInMillis();
+        long startTime;
 
-        List<UsageStats> usageStatsList = usm.queryUsageStats(
-            UsageStatsManager.INTERVAL_DAILY,
+        switch (period) {
+            case "week":
+                calendar.add(Calendar.DAY_OF_YEAR, -7);
+                startTime = calendar.getTimeInMillis();
+                break;
+            case "month":
+                calendar.add(Calendar.DAY_OF_YEAR, -30);
+                startTime = calendar.getTimeInMillis();
+                break;
+            case "year":
+                calendar.add(Calendar.DAY_OF_YEAR, -365);
+                startTime = calendar.getTimeInMillis();
+                break;
+            case "today":
+            default:
+                // Start of today (00:00:00)
+                calendar.set(Calendar.HOUR_OF_DAY, 0);
+                calendar.set(Calendar.MINUTE, 0);
+                calendar.set(Calendar.SECOND, 0);
+                calendar.set(Calendar.MILLISECOND, 0);
+                startTime = calendar.getTimeInMillis();
+                break;
+        }
+
+        Map<String, UsageStats> usageStatsMap = usm.queryAndAggregateUsageStats(
             startTime,
             endTime
         );
@@ -44,8 +68,8 @@ public class UsageStatsPlugin extends Plugin {
         long totalScreenTime = 0;
         JSArray apps = new JSArray();
 
-        if (usageStatsList != null && !usageStatsList.isEmpty()) {
-            for (UsageStats stats : usageStatsList) {
+        if (usageStatsMap != null && !usageStatsMap.isEmpty()) {
+            for (UsageStats stats : usageStatsMap.values()) {
                 if (stats.getTotalTimeInForeground() > 0) {
                     String packageName = stats.getPackageName();
                     

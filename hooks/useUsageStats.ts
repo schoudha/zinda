@@ -7,7 +7,7 @@ export interface AppUsage {
   timeInForeground: number;
 }
 
-export function useUsageStats() {
+export function useUsageStats(period: string = 'today') {
   const [totalTime, setTotalTime] = useState<number>(0);
   const [apps, setApps] = useState<AppUsage[]>([]);
   const [hasPermission, setHasPermission] = useState<boolean>(false);
@@ -27,7 +27,7 @@ export function useUsageStats() {
     if (!Capacitor.isNativePlatform()) return;
     
     try {
-      const stats = await UsageStats.getDailyUsage();
+      const stats = await UsageStats.getUsage({ period });
       
       // Deduplicate stats by package name
       const aggregated = new Map<string, typeof stats.apps[0]>();
@@ -122,7 +122,7 @@ export function useUsageStats() {
       const interval = setInterval(loadStats, 60000);
       return () => clearInterval(interval);
     }
-  }, []);
+  }, [period]);
 
   return {
     isNative,
@@ -133,4 +133,3 @@ export function useUsageStats() {
     refresh: loadStats
   };
 }
-

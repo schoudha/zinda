@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense, useMemo, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Header } from "@/components/dashboard/header";
 import { DateTabs } from "@/components/dashboard/date-tabs";
+import { TimeTabs } from "@/components/dashboard/time-tabs";
 import { NotepadCard } from "@/components/dashboard/notepad";
 import { MediaCard } from "@/components/dashboard/media-card";
 import { WellbeingCard } from "@/components/dashboard/wellbeing-card";
@@ -22,8 +23,9 @@ function HomeContent() {
   const { notes, addNote, toggleNote, updateNote, deleteNote } = useNotes();
   const { goals, isLoading: goalsLoading, refreshGoals, deleteGoal } = useGoals();
   
-  const [activeTab, setActiveTab] = useState<"goals" | "notepad" | "media">("goals");
+  const [activeTab, setActiveTab] = useState<"goals" | "notepad" | "media" | "time">("goals");
   const [selectedPeriod, setSelectedPeriod] = useState<GoalPeriod>("week");
+  const [selectedTimePeriod, setSelectedTimePeriod] = useState<"today" | "week" | "month" | "year">("today");
   
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -38,7 +40,7 @@ function HomeContent() {
   }, [goals, selectedPeriod]);
 
   // Memoize tab change handler
-  const handleTabChange = useCallback((tab: "goals" | "notepad" | "media") => {
+  const handleTabChange = useCallback((tab: "goals" | "notepad" | "media" | "time") => {
     setActiveTab(tab);
   }, []);
 
@@ -93,10 +95,14 @@ function HomeContent() {
                   )}
                   
                   {/* Show other cards - rendered once, not duplicated */}
-                  <WellbeingCard />
                   <HealthCard />
                 </div>
               </>
+            ) : activeTab === "time" ? (
+              <div className="flex flex-col gap-6 px-6">
+                <TimeTabs value={selectedTimePeriod} onValueChange={setSelectedTimePeriod} />
+                <WellbeingCard period={selectedTimePeriod} />
+              </div>
             ) : activeTab === "media" ? (
               <div className="flex flex-col gap-4 px-4 overflow-hidden">
                 <MediaCard 

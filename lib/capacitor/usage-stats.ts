@@ -1,7 +1,7 @@
 import { registerPlugin } from '@capacitor/core';
 
 export interface UsageStatsPlugin {
-  getDailyUsage(): Promise<{
+  getUsage(options?: { period: string }): Promise<{
     totalTime: number; // in milliseconds
     apps: {
       packageName: string;
@@ -15,4 +15,3 @@ export interface UsageStatsPlugin {
 }
 
 export const UsageStats = registerPlugin<UsageStatsPlugin>('UsageStats');
-

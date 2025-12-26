@@ -1,12 +1,12 @@
 "use client";
 
 import { memo, useCallback } from "react";
-import { Target, FileText, Book } from "lucide-react";
+import { Target, FileText, Book, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface BottomNavProps {
-  activeTab: "goals" | "notepad" | "media";
-  onTabChange: (tab: "goals" | "notepad" | "media") => void;
+  activeTab: "goals" | "time" | "notepad" | "media";
+  onTabChange: (tab: "goals" | "time" | "notepad" | "media") => void;
 }
 
 export const BottomNav = memo(function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
@@ -26,6 +26,20 @@ export const BottomNav = memo(function BottomNav({ activeTab, onTabChange }: Bot
             <Target className="h-5 w-5" />
           </div>
           <span className="text-[10px] font-semibold tracking-wide">GOALS</span>
+        </button>
+        <button
+          onClick={() => onTabChange("time")}
+          className={cn(
+            "flex flex-1 flex-col items-center justify-center gap-1.5 py-3 transition-colors duration-200",
+            activeTab === "time"
+              ? "text-foreground"
+              : "text-muted-foreground hover:text-foreground"
+          )}
+        >
+          <div className={cn("p-1 rounded-lg transition-all duration-200", activeTab === "time" && "bg-muted")}>
+            <Clock className="h-5 w-5" />
+          </div>
+          <span className="text-[10px] font-semibold tracking-wide">TIME</span>
         </button>
         <button
           onClick={() => onTabChange("media")}
@@ -59,4 +73,3 @@ export const BottomNav = memo(function BottomNav({ activeTab, onTabChange }: Bot
     </div>
   );
 });
-
