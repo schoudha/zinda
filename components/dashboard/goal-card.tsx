@@ -36,10 +36,6 @@ export function GoalCard({ goal, onDelete }: GoalCardProps) {
     year: "from-orange-50 to-amber-50 text-orange-600/80",
   };
 
-  const handleCardClick = () => {
-    router.push(`/goals/${goal.id}`);
-  };
-
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (onDelete) {
@@ -63,10 +59,14 @@ export function GoalCard({ goal, onDelete }: GoalCardProps) {
     // For now, we'll just update local state
   };
 
+  const handleDiscussClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    router.push(`/goals/${goal.id}`);
+  };
+
   return (
     <Card 
-      onClick={handleCardClick}
-      className={`border-none bg-gradient-to-br ${periodColors[goal.period]} shadow-xl shadow-blue-900/5 rounded-3xl ring-1 ring-black/5 overflow-hidden transition-all duration-300 hover:shadow-blue-900/10 hover:scale-[1.01] relative cursor-pointer`}
+      className={`border-none bg-gradient-to-br ${periodColors[goal.period]} shadow-xl shadow-blue-900/5 rounded-3xl ring-1 ring-black/5 overflow-hidden transition-all duration-300 hover:shadow-blue-900/10 relative`}
     >
       <div className="absolute top-2 right-2 flex gap-1 z-10">
         <Button
@@ -126,6 +126,14 @@ export function GoalCard({ goal, onDelete }: GoalCardProps) {
             </ul>
           </div>
         )}
+        <div className="pt-4">
+          <Button
+            onClick={handleDiscussClick}
+            className="w-full bg-blue-700 hover:bg-blue-800 text-white font-semibold shadow-md"
+          >
+            Discuss this goal
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );
