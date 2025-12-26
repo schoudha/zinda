@@ -5,6 +5,7 @@ import android.app.usage.UsageStats;
 import android.app.usage.UsageStatsManager;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.provider.Settings;
 import android.os.Process;
 import com.getcapacitor.JSObject;
@@ -23,6 +24,7 @@ public class UsageStatsPlugin extends Plugin {
     @PluginMethod
     public void getDailyUsage(PluginCall call) {
         Context context = getContext();
+        PackageManager pm = context.getPackageManager();
         UsageStatsManager usm = (UsageStatsManager) context.getSystemService(Context.USAGE_STATS_SERVICE);
         
         Calendar calendar = Calendar.getInstance();
@@ -43,7 +45,23 @@ public class UsageStatsPlugin extends Plugin {
         if (usageStatsList != null && !usageStatsList.isEmpty()) {
             for (UsageStats stats : usageStatsList) {
                 if (stats.getTotalTimeInForeground() > 0) {
-                    apps.put(stats.getPackageName(), stats.getTotalTimeInForeground());
+                    String packageName = stats.getPackageName();
+                    
+                    // Filter out system apps/services that don't have a launch intent (user can't open them)
+                    Intent launchIntent = pm.getLaunchIntentForPackage(packageName);
+                    if (launchIntent == null) {
+                        continue;
+                    }
+                    
+                    // Explicitly filter out System UI and common launchers if desired
+                    if (packageName.equals("com.android.systemui") || 
+                        packageName.contains("launcher") ||
+                        packageName.contains("nexuslauncher") ||
+                        packageName.contains("pixellauncher")) {
+                        continue;
+                    }
+
+                    apps.put(packageName, stats.getTotalTimeInForeground());
                     totalScreenTime += stats.getTotalTimeInForeground();
                 }
             }
