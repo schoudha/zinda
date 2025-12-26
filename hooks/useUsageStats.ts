@@ -31,6 +31,19 @@ export function useUsageStats() {
       setTotalTime(stats.totalTime);
       
       const appList = Object.entries(stats.apps)
+        .filter(([pkg]) => {
+          // Filter out system apps that might slip through native filter
+          const systemPackages = [
+            'android',
+            'com.android.systemui',
+            'com.google.android.googlequicksearchbox', // Google App / Assistant
+            'com.android.vending', // Play Store
+            'com.android.settings', // Settings
+          ];
+          if (systemPackages.includes(pkg)) return false;
+          if (pkg.toLowerCase().includes('launcher')) return false;
+          return true;
+        })
         .map(([pkg, time]) => ({
           packageName: pkg,
           timeInForeground: time
