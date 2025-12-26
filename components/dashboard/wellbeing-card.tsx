@@ -1,12 +1,13 @@
 "use client";
 
-import { memo } from "react";
+import { memo, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { useUsageStats } from "@/hooks/useUsageStats";
+import { useGoals } from "@/hooks/useGoals";
 import { Button } from "@/components/ui/button";
-import { Lock } from "lucide-react";
+import { Lock, Sparkles } from "lucide-react";
 
 function formatDuration(ms: number): string {
   const minutes = Math.floor(ms / 60000);
@@ -29,6 +30,10 @@ function getAppName(pkg: string): string {
 export const WellbeingCard = memo(function WellbeingCard({ period = "today" }: { period?: string }) {
   const router = useRouter();
   const { isNative, hasPermission, totalTime, apps, requestPermission } = useUsageStats(period);
+  const { goals } = useGoals();
+  
+  const [interpretation, setInterpretation] = useState<string>("");
+  const [loadingInterpretation, setLoadingInterpretation] = useState(false);
 
   // Mock data for web / fallback
   const multiplier = period === "week" ? 7 : period === "month" ? 30 : period === "year" ? 365 : 1;
@@ -41,6 +46,47 @@ export const WellbeingCard = memo(function WellbeingCard({ period = "today" }: {
     { packageName: "com.instagram.android", timeInForeground: 45 * 60 * 1000 * multiplier },
     { packageName: "com.zhiliaoapp.musically", timeInForeground: 32 * 60 * 1000 * multiplier }
   ];
+
+  // Fetch AI interpretation
+  useEffect(() => {
+    // Debounce to prevent multiple calls
+    const timer = setTimeout(async () => {
+      // Only fetch if we have some data and it's not already loading
+      if (displayTime > 0 && !loadingInterpretation) {
+        setLoadingInterpretation(true);
+        try {
+          // For web mock, we'll use the mock data. For native, use real data.
+          const payload = {
+            usage: {
+              totalTime: displayTime,
+              apps: topApps // Send top apps for context
+            },
+            goals: goals,
+            period: period
+          };
+
+          const res = await fetch('/api/wellbeing/interpret', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          
+          if (res.ok) {
+            const data = await res.json();
+            if (data.interpretation) {
+              setInterpretation(data.interpretation);
+            }
+          }
+        } catch (e) {
+          console.error("Failed to fetch interpretation", e);
+        } finally {
+          setLoadingInterpretation(false);
+        }
+      }
+    }, 1000); // 1 second delay to let data settle
+
+    return () => clearTimeout(timer);
+  }, [displayTime, period, goals.length]); // Re-run when time, period or goals count changes
 
   const handleCardClick = () => {
     router.push(`/wellbeing?period=${period}`);
@@ -91,17 +137,22 @@ export const WellbeingCard = memo(function WellbeingCard({ period = "today" }: {
           </div>
         )}
 
-        <div className="flex items-center gap-3 text-xs font-medium text-gray-600 dark:text-gray-300 bg-white/60 dark:bg-white/5 p-3 rounded-xl backdrop-blur-sm">
-          <div className="h-8 w-8 rounded-lg bg-pink-100 dark:bg-pink-900/30 flex items-center justify-center text-pink-600 dark:text-pink-400 shrink-0">
-            {getAppName(topApps[0]?.packageName || "").substring(0, 2).toUpperCase()}
+        <div className="flex items-start gap-3 text-xs font-medium text-gray-600 dark:text-gray-300 bg-white/60 dark:bg-white/5 p-3 rounded-xl backdrop-blur-sm relative overflow-hidden group">
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+          <div className="h-8 w-8 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5">
+             {loadingInterpretation ? (
+                <Sparkles className="h-4 w-4 animate-spin-slow" />
+             ) : (
+                <Sparkles className="h-4 w-4" />
+             )}
           </div>
-          <div className="flex flex-col overflow-hidden flex-1 min-w-0">
-            <span className="text-gray-900 dark:text-white font-bold truncate block">
-              {percentage > 75 ? "High usage" : "Doing well"}
+          <div className="flex flex-col overflow-hidden flex-1 min-w-0 z-10">
+            <span className="text-gray-900 dark:text-white font-bold truncate block mb-1">
+              AI Insight
             </span>
-            <span className="truncate block">
-              {topApps.map(app => `${getAppName(app.packageName)} (${Math.round(app.timeInForeground/60000)}m)`).join(", ")}
-            </span>
+            <p className="leading-relaxed opacity-90 line-clamp-3">
+              {loadingInterpretation && !interpretation ? "Analyzing usage patterns..." : interpretation || "Focus on your goals to reduce screen time."}
+            </p>
           </div>
         </div>
       </CardContent>
