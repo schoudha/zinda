@@ -1,14 +1,15 @@
 "use client";
 
+import { memo } from "react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 
 interface DateTabsProps {
   value: "week" | "month" | "year";
-  onValueChange: (value: "week" | "month" | "year") => void;
+  onValueChange: (value: string) => void;
 }
 
-export function DateTabs({ value, onValueChange }: DateTabsProps) {
+export const DateTabs = memo(function DateTabs({ value, onValueChange }: DateTabsProps) {
   return (
     <div className="p-1 bg-muted/50 rounded-full border border-border backdrop-blur-sm">
       <Tabs value={value} onValueChange={(val) => onValueChange(val as "week" | "month" | "year")} className="w-full">
@@ -50,5 +51,5 @@ export function DateTabs({ value, onValueChange }: DateTabsProps) {
       </Tabs>
     </div>
   );
-}
+});
 

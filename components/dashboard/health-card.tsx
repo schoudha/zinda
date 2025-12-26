@@ -1,8 +1,8 @@
 "use client";
 
+import { memo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import { cn } from "@/lib/utils";
 
 function RadialProgress({ value, size = 60 }: { value: number; size?: number }) {
   const radius = 24;
@@ -43,7 +43,7 @@ function RadialProgress({ value, size = 60 }: { value: number; size?: number }) 
   );
 }
 
-export function HealthCard() {
+export const HealthCard = memo(function HealthCard() {
   return (
     <Card className="border-none bg-white dark:bg-card shadow-xl shadow-green-900/5 dark:shadow-black/20 rounded-3xl ring-1 ring-black/5 dark:ring-white/10 overflow-hidden transition-all duration-300 hover:shadow-green-900/10 dark:hover:shadow-black/30 hover:scale-[1.02]">
       <CardHeader className="pb-2 pt-6 px-6">
@@ -80,5 +80,5 @@ export function HealthCard() {
       </CardContent>
     </Card>
   );
-}
+});
 

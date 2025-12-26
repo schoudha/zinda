@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, memo } from "react";
 import { getRandomQuranQuote, type QuranQuote } from "@/lib/quran-quotes";
 
 interface HeaderProps {
@@ -20,7 +20,7 @@ function getGreeting(): string {
   }
 }
 
-export function Header({ 
+export const Header = memo(function Header({ 
   userName = "Salahuddin"
 }: HeaderProps) {
   const [greeting, setGreeting] = useState(getGreeting());
@@ -59,5 +59,5 @@ export function Header({
       )}
     </div>
   );
-}
+});
 

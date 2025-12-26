@@ -1,20 +1,24 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, memo, lazy, Suspense, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { X, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { Goal } from "@/types";
-import { NotificationDialog } from "@/components/goals/notification-dialog";
 import { api } from "@/lib/api";
+
+// Lazy load NotificationDialog - only needed when user clicks bell icon
+const NotificationDialog = lazy(() => 
+  import("@/components/goals/notification-dialog").then(mod => ({ default: mod.NotificationDialog }))
+);
 
 interface GoalCardProps {
   goal: Goal;
   onDelete?: (goalId: string) => void;
 }
 
-export function GoalCard({ goal, onDelete }: GoalCardProps) {
+export const GoalCard = memo(function GoalCard({ goal, onDelete }: GoalCardProps) {
   const router = useRouter();
   const [notificationDialogOpen, setNotificationDialogOpen] = useState(false);
   const [currentGoal, setCurrentGoal] = useState<Goal>(goal);
@@ -36,33 +40,31 @@ export function GoalCard({ goal, onDelete }: GoalCardProps) {
     year: "from-orange-50 to-amber-50 text-orange-600/80 dark:from-orange-950/20 dark:to-amber-950/20 dark:text-orange-400",
   };
 
-  const handleDelete = (e: React.MouseEvent) => {
+  const handleDelete = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     if (onDelete) {
       onDelete(goal.id);
     }
-  };
+  }, [onDelete, goal.id]);
 
-  const handleBellClick = (e: React.MouseEvent) => {
+  const handleBellClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     setNotificationDialogOpen(true);
-  };
+  }, []);
 
-  const handleSaveNotification = async (time: Goal["notificationTime"] | null, days: Goal["notificationDays"] | null) => {
+  const handleSaveNotification = useCallback(async (time: Goal["notificationTime"] | null, days: Goal["notificationDays"] | null) => {
     const updatedGoal = await api.goals.updateNotifications(
       currentGoal.id,
       time ?? undefined,
       days ?? undefined
     );
     setCurrentGoal(updatedGoal);
-    // Update parent if needed - but since goal is passed as prop, we might need to handle this differently
-    // For now, we'll just update local state
-  };
+  }, [currentGoal.id]);
 
-  const handleDiscussClick = (e: React.MouseEvent) => {
+  const handleDiscussClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     router.push(`/goals/${goal.id}`);
-  };
+  }, [router, goal.id]);
 
   return (
     <Card 
@@ -88,14 +90,18 @@ export function GoalCard({ goal, onDelete }: GoalCardProps) {
           </Button>
         )}
       </div>
-      <NotificationDialog
-        open={notificationDialogOpen}
-        onOpenChange={setNotificationDialogOpen}
-        goalId={currentGoal.id}
-        currentTime={currentGoal.notificationTime}
-        currentDays={currentGoal.notificationDays}
-        onSave={handleSaveNotification}
-      />
+      {notificationDialogOpen && (
+        <Suspense fallback={null}>
+          <NotificationDialog
+            open={notificationDialogOpen}
+            onOpenChange={setNotificationDialogOpen}
+            goalId={currentGoal.id}
+            currentTime={currentGoal.notificationTime}
+            currentDays={currentGoal.notificationDays}
+            onSave={handleSaveNotification}
+          />
+        </Suspense>
+      )}
       <CardHeader className="pb-2 pt-6 px-6">
         <CardTitle className={`text-[10px] font-bold uppercase tracking-widest ${periodColors[goal.period].split(' ')[2]} flex items-center gap-2`}>
           <div className={`h-1.5 w-1.5 rounded-full ${goal.period === 'week' ? 'bg-blue-500' : goal.period === 'month' ? 'bg-purple-500' : 'bg-orange-500'} animate-pulse`} />
@@ -137,4 +143,4 @@ export function GoalCard({ goal, onDelete }: GoalCardProps) {
       </CardContent>
     </Card>
   );
-}
+});

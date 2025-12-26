@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, Suspense, useMemo, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Header } from "@/components/dashboard/header";
 import { DateTabs } from "@/components/dashboard/date-tabs";
@@ -16,16 +16,36 @@ import { PasswordGate } from "@/components/auth/password-gate";
 import { useGoals } from "@/hooks/useGoals";
 import { useNotes } from "@/hooks/useNotes";
 import { GoalPeriod } from "@/types";
+import { DashboardSkeleton, GoalCardSkeleton } from "@/components/ui/skeleton";
 
 function HomeContent() {
   const { notes, addNote, toggleNote, updateNote, deleteNote } = useNotes();
-  const { refreshGoals, deleteGoal, getGoalsForPeriod } = useGoals();
+  const { goals, isLoading: goalsLoading, refreshGoals, deleteGoal } = useGoals();
   
   const [activeTab, setActiveTab] = useState<"goals" | "notepad" | "media">("goals");
   const [selectedPeriod, setSelectedPeriod] = useState<GoalPeriod>("week");
   
   const searchParams = useSearchParams();
   const router = useRouter();
+
+  // Memoize goals filtering to prevent recalculation on every render
+  const filteredGoals = useMemo(() => {
+    return goals.filter((goal) => {
+      if (goal.period === "year") return true;
+      if (goal.period === "month") return selectedPeriod === "month" || selectedPeriod === "week";
+      return goal.period === selectedPeriod;
+    });
+  }, [goals, selectedPeriod]);
+
+  // Memoize tab change handler
+  const handleTabChange = useCallback((tab: "goals" | "notepad" | "media") => {
+    setActiveTab(tab);
+  }, []);
+
+  // Memoize period change handler
+  const handlePeriodChange = useCallback((period: string) => {
+    setSelectedPeriod(period as GoalPeriod);
+  }, []);
 
   // Handle shared content from share target
   useEffect(() => {
@@ -57,33 +77,24 @@ function HomeContent() {
                   <InputBar onGoalCreated={refreshGoals} />
                 </div>
                 <div className="px-6">
-                  <DateTabs value={selectedPeriod} onValueChange={(v) => setSelectedPeriod(v as GoalPeriod)} />
+                  <DateTabs value={selectedPeriod} onValueChange={handlePeriodChange} />
                 </div>
                 <div className="flex flex-col gap-4 px-6">
                   {/* Display goals for the selected period */}
-                  {getGoalsForPeriod(selectedPeriod).map((goal) => (
-                    <GoalCard key={goal.id} goal={goal} onDelete={deleteGoal} />
-                  ))}
+                  {goalsLoading ? (
+                    <>
+                      <GoalCardSkeleton />
+                      <GoalCardSkeleton />
+                    </>
+                  ) : (
+                    filteredGoals.map((goal) => (
+                      <GoalCard key={goal.id} goal={goal} onDelete={deleteGoal} />
+                    ))
+                  )}
                   
-                  {/* Show other cards based on period */}
-                  {selectedPeriod === "week" && (
-                    <>
-                      <WellbeingCard />
-                      <HealthCard />
-                    </>
-                  )}
-                  {selectedPeriod === "month" && (
-                    <>
-                      <WellbeingCard />
-                      <HealthCard />
-                    </>
-                  )}
-                  {selectedPeriod === "year" && (
-                    <>
-                      <WellbeingCard />
-                      <HealthCard />
-                    </>
-                  )}
+                  {/* Show other cards - rendered once, not duplicated */}
+                  <WellbeingCard />
+                  <HealthCard />
                 </div>
               </>
             ) : activeTab === "media" ? (
@@ -108,7 +119,7 @@ function HomeContent() {
             )}
           </div>
         </ScrollArea>
-        <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
+        <BottomNav activeTab={activeTab} onTabChange={handleTabChange} />
       </div>
     </main>
   );
@@ -117,7 +128,7 @@ function HomeContent() {
 export default function Home() {
   return (
     <PasswordGate>
-      <Suspense fallback={<div className="flex min-h-screen items-center justify-center bg-background text-foreground">Loading...</div>}>
+      <Suspense fallback={<DashboardSkeleton />}>
         <HomeContent />
       </Suspense>
     </PasswordGate>

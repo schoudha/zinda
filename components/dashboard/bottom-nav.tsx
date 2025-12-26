@@ -1,5 +1,6 @@
 "use client";
 
+import { memo, useCallback } from "react";
 import { Target, FileText, Book } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -8,7 +9,7 @@ interface BottomNavProps {
   onTabChange: (tab: "goals" | "notepad" | "media") => void;
 }
 
-export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
+export const BottomNav = memo(function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 bg-background border-t border-border shadow-lg shadow-black/5 pb-safe">
       <nav className="flex justify-around items-center max-w-md mx-auto">
@@ -57,5 +58,5 @@ export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
       </nav>
     </div>
   );
-}
+});
 

@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { useUsageStats } from "@/hooks/useUsageStats";
@@ -24,7 +25,7 @@ function getAppName(pkg: string): string {
   return pkg.split('.').pop() || pkg;
 }
 
-export function WellbeingCard() {
+export const WellbeingCard = memo(function WellbeingCard() {
   const { isNative, hasPermission, totalTime, apps, requestPermission } = useUsageStats();
 
   // Mock data for web / fallback
@@ -90,4 +91,4 @@ export function WellbeingCard() {
       </CardContent>
     </Card>
   );
-}
+});
