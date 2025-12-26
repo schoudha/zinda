@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, use } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, Send, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -12,9 +12,9 @@ import { api } from "@/lib/api";
 import { NotificationDialog } from "@/components/goals/notification-dialog";
 
 export default function GoalDetailPage() {
-  const params = useParams();
+  const paramsRaw = useParams();
   const router = useRouter();
-  const id = params.id as string;
+  const [id, setId] = useState<string | null>(null);
   
   const [goal, setGoal] = useState<Goal | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -23,6 +23,19 @@ export default function GoalDetailPage() {
   const [isSending, setIsSending] = useState(false);
   const [notificationDialogOpen, setNotificationDialogOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Resolve params (handle both Promise and direct object cases)
+  useEffect(() => {
+    const resolveParams = async () => {
+      if (paramsRaw instanceof Promise || (paramsRaw && typeof (paramsRaw as any).then === 'function')) {
+        const resolved = await (paramsRaw as unknown as Promise<{ id: string }>);
+        setId(resolved.id);
+      } else {
+        setId((paramsRaw as { id: string }).id);
+      }
+    };
+    resolveParams();
+  }, [paramsRaw]);
 
   useEffect(() => {
     if (!id) return;
@@ -57,7 +70,7 @@ export default function GoalDetailPage() {
   }, [messages]);
 
   const handleSendMessage = async () => {
-    if (!inputValue.trim() || isSending) return;
+    if (!inputValue.trim() || isSending || !id) return;
 
     const userMsgText = inputValue.trim();
     setInputValue("");
