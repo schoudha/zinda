@@ -55,6 +55,8 @@ public class UsageStatsPlugin extends Plugin {
                     
                     // Explicitly filter out System UI and common launchers if desired
                     if (packageName.equals("com.android.systemui") || 
+                        packageName.equals("android") ||
+                        packageName.equals("com.google.android.googlequicksearchbox") ||
                         packageName.contains("launcher") ||
                         packageName.contains("nexuslauncher") ||
                         packageName.contains("pixellauncher")) {
