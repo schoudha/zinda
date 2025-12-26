@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase/server';
+import { adminClient } from '@/lib/supabase/server';
+import { isAuthenticated } from '@/lib/auth';
 
 // PATCH - Update notification settings for a goal
 export async function PATCH(
@@ -7,6 +8,10 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    if (!await isAuthenticated()) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { id } = await params;
     const body = await request.json();
     const { notificationTime, notificationDays } = body;
@@ -40,7 +45,7 @@ export async function PATCH(
       updateData.notification_days = notificationDays;
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await adminClient
       .from('goals')
       .update(updateData)
       .eq('id', id)

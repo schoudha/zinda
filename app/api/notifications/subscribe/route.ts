@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase/server';
+import { adminClient } from '@/lib/supabase/server';
+import { isAuthenticated } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
   try {
+    if (!await isAuthenticated()) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { subscription } = await request.json();
 
     if (!subscription || !subscription.endpoint) {
@@ -13,7 +18,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Upsert subscription
-    const { error } = await supabase
+    const { error } = await adminClient
       .from('push_subscriptions')
       .upsert({
         endpoint: subscription.endpoint,

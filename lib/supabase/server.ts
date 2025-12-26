@@ -8,11 +8,13 @@ if (!supabaseUrl || !supabaseServiceKey) {
 }
 
 // Use service role key for server-side operations (bypasses RLS)
-// Fall back to anon key if service role key is not available
-export const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+// We export this as 'adminClient' to make it explicit that it bypasses RLS
+export const adminClient = createClient(supabaseUrl, supabaseServiceKey, {
   auth: {
     autoRefreshToken: false,
     persistSession: false,
   },
 });
 
+// Deprecated: use adminClient instead
+export const supabase = adminClient;

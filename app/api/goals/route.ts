@@ -1,10 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase/server';
+import { adminClient } from '@/lib/supabase/server';
+import { isAuthenticated } from '@/lib/auth';
 
 // GET - Fetch all goals
 export async function GET() {
   try {
-    const { data, error } = await supabase
+    if (!await isAuthenticated()) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { data, error } = await adminClient
       .from('goals')
       .select('*')
       .order('created_at', { ascending: false });
@@ -51,6 +56,10 @@ export async function GET() {
 // POST - Create a new goal
 export async function POST(request: NextRequest) {
   try {
+    if (!await isAuthenticated()) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const body = await request.json();
     const { id, text, period, tips, createdAt } = body;
 
@@ -68,7 +77,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await adminClient
       .from('goals')
       .insert({
         id,
@@ -112,6 +121,10 @@ export async function POST(request: NextRequest) {
 // PATCH - Update a goal
 export async function PATCH(request: NextRequest) {
   try {
+    if (!await isAuthenticated()) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const body = await request.json();
     const { id, text, period, tips } = body;
 
@@ -157,7 +170,7 @@ export async function PATCH(request: NextRequest) {
       updateData.notification_days = body.notificationDays;
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await adminClient
       .from('goals')
       .update(updateData)
       .eq('id', id)
@@ -196,6 +209,10 @@ export async function PATCH(request: NextRequest) {
 // DELETE - Delete a goal
 export async function DELETE(request: NextRequest) {
   try {
+    if (!await isAuthenticated()) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 
@@ -206,7 +223,7 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    const { error } = await supabase
+    const { error } = await adminClient
       .from('goals')
       .delete()
       .eq('id', id);

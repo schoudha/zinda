@@ -1,56 +1,51 @@
-import { useState, useCallback, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Goal, GoalPeriod } from "@/types";
 import { api } from "@/lib/api";
+import { useCallback } from "react";
 
 export function useGoals() {
-  const [goals, setGoals] = useState<Goal[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const queryClient = useQueryClient();
 
-  const refreshGoals = useCallback(async () => {
-    try {
-      const data = await api.goals.list();
-      setGoals(data || []);
-    } catch (error) {
-      console.error("Error loading goals:", error);
-    }
-  }, []);
+  const { data: goals = [], isLoading, refetch } = useQuery({
+    queryKey: ["goals"],
+    queryFn: api.goals.list,
+  });
 
-  useEffect(() => {
-    const load = async () => {
-      setIsLoading(true);
-      await refreshGoals();
-      setIsLoading(false);
-    };
-    load();
-  }, [refreshGoals]);
+  const deleteMutation = useMutation({
+    mutationFn: api.goals.delete,
+    onMutate: async (goalId) => {
+      await queryClient.cancelQueries({ queryKey: ["goals"] });
+      const previousGoals = queryClient.getQueryData<Goal[]>(["goals"]);
+      queryClient.setQueryData<Goal[]>(["goals"], (old) =>
+        (old || []).filter((g) => g.id !== goalId)
+      );
+      return { previousGoals };
+    },
+    onError: (err, goalId, context) => {
+      queryClient.setQueryData(["goals"], context?.previousGoals);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["goals"] });
+    },
+  });
 
-  const deleteGoal = useCallback(async (goalId: string) => {
-    // Optimistic update
-    setGoals((prev) => prev.filter((g) => g.id !== goalId));
-
-    try {
-      await api.goals.delete(goalId);
-    } catch (error) {
-      console.error("Error deleting goal:", error);
-      // Revert on error
-      refreshGoals();
-    }
-  }, [refreshGoals]);
-
-  const getGoalsForPeriod = useCallback((period: GoalPeriod): Goal[] => {
-    return goals.filter((goal) => {
-      if (goal.period === "year") return true;
-      if (goal.period === "month") return period === "month" || period === "week";
-      return goal.period === period;
-    });
-  }, [goals]);
+  const getGoalsForPeriod = useCallback(
+    (period: GoalPeriod): Goal[] => {
+      return goals.filter((goal) => {
+        if (goal.period === "year") return true;
+        if (goal.period === "month")
+          return period === "month" || period === "week";
+        return goal.period === period;
+      });
+    },
+    [goals]
+  );
 
   return {
     goals,
     isLoading,
-    refreshGoals,
-    deleteGoal,
-    getGoalsForPeriod
+    refreshGoals: refetch,
+    deleteGoal: deleteMutation.mutateAsync,
+    getGoalsForPeriod,
   };
 }
-

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist } from "next/font/google";
 import { PushInit } from "@/components/native/push-init";
+import Providers from "./providers";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -38,8 +39,10 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} antialiased bg-background text-foreground`}
       >
-        <PushInit />
-        {children}
+        <Providers>
+          <PushInit />
+          {children}
+        </Providers>
       </body>
     </html>
   );

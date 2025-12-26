@@ -1,11 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase/server';
+import { adminClient } from '@/lib/supabase/server';
+import { isAuthenticated } from '@/lib/auth';
 
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    if (!await isAuthenticated()) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { id: goalId } = await params;
     const { message } = await request.json();
 
@@ -18,7 +23,7 @@ export async function POST(
 
     // 1. Save user message
     const userMessageId = Date.now().toString();
-    const { error: userMsgError } = await supabase
+    const { error: userMsgError } = await adminClient
       .from('goal_messages')
       .insert({
         id: userMessageId,
@@ -33,7 +38,7 @@ export async function POST(
     }
 
     // 2. Fetch goal context
-    const { data: goal, error: goalError } = await supabase
+    const { data: goal, error: goalError } = await adminClient
       .from('goals')
       .select('*')
       .eq('id', goalId)
@@ -44,7 +49,7 @@ export async function POST(
     }
 
     // 3. Fetch recent history (last 10 messages) for context
-    const { data: history } = await supabase
+    const { data: history } = await adminClient
       .from('goal_messages')
       .select('role, content')
       .eq('goal_id', goalId)
@@ -105,7 +110,7 @@ Keep your responses concise, encouraging, and actionable. Use bold and italics f
 
     // 5. Save AI response
     const aiMessageId = (Date.now() + 1).toString();
-    const { error: aiMsgError } = await supabase
+    const { error: aiMsgError } = await adminClient
       .from('goal_messages')
       .insert({
         id: aiMessageId,

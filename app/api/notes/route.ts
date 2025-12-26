@@ -1,10 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase/server';
+import { adminClient } from '@/lib/supabase/server';
+import { isAuthenticated } from '@/lib/auth';
 
 // GET - Fetch all notes
 export async function GET() {
   try {
-    const { data, error } = await supabase
+    if (!await isAuthenticated()) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { data, error } = await adminClient
       .from('notes')
       .select('*')
       .order('created_at', { ascending: false });
@@ -51,6 +56,10 @@ export async function GET() {
 // POST - Create a new note
 export async function POST(request: NextRequest) {
   try {
+    if (!await isAuthenticated()) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const body = await request.json();
     const { id, text, checked, checkedAt, createdAt, url, urlTitle, summary } = body;
 
@@ -61,7 +70,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await adminClient
       .from('notes')
       .insert({
         id,
@@ -107,6 +116,10 @@ export async function POST(request: NextRequest) {
 // PATCH - Update a note
 export async function PATCH(request: NextRequest) {
   try {
+    if (!await isAuthenticated()) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const body = await request.json();
     const { id, checked, checkedAt, urlTitle } = body;
 
@@ -126,7 +139,7 @@ export async function PATCH(request: NextRequest) {
       updateData.url_title = urlTitle || null;
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await adminClient
       .from('notes')
       .update(updateData)
       .eq('id', id)
@@ -165,6 +178,10 @@ export async function PATCH(request: NextRequest) {
 // DELETE - Delete notes (used for cleanup)
 export async function DELETE(request: NextRequest) {
   try {
+    if (!await isAuthenticated()) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const ids = searchParams.get('ids');
 
@@ -177,7 +194,7 @@ export async function DELETE(request: NextRequest) {
 
     const noteIds = ids.split(',');
 
-    const { error } = await supabase
+    const { error } = await adminClient
       .from('notes')
       .delete()
       .in('id', noteIds);
