@@ -39,7 +39,11 @@ export function useUsageStats() {
             'com.android.vending', // Play Store
             'com.android.settings', // Settings
           ];
+          
           if (systemPackages.includes(pkg)) return false;
+          // Catch 'android' package and other core system processes
+          if (pkg === 'android' || pkg.startsWith('com.android.internal') || pkg.startsWith('com.google.android.packageinstaller')) return false;
+          
           if (pkg.toLowerCase().includes('launcher')) return false;
           return true;
         })

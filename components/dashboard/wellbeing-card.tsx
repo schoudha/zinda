@@ -1,6 +1,7 @@
 "use client";
 
 import { memo } from "react";
+import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { useUsageStats } from "@/hooks/useUsageStats";
@@ -26,6 +27,7 @@ function getAppName(pkg: string): string {
 }
 
 export const WellbeingCard = memo(function WellbeingCard() {
+  const router = useRouter();
   const { isNative, hasPermission, totalTime, apps, requestPermission } = useUsageStats();
 
   // Mock data for web / fallback
@@ -38,8 +40,20 @@ export const WellbeingCard = memo(function WellbeingCard() {
     { packageName: "com.zhiliaoapp.musically", timeInForeground: 32 * 60 * 1000 }
   ];
 
+  const handleCardClick = () => {
+    router.push("/wellbeing");
+  };
+
+  const handlePermissionClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    requestPermission();
+  };
+
   return (
-    <Card className="border-none bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 shadow-xl shadow-blue-900/5 dark:shadow-black/20 rounded-3xl ring-1 ring-black/5 dark:ring-white/10 overflow-hidden transition-all duration-300 hover:shadow-blue-900/10 dark:hover:shadow-black/30 hover:scale-[1.02]">
+    <Card 
+      onClick={handleCardClick}
+      className="border-none bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 shadow-xl shadow-blue-900/5 dark:shadow-black/20 rounded-3xl ring-1 ring-black/5 dark:ring-white/10 overflow-hidden transition-all duration-300 hover:shadow-blue-900/10 dark:hover:shadow-black/30 hover:scale-[1.02] cursor-pointer active:scale-95"
+    >
       <CardHeader className="pb-2 pt-6 px-6">
         <CardTitle className="text-[10px] font-bold uppercase tracking-widest text-blue-600/80 dark:text-blue-400 flex items-center gap-2">
           <div className="h-1.5 w-1.5 rounded-full bg-blue-500 animate-pulse" />
@@ -61,7 +75,7 @@ export const WellbeingCard = memo(function WellbeingCard() {
              <Button 
                size="sm" 
                variant="outline" 
-               onClick={requestPermission}
+               onClick={handlePermissionClick}
                className="w-full gap-2 bg-white/50 dark:bg-black/20 border-blue-200 dark:border-blue-800"
              >
                <Lock className="h-3 w-3" />
