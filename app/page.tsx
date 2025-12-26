@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { Header } from "@/components/dashboard/header";
 import { DateTabs } from "@/components/dashboard/date-tabs";
 import { NotepadCard } from "@/components/dashboard/notepad";
+import { MediaCard } from "@/components/dashboard/media-card";
 import { WellbeingCard } from "@/components/dashboard/wellbeing-card";
 import { HealthCard } from "@/components/dashboard/health-card";
 import { InputBar } from "@/components/dashboard/input-bar";
@@ -20,7 +21,7 @@ function HomeContent() {
   const { notes, addNote, toggleNote, updateNote, deleteNote } = useNotes();
   const { refreshGoals, deleteGoal, getGoalsForPeriod } = useGoals();
   
-  const [activeTab, setActiveTab] = useState<"goals" | "notepad">("goals");
+  const [activeTab, setActiveTab] = useState<"goals" | "notepad" | "media">("goals");
   const [selectedPeriod, setSelectedPeriod] = useState<GoalPeriod>("week");
   
   const searchParams = useSearchParams();
@@ -85,6 +86,15 @@ function HomeContent() {
                   )}
                 </div>
               </>
+            ) : activeTab === "media" ? (
+              <div className="flex flex-col gap-4 px-4 overflow-hidden">
+                <MediaCard 
+                  notes={notes} 
+                  onToggleNote={toggleNote}
+                  onUpdateNote={updateNote}
+                  onDeleteNote={deleteNote}
+                />
+              </div>
             ) : (
               <div className="flex flex-col gap-4 px-4 overflow-hidden">
                 <NotepadCard 
