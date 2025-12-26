@@ -93,11 +93,11 @@ export const WellbeingCard = memo(function WellbeingCard() {
           <div className="h-8 w-8 rounded-lg bg-pink-100 dark:bg-pink-900/30 flex items-center justify-center text-pink-600 dark:text-pink-400 shrink-0">
             {getAppName(topApps[0]?.packageName || "").substring(0, 2).toUpperCase()}
           </div>
-          <div className="flex flex-col overflow-hidden">
-            <span className="text-gray-900 dark:text-white font-bold truncate">
+          <div className="flex flex-col overflow-hidden flex-1 min-w-0">
+            <span className="text-gray-900 dark:text-white font-bold truncate block">
               {percentage > 75 ? "High usage" : "Doing well"}
             </span>
-            <span className="truncate">
+            <span className="truncate block">
               {topApps.map(app => `${getAppName(app.packageName)} (${Math.round(app.timeInForeground/60000)}m)`).join(", ")}
             </span>
           </div>
