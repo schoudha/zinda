@@ -5,7 +5,9 @@ import android.app.usage.UsageStats;
 import android.app.usage.UsageStatsManager;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
+import com.getcapacitor.JSArray;
 import android.provider.Settings;
 import android.os.Process;
 import com.getcapacitor.JSObject;
@@ -40,20 +42,20 @@ public class UsageStatsPlugin extends Plugin {
 
         JSObject result = new JSObject();
         long totalScreenTime = 0;
-        JSObject apps = new JSObject();
+        JSArray apps = new JSArray();
 
         if (usageStatsList != null && !usageStatsList.isEmpty()) {
             for (UsageStats stats : usageStatsList) {
                 if (stats.getTotalTimeInForeground() > 0) {
                     String packageName = stats.getPackageName();
                     
-                    // Filter out system apps/services that don't have a launch intent (user can't open them)
+                    // Filter out system apps/services that don't have a launch intent
                     Intent launchIntent = pm.getLaunchIntentForPackage(packageName);
                     if (launchIntent == null) {
                         continue;
                     }
                     
-                    // Explicitly filter out System UI and common launchers if desired
+                    // Explicitly filter out known non-consumer apps
                     if (packageName.equals("com.android.systemui") || 
                         packageName.equals("android") ||
                         packageName.equals("com.google.android.googlequicksearchbox") ||
@@ -63,7 +65,25 @@ public class UsageStatsPlugin extends Plugin {
                         continue;
                     }
 
-                    apps.put(packageName, stats.getTotalTimeInForeground());
+                    boolean isSystem = false;
+                    boolean isUpdatedSystem = false;
+
+                    try {
+                        ApplicationInfo appInfo = pm.getApplicationInfo(packageName, 0);
+                        isSystem = (appInfo.flags & ApplicationInfo.FLAG_SYSTEM) != 0;
+                        isUpdatedSystem = (appInfo.flags & ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0;
+                    } catch (PackageManager.NameNotFoundException e) {
+                        // ignore
+                    }
+
+                    JSObject appObj = new JSObject();
+                    appObj.put("packageName", packageName);
+                    appObj.put("time", stats.getTotalTimeInForeground());
+                    appObj.put("isSystem", isSystem);
+                    appObj.put("isUpdatedSystem", isUpdatedSystem);
+                    
+                    apps.put(appObj);
+                    
                     totalScreenTime += stats.getTotalTimeInForeground();
                 }
             }

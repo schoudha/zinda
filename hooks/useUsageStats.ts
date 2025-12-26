@@ -29,27 +29,50 @@ export function useUsageStats() {
     try {
       const stats = await UsageStats.getDailyUsage();
       
-      const appList = Object.entries(stats.apps)
-        .filter(([pkg]) => {
-          // Filter out system apps that might slip through native filter
-          const systemPackages = [
+      const appList = stats.apps
+        .filter((app) => {
+          const pkg = app.packageName;
+          
+          // Always filter out core system packages
+          const blocklist = [
             'android',
             'com.android.systemui',
             'com.google.android.googlequicksearchbox', // Google App / Assistant
             'com.android.vending', // Play Store
             'com.android.settings', // Settings
+            'com.android.permissioncontroller',
+            'com.google.android.gms', // Play Services
+            'com.android.providers.media',
+            'com.android.providers.calendar',
           ];
           
-          if (systemPackages.includes(pkg)) return false;
-          // Catch 'android' package and other core system processes
+          if (blocklist.includes(pkg)) return false;
           if (pkg === 'android' || pkg.startsWith('com.android.internal') || pkg.startsWith('com.google.android.packageinstaller')) return false;
-          
           if (pkg.toLowerCase().includes('launcher')) return false;
-          return true;
+
+          // Check system flags
+          // Keep if it's NOT a system app
+          if (!app.isSystem) return true;
+          
+          // Keep if it IS a system app but updated (e.g. Chrome, YouTube)
+          if (app.isUpdatedSystem) return true;
+
+          // Allowlist for system apps that are actually consumer apps
+          // (In case they are preinstalled and not updated yet)
+          const allowlistKeywords = [
+            'chrome', 'youtube', 'maps', 'gmail', 'photos', 'camera', 'calendar', 'calculator', 'clock', 'messaging', 'music', 'spotify', 'netflix', 'whatsapp', 'instagram', 'facebook', 'twitter', 'tiktok', 'snapchat'
+          ];
+          
+          if (allowlistKeywords.some(keyword => pkg.toLowerCase().includes(keyword))) {
+            return true;
+          }
+
+          // Otherwise, it's a non-updated system app that isn't in our allowlist (bloatware/internal)
+          return false;
         })
-        .map(([pkg, time]) => ({
-          packageName: pkg,
-          timeInForeground: time
+        .map((app) => ({
+          packageName: app.packageName,
+          timeInForeground: app.time,
         }))
         .sort((a, b) => b.timeInForeground - a.timeInForeground);
         
