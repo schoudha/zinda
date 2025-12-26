@@ -48,6 +48,9 @@ export function useUsageStats() {
       const appList = uniqueApps
         .filter((app) => {
           const pkg = app.packageName;
+
+          // Filter out apps with less than 3 minutes usage
+          if (app.time < 3 * 60 * 1000) return false;
           
           // Always filter out core system packages
           const blocklist = [
