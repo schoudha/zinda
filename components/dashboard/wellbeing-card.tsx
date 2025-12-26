@@ -43,7 +43,7 @@ export const WellbeingCard = memo(function WellbeingCard({ period = "today" }: {
   ];
 
   const handleCardClick = () => {
-    // router.push("/wellbeing");
+    router.push(`/wellbeing?period=${period}`);
   };
 
   const handlePermissionClick = (e: React.MouseEvent) => {
@@ -54,7 +54,7 @@ export const WellbeingCard = memo(function WellbeingCard({ period = "today" }: {
   return (
     <Card 
       onClick={handleCardClick}
-      className="border-none bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 shadow-xl shadow-blue-900/5 dark:shadow-black/20 rounded-3xl ring-1 ring-black/5 dark:ring-white/10 overflow-hidden transition-all duration-300 hover:shadow-blue-900/10 dark:hover:shadow-black/30 cursor-default"
+      className="border-none bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 shadow-xl shadow-blue-900/5 dark:shadow-black/20 rounded-3xl ring-1 ring-black/5 dark:ring-white/10 overflow-hidden transition-all duration-300 hover:shadow-blue-900/10 dark:hover:shadow-black/30 cursor-pointer active:scale-95"
     >
       <CardHeader className="pb-2 pt-6 px-6">
         <CardTitle className="text-[10px] font-bold uppercase tracking-widest text-blue-600/80 dark:text-blue-400 flex items-center gap-2">

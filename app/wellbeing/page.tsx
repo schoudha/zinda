@@ -1,10 +1,11 @@
 "use client";
 
 import { useUsageStats } from "@/hooks/useUsageStats";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Clock } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Suspense } from "react";
 
 // Helper function (same as in card)
 function getAppName(pkg: string): string {
@@ -26,11 +27,18 @@ function formatDuration(ms: number): string {
   return `${mins}m`;
 }
 
-export default function WellbeingPage() {
+function WellbeingContent() {
   const router = useRouter();
-  const { totalTime, apps, isNative, hasPermission, requestPermission } = useUsageStats();
+  const searchParams = useSearchParams();
+  const period = searchParams.get("period") || "today";
+  
+  const { totalTime, apps, isNative, hasPermission, requestPermission } = useUsageStats(period);
 
   const maxTime = apps.length > 0 ? apps[0].timeInForeground : 1;
+  
+  const periodLabel = period === "today" ? "Today" : 
+                     period === "week" ? "This Week" :
+                     period === "month" ? "This Month" : "This Year";
 
   return (
     <main className="flex min-h-screen flex-col bg-background pt-safe pb-safe">
@@ -39,7 +47,7 @@ export default function WellbeingPage() {
         <Button variant="ghost" size="icon" onClick={() => router.back()}>
           <ArrowLeft className="h-6 w-6" />
         </Button>
-        <h1 className="text-xl font-bold">Screen Time</h1>
+        <h1 className="text-xl font-bold">Screen Time ({periodLabel})</h1>
       </div>
 
       <ScrollArea className="flex-1">
@@ -49,7 +57,7 @@ export default function WellbeingPage() {
             <div className="text-5xl font-extrabold text-primary mb-2">
               {formatDuration(totalTime)}
             </div>
-            <div className="text-muted-foreground font-medium">Total Usage Today</div>
+            <div className="text-muted-foreground font-medium">Total Usage {periodLabel}</div>
           </div>
 
           {/* Bar Chart Section */}
@@ -87,7 +95,7 @@ export default function WellbeingPage() {
                        <Button onClick={requestPermission}>Grant Permission</Button>
                      </div>
                    ) : (
-                     <p>No usage data available for today</p>
+                     <p>No usage data available for {periodLabel.toLowerCase()}</p>
                    )}
                  </div>
               )}
@@ -99,3 +107,10 @@ export default function WellbeingPage() {
   );
 }
 
+export default function WellbeingPage() {
+  return (
+    <Suspense fallback={<div className="flex h-screen items-center justify-center">Loading...</div>}>
+      <WellbeingContent />
+    </Suspense>
+  );
+}
