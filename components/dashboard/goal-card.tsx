@@ -31,9 +31,9 @@ export function GoalCard({ goal, onDelete }: GoalCardProps) {
   };
 
   const periodColors = {
-    week: "from-blue-50 to-indigo-50 text-blue-600/80",
-    month: "from-purple-50 to-pink-50 text-purple-600/80",
-    year: "from-orange-50 to-amber-50 text-orange-600/80",
+    week: "from-blue-50 to-indigo-50 text-blue-600/80 dark:from-blue-950/20 dark:to-indigo-950/20 dark:text-blue-400",
+    month: "from-purple-50 to-pink-50 text-purple-600/80 dark:from-purple-950/20 dark:to-pink-950/20 dark:text-purple-400",
+    year: "from-orange-50 to-amber-50 text-orange-600/80 dark:from-orange-950/20 dark:to-amber-950/20 dark:text-orange-400",
   };
 
   const handleDelete = (e: React.MouseEvent) => {
@@ -66,13 +66,13 @@ export function GoalCard({ goal, onDelete }: GoalCardProps) {
 
   return (
     <Card 
-      className={`border-none bg-gradient-to-br ${periodColors[goal.period]} shadow-xl shadow-blue-900/5 rounded-3xl ring-1 ring-black/5 overflow-hidden transition-all duration-300 hover:shadow-blue-900/10 relative`}
+      className={`border-none bg-gradient-to-br ${periodColors[goal.period]} shadow-xl shadow-blue-900/5 dark:shadow-black/20 rounded-3xl ring-1 ring-black/5 dark:ring-white/5 overflow-hidden transition-all duration-300 hover:shadow-blue-900/10 dark:hover:shadow-black/30 relative`}
     >
       <div className="absolute top-2 right-2 flex gap-1 z-10">
         <Button
           variant="ghost"
           size="icon"
-          className="h-8 w-8 rounded-full opacity-60 hover:opacity-100 hover:bg-white/50"
+          className="h-8 w-8 rounded-full opacity-60 hover:opacity-100 hover:bg-white/50 dark:hover:bg-white/10 dark:text-white"
           onClick={handleBellClick}
         >
           <Bell className={`h-4 w-4 ${currentGoal.notificationTime && currentGoal.notificationDays ? 'fill-current' : ''}`} />
@@ -81,7 +81,7 @@ export function GoalCard({ goal, onDelete }: GoalCardProps) {
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8 rounded-full opacity-60 hover:opacity-100 hover:bg-white/50"
+            className="h-8 w-8 rounded-full opacity-60 hover:opacity-100 hover:bg-white/50 dark:hover:bg-white/10 dark:text-white"
             onClick={handleDelete}
           >
             <X className="h-4 w-4" />
@@ -104,13 +104,13 @@ export function GoalCard({ goal, onDelete }: GoalCardProps) {
       </CardHeader>
       <CardContent className="space-y-5 px-6 pb-6">
         <div className="space-y-1">
-          <h3 className="text-xl font-bold text-gray-900 leading-snug tracking-tight">
+          <h3 className="text-xl font-bold text-gray-900 dark:text-white leading-snug tracking-tight">
             {goal.text}
           </h3>
         </div>
         {goal.tips.length > 0 && (
-          <div className="space-y-4 pt-1 border-t border-white/40">
-            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">
+          <div className="space-y-4 pt-1 border-t border-white/40 dark:border-white/10">
+            <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">
               Tips to achieve this goal
             </p>
             <ul className="space-y-3.5">
@@ -118,7 +118,7 @@ export function GoalCard({ goal, onDelete }: GoalCardProps) {
                 <li key={index} className="flex items-start gap-3.5">
                   <div className={`h-2 w-2 rounded-full ${goal.period === 'week' ? 'bg-blue-500' : goal.period === 'month' ? 'bg-purple-500' : 'bg-orange-500'} mt-1.5 shrink-0`} />
                   <p 
-                    className="flex-1 text-sm text-gray-700 leading-relaxed font-medium"
+                    className="flex-1 text-sm text-gray-700 dark:text-gray-300 leading-relaxed font-medium"
                     dangerouslySetInnerHTML={{ __html: tip }}
                   />
                 </li>
@@ -129,7 +129,7 @@ export function GoalCard({ goal, onDelete }: GoalCardProps) {
         <div className="pt-4">
           <Button
             onClick={handleDiscussClick}
-            className="w-full bg-blue-700 hover:bg-blue-800 text-white font-semibold shadow-md"
+            className="w-full bg-blue-700 hover:bg-blue-800 text-white font-semibold shadow-md dark:bg-blue-600 dark:hover:bg-blue-700"
           >
             Discuss this goal
           </Button>

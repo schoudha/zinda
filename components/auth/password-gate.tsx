@@ -58,8 +58,8 @@ export function PasswordGate({ children }: { children: React.ReactNode }) {
   // Show loading state while checking auth
   if (isAuthenticated === null) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
-        <div className="text-gray-500">Loading...</div>
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="text-muted-foreground">Loading...</div>
       </div>
     );
   }
@@ -67,15 +67,15 @@ export function PasswordGate({ children }: { children: React.ReactNode }) {
   // Show password gate if not authenticated
   if (!isAuthenticated) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
-        <div className="w-full max-w-md space-y-6 rounded-lg bg-white p-8 shadow-lg">
+      <div className="flex min-h-screen items-center justify-center bg-background px-4">
+        <div className="w-full max-w-md space-y-6 rounded-lg bg-card border border-border p-8 shadow-lg">
           <div className="flex flex-col items-center space-y-4">
-            <div className="flex size-12 items-center justify-center rounded-full bg-gray-100">
-              <Lock className="size-6 text-gray-600" />
+            <div className="flex size-12 items-center justify-center rounded-full bg-muted">
+              <Lock className="size-6 text-muted-foreground" />
             </div>
             <div className="text-center">
-              <h1 className="text-2xl font-semibold text-gray-900">Zinda</h1>
-              <p className="mt-2 text-sm text-gray-600">
+              <h1 className="text-2xl font-semibold text-foreground">Zinda</h1>
+              <p className="mt-2 text-sm text-muted-foreground">
                 Enter password to access the application
               </p>
             </div>
@@ -89,11 +89,11 @@ export function PasswordGate({ children }: { children: React.ReactNode }) {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 disabled={loading}
-                className="w-full"
+                className="w-full bg-background"
                 autoFocus
               />
               {error && (
-                <p className="mt-2 text-sm text-red-600">{error}</p>
+                <p className="mt-2 text-sm text-red-500">{error}</p>
               )}
             </div>
 

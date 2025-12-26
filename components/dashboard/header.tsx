@@ -43,16 +43,16 @@ export function Header({
 
   return (
     <div className="px-6 pt-12 pb-4 space-y-2">
-      <h1 className="text-3xl font-bold tracking-tight text-gray-900">
+      <h1 className="text-3xl font-bold tracking-tight text-foreground">
         {greeting},<br />
-        <span className="text-gray-500">{userName}.</span>
+        <span className="text-muted-foreground">{userName}.</span>
       </h1>
       {quote && (
         <div className="pt-2 space-y-1">
-          <p className="text-sm font-medium text-gray-600 leading-relaxed italic border-l-2 border-blue-500 pl-3">
+          <p className="text-sm font-medium text-foreground/80 leading-relaxed italic border-l-2 border-blue-500 pl-3">
             "{quote.english}"
           </p>
-          <p className="text-[10px] uppercase tracking-widest text-gray-400 pl-3">
+          <p className="text-[10px] uppercase tracking-widest text-muted-foreground pl-3">
             {quote.reference}
           </p>
         </div>

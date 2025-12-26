@@ -10,18 +10,18 @@ interface BottomNavProps {
 
 export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 shadow-lg shadow-gray-200/50 pb-safe">
+    <div className="fixed bottom-0 left-0 right-0 z-50 bg-background border-t border-border shadow-lg shadow-black/5 pb-safe">
       <nav className="flex justify-around items-center max-w-md mx-auto">
         <button
           onClick={() => onTabChange("goals")}
           className={cn(
             "flex flex-1 flex-col items-center justify-center gap-1.5 py-3 transition-colors duration-200",
             activeTab === "goals"
-              ? "text-black"
-              : "text-gray-400 hover:text-gray-600"
+              ? "text-foreground"
+              : "text-muted-foreground hover:text-foreground"
           )}
         >
-          <div className={cn("p-1 rounded-lg transition-all duration-200", activeTab === "goals" && "bg-gray-100")}>
+          <div className={cn("p-1 rounded-lg transition-all duration-200", activeTab === "goals" && "bg-muted")}>
             <Target className="h-5 w-5" />
           </div>
           <span className="text-[10px] font-semibold tracking-wide">GOALS</span>
@@ -31,11 +31,11 @@ export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
           className={cn(
             "flex flex-1 flex-col items-center justify-center gap-1.5 py-3 transition-colors duration-200",
             activeTab === "media"
-              ? "text-black"
-              : "text-gray-400 hover:text-gray-600"
+              ? "text-foreground"
+              : "text-muted-foreground hover:text-foreground"
           )}
         >
-          <div className={cn("p-1 rounded-lg transition-all duration-200", activeTab === "media" && "bg-gray-100")}>
+          <div className={cn("p-1 rounded-lg transition-all duration-200", activeTab === "media" && "bg-muted")}>
             <Book className="h-5 w-5" />
           </div>
           <span className="text-[10px] font-semibold tracking-wide">READ/LISTEN/WATCH</span>
@@ -45,11 +45,11 @@ export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
           className={cn(
             "flex flex-1 flex-col items-center justify-center gap-1.5 py-3 transition-colors duration-200",
             activeTab === "notepad"
-              ? "text-black"
-              : "text-gray-400 hover:text-gray-600"
+              ? "text-foreground"
+              : "text-muted-foreground hover:text-foreground"
           )}
         >
-          <div className={cn("p-1 rounded-lg transition-all duration-200", activeTab === "notepad" && "bg-gray-100")}>
+          <div className={cn("p-1 rounded-lg transition-all duration-200", activeTab === "notepad" && "bg-muted")}>
             <FileText className="h-5 w-5" />
           </div>
           <span className="text-[10px] font-semibold tracking-wide">NOTEPAD</span>

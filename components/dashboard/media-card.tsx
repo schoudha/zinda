@@ -109,13 +109,13 @@ export function MediaCard({ notes, onToggleNote, onUpdateNote, onDeleteNote }: M
   const currentNote = mediaNotes.find((note) => note.id === openDialogId);
 
   return (
-    <Card className="border-none bg-white shadow-xl shadow-gray-200/50 rounded-3xl overflow-hidden ring-1 ring-black/5 w-full max-w-full">
-      <CardHeader className="pb-4 pt-6 px-4 bg-gradient-to-b from-white to-gray-50/50">
+    <Card className="border-none bg-card shadow-xl shadow-black/5 rounded-3xl overflow-hidden ring-1 ring-border w-full max-w-full">
+      <CardHeader className="pb-4 pt-6 px-4 bg-gradient-to-b from-card to-muted/50">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-lg font-bold text-gray-900 tracking-tight">
+          <CardTitle className="text-lg font-bold text-foreground tracking-tight">
             Read/Listen/Watch
           </CardTitle>
-          <span className="text-xs font-medium px-2.5 py-1 bg-gray-100 text-gray-600 rounded-full">
+          <span className="text-xs font-medium px-2.5 py-1 bg-muted text-muted-foreground rounded-full">
             {mediaNotes.length} {mediaNotes.length === 1 ? 'item' : 'items'}
           </span>
         </div>
@@ -123,24 +123,24 @@ export function MediaCard({ notes, onToggleNote, onUpdateNote, onDeleteNote }: M
       <CardContent className="px-4 pb-6">
         {mediaNotes.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-center space-y-3 opacity-50">
-            <div className="h-12 w-12 rounded-full bg-gray-100 flex items-center justify-center">
-              <BookOpen className="h-6 w-6 text-gray-400" />
+            <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
+              <BookOpen className="h-6 w-6 text-muted-foreground" />
             </div>
-            <p className="text-sm font-medium text-gray-400">
+            <p className="text-sm font-medium text-muted-foreground">
               No URLs, videos, or podcasts yet
             </p>
-            <p className="text-xs text-gray-400">
+            <p className="text-xs text-muted-foreground">
               Share a link to get started
             </p>
           </div>
         ) : (
           <ul className="space-y-2">
             {mediaNotes.map((note) => (
-              <li key={note.id} className="group flex items-start gap-3 p-3 rounded-xl hover:bg-gray-50 transition-colors duration-200 overflow-hidden">
+              <li key={note.id} className="group flex items-start gap-3 p-3 rounded-xl hover:bg-muted/50 transition-colors duration-200 overflow-hidden">
                 <Checkbox
                   checked={note.checked}
                   onCheckedChange={() => onToggleNote(note.id)}
-                  className="mt-0.5 border-2 border-gray-300 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600 rounded-md h-5 w-5 transition-all duration-200 shrink-0"
+                  className="mt-0.5 border-2 border-muted-foreground data-[state=checked]:bg-primary data-[state=checked]:border-primary rounded-md h-5 w-5 transition-all duration-200 shrink-0"
                 />
                 <div className="flex-1 min-w-0 overflow-hidden">
                   <div className="flex items-start gap-2 w-full">
@@ -151,16 +151,16 @@ export function MediaCard({ notes, onToggleNote, onUpdateNote, onDeleteNote }: M
                         rel="noopener noreferrer"
                         className={`text-sm font-medium flex items-start gap-2 hover:underline transition-colors ${
                           note.checked
-                            ? "line-through text-gray-400 decoration-gray-300"
-                            : "text-blue-600 hover:text-blue-700"
+                            ? "line-through text-muted-foreground decoration-muted-foreground/50"
+                            : "text-blue-500 hover:text-blue-400"
                         }`}
                       >
                         {isYoutubeUrl(note.url!) ? (
-                          <div className="flex items-center justify-center h-5 w-5 rounded bg-red-50 text-red-600 shrink-0">
+                          <div className="flex items-center justify-center h-5 w-5 rounded bg-red-900/20 text-red-500 shrink-0">
                             <Youtube className="h-3.5 w-3.5" />
                           </div>
                         ) : (
-                          <div className="flex items-center justify-center h-5 w-5 rounded bg-blue-50 text-blue-600 shrink-0">
+                          <div className="flex items-center justify-center h-5 w-5 rounded bg-blue-900/20 text-blue-500 shrink-0">
                             <ExternalLink className="h-3.5 w-3.5" />
                           </div>
                         )}
@@ -175,7 +175,7 @@ export function MediaCard({ notes, onToggleNote, onUpdateNote, onDeleteNote }: M
                         size="sm"
                         onClick={() => handleGetSummary(note.id, note.url!, note.urlTitle || note.text)}
                         disabled={loadingSummaries.has(note.id)}
-                        className="h-8 w-8 p-0 rounded-full hover:bg-purple-50 text-purple-600 transition-all duration-200"
+                        className="h-8 w-8 p-0 rounded-full hover:bg-purple-900/20 text-purple-500 transition-all duration-200"
                       >
                         {loadingSummaries.has(note.id) ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
@@ -188,7 +188,7 @@ export function MediaCard({ notes, onToggleNote, onUpdateNote, onDeleteNote }: M
                           variant="ghost"
                           size="sm"
                           onClick={() => onDeleteNote(note.id)}
-                          className="h-8 w-8 p-0 rounded-full hover:bg-red-50 text-red-500 transition-all duration-200"
+                          className="h-8 w-8 p-0 rounded-full hover:bg-red-900/20 text-red-500 transition-all duration-200"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>

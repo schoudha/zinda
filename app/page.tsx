@@ -46,8 +46,8 @@ function HomeContent() {
   }, [searchParams, router, addNote]);
 
   return (
-    <main className="flex min-h-screen justify-center bg-gray-50">
-      <div className="flex h-full w-full max-w-md flex-col bg-white shadow-2xl overflow-hidden min-h-screen relative">
+    <main className="flex min-h-screen justify-center bg-background">
+      <div className="flex h-full w-full max-w-md flex-col bg-background shadow-2xl shadow-black/20 overflow-hidden min-h-screen relative border-x border-border">
         <ScrollArea className="flex-1 pb-16">
           <div className="flex flex-col gap-6 pb-6">
             <Header />
@@ -117,7 +117,7 @@ function HomeContent() {
 export default function Home() {
   return (
     <PasswordGate>
-      <Suspense fallback={<div className="flex min-h-screen items-center justify-center bg-gray-50">Loading...</div>}>
+      <Suspense fallback={<div className="flex min-h-screen items-center justify-center bg-background text-foreground">Loading...</div>}>
         <HomeContent />
       </Suspense>
     </PasswordGate>
