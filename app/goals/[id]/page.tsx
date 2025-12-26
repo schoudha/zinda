@@ -137,34 +137,34 @@ export default function GoalDetailPage() {
   }
 
   const periodColors = {
-    week: "bg-blue-50 text-blue-900",
-    month: "bg-purple-50 text-purple-900",
-    year: "bg-orange-50 text-orange-900",
+    week: "bg-blue-50 text-blue-900 dark:bg-blue-950/50 dark:text-blue-100",
+    month: "bg-purple-50 text-purple-900 dark:bg-purple-950/50 dark:text-purple-100",
+    year: "bg-orange-50 text-orange-900 dark:bg-orange-950/50 dark:text-orange-100",
   };
 
   const periodDotColors = {
-    week: "bg-blue-500",
-    month: "bg-purple-500",
-    year: "bg-orange-500",
+    week: "bg-blue-500 dark:bg-blue-400",
+    month: "bg-purple-500 dark:bg-purple-400",
+    year: "bg-orange-500 dark:bg-orange-400",
   };
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50 max-w-md mx-auto shadow-2xl overflow-hidden relative">
+    <div className="flex flex-col h-screen bg-background max-w-md mx-auto shadow-2xl overflow-hidden relative pt-[env(safe-area-inset-top)]">
       {/* Header */}
-      <div className="bg-white border-b border-gray-100 p-4 flex items-center gap-4 z-10 shadow-sm">
-        <Button variant="ghost" size="icon" onClick={() => router.back()} className="-ml-2">
-          <ArrowLeft className="h-5 w-5 text-gray-600" />
+      <div className="bg-background border-b border-border p-4 flex items-center gap-4 z-10 shadow-sm shrink-0">
+        <Button variant="ghost" size="icon" onClick={() => router.back()} className="-ml-2 hover:bg-muted">
+          <ArrowLeft className="h-5 w-5 text-muted-foreground" />
         </Button>
-        <h1 className="text-lg font-bold text-gray-900 truncate flex-1">
+        <h1 className="text-lg font-bold text-foreground truncate flex-1">
           Goal Discussion
         </h1>
         <Button
           variant="ghost"
           size="icon"
           onClick={() => setNotificationDialogOpen(true)}
-          className="-mr-2"
+          className="-mr-2 hover:bg-muted"
         >
-          <Bell className={`h-5 w-5 ${goal.notificationTime && goal.notificationDays ? 'fill-current text-blue-600' : 'text-gray-600'}`} />
+          <Bell className={`h-5 w-5 ${goal.notificationTime && goal.notificationDays ? 'fill-current text-blue-600 dark:text-blue-400' : 'text-muted-foreground'}`} />
         </Button>
       </div>
       {goal && (
@@ -179,7 +179,7 @@ export default function GoalDetailPage() {
       )}
 
       {/* Goal Context Card */}
-      <div className="p-4 bg-gray-50 z-10 shrink-0">
+      <div className="p-4 bg-background z-10 shrink-0">
         <Card className={`border-none shadow-sm ${periodColors[goal.period]} transition-all`}>
           <CardContent className="p-4 space-y-2">
             <div className="flex items-center gap-2 mb-1">
@@ -194,17 +194,17 @@ export default function GoalDetailPage() {
       </div>
 
       {/* Chat Area */}
-      <div className="flex-1 overflow-hidden relative bg-white rounded-t-3xl shadow-inner -mt-2 pt-4">
+      <div className="flex-1 overflow-hidden relative bg-card rounded-t-3xl shadow-inner -mt-2 pt-4 border-t border-border/50">
         <div 
           ref={scrollRef} 
           className="h-full overflow-y-auto px-4 pb-20 pt-2 space-y-4"
         >
           {messages.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center p-8 opacity-50 space-y-4">
-              <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center">
+              <div className="h-12 w-12 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
                 <div className="h-6 w-6 rounded-full bg-blue-500" />
               </div>
-              <p className="text-sm font-medium">
+              <p className="text-sm font-medium text-muted-foreground">
                 Start a conversation with your AI coach about this goal.
               </p>
             </div>
@@ -218,7 +218,7 @@ export default function GoalDetailPage() {
                   className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm shadow-sm ${
                     msg.role === "user"
                       ? "bg-blue-600 text-white rounded-br-none"
-                      : "bg-gray-100 text-gray-800 rounded-bl-none"
+                      : "bg-muted text-foreground rounded-bl-none"
                   }`}
                 >
                   {msg.role === "assistant" ? (
@@ -236,11 +236,11 @@ export default function GoalDetailPage() {
           
           {isSending && (
             <div className="flex w-full justify-start">
-              <div className="bg-gray-100 rounded-2xl rounded-bl-none px-4 py-3 text-sm shadow-sm">
+              <div className="bg-muted rounded-2xl rounded-bl-none px-4 py-3 text-sm shadow-sm">
                 <div className="flex gap-1 h-5 items-center">
-                  <div className="h-2 w-2 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.3s]" />
-                  <div className="h-2 w-2 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.15s]" />
-                  <div className="h-2 w-2 bg-gray-400 rounded-full animate-bounce" />
+                  <div className="h-2 w-2 bg-muted-foreground/50 rounded-full animate-bounce [animation-delay:-0.3s]" />
+                  <div className="h-2 w-2 bg-muted-foreground/50 rounded-full animate-bounce [animation-delay:-0.15s]" />
+                  <div className="h-2 w-2 bg-muted-foreground/50 rounded-full animate-bounce" />
                 </div>
               </div>
             </div>
@@ -249,21 +249,21 @@ export default function GoalDetailPage() {
       </div>
 
       {/* Input Area */}
-      <div className="absolute bottom-0 left-0 right-0 bg-white border-t border-gray-100 p-4">
+      <div className="absolute bottom-0 left-0 right-0 bg-background border-t border-border p-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
         <div className="flex gap-2 items-center">
           <Input
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Ask for advice..."
-            className="flex-1 rounded-full border-gray-200 bg-gray-50 focus-visible:ring-blue-500 focus-visible:ring-offset-0"
+            className="flex-1 rounded-full border-input bg-muted focus-visible:ring-blue-500 focus-visible:ring-offset-0"
             disabled={isSending}
           />
           <Button
             onClick={handleSendMessage}
             disabled={!inputValue.trim() || isSending}
             size="icon"
-            className="rounded-full h-10 w-10 shrink-0 bg-blue-600 hover:bg-blue-700 shadow-md shadow-blue-500/20"
+            className="rounded-full h-10 w-10 shrink-0 bg-blue-600 hover:bg-blue-700 shadow-md shadow-blue-500/20 dark:shadow-none"
           >
             <Send className="h-4 w-4 text-white" />
           </Button>

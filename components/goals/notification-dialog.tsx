@@ -146,8 +146,8 @@ export function NotificationDialog({
       <DialogContent className="max-w-md mx-4">
         <DialogHeader>
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
-              <Bell className="h-5 w-5 text-blue-600" />
+            <div className="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+              <Bell className="h-5 w-5 text-blue-600 dark:text-blue-400" />
             </div>
             <div className="flex-1">
               <DialogTitle>Set Goal Reminder</DialogTitle>
@@ -158,7 +158,7 @@ export function NotificationDialog({
         <DialogBody className="space-y-6">
           {/* Time Selection */}
           <div className="space-y-3">
-            <label className="text-sm font-semibold text-gray-900">Reminder Time</label>
+            <label className="text-sm font-semibold text-gray-900 dark:text-gray-100">Reminder Time</label>
             <div className="grid gap-2">
               {timeOptions.map((option) => (
                 <button
@@ -166,14 +166,14 @@ export function NotificationDialog({
                   onClick={() => setSelectedTime(option.value)}
                   className={`p-3 rounded-lg border-2 transition-all text-left ${
                     selectedTime === option.value
-                      ? "border-blue-600 bg-blue-50"
-                      : "border-gray-200 bg-white hover:border-gray-300"
+                      ? "border-blue-600 bg-blue-50 dark:bg-blue-900/20"
+                      : "border-gray-200 dark:border-gray-800 bg-white dark:bg-card hover:border-gray-300 dark:hover:border-gray-700"
                   }`}
                 >
                   <div className="flex items-center justify-between">
                     <div>
-                      <div className="font-medium text-gray-900">{option.label}</div>
-                      <div className="text-sm text-gray-500">{option.time}</div>
+                      <div className="font-medium text-gray-900 dark:text-gray-100">{option.label}</div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400">{option.time}</div>
                     </div>
                     {selectedTime === option.value && (
                       <div className="h-5 w-5 rounded-full bg-blue-600 flex items-center justify-center">
@@ -188,7 +188,7 @@ export function NotificationDialog({
 
           {/* Days Selection */}
           <div className="space-y-3">
-            <label className="text-sm font-semibold text-gray-900">Reminder Days</label>
+            <label className="text-sm font-semibold text-gray-900 dark:text-gray-100">Reminder Days</label>
             <div className="grid gap-2">
               {dayOptions.map((option) => (
                 <button
@@ -196,14 +196,14 @@ export function NotificationDialog({
                   onClick={() => setSelectedDays(option.value)}
                   className={`p-3 rounded-lg border-2 transition-all text-left ${
                     selectedDays === option.value
-                      ? "border-blue-600 bg-blue-50"
-                      : "border-gray-200 bg-white hover:border-gray-300"
+                      ? "border-blue-600 bg-blue-50 dark:bg-blue-900/20"
+                      : "border-gray-200 dark:border-gray-800 bg-white dark:bg-card hover:border-gray-300 dark:hover:border-gray-700"
                   }`}
                 >
                   <div className="flex items-center justify-between">
                     <div>
-                      <div className="font-medium text-gray-900">{option.label}</div>
-                      <div className="text-sm text-gray-500">{option.description}</div>
+                      <div className="font-medium text-gray-900 dark:text-gray-100">{option.label}</div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400">{option.description}</div>
                     </div>
                     {selectedDays === option.value && (
                       <div className="h-5 w-5 rounded-full bg-blue-600 flex items-center justify-center">
