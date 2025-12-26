@@ -86,7 +86,7 @@ export const api = {
       return data.note;
     },
     delete: async (id: string) => {
-      return fetchApi<{ success: boolean }>(`/api/notes?id=${id}`, {
+      return fetchApi<{ success: boolean }>(`/api/notes?ids=${id}`, {
         method: "DELETE",
       });
     },

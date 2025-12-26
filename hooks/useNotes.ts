@@ -142,7 +142,7 @@ export function useNotes() {
     updateMutation.mutate({ id, updates });
   }, [updateMutation]);
 
-  // Cleanup logic
+  // Cleanup logic - runs once on mount and then hourly
   useEffect(() => {
     const cleanup = async () => {
       const currentNotes = queryClient.getQueryData<Note[]>(["notes"]) || [];
@@ -167,15 +167,17 @@ export function useNotes() {
       }
     };
 
-    // Run cleanup when data is loaded
-    if (notes.length > 0) {
-        cleanup();
-    }
+    // Run cleanup once after initial data load (small delay to ensure data is hydrated)
+    const timeout = setTimeout(cleanup, 1000);
     
     // Also run on interval (every hour)
     const interval = setInterval(cleanup, 60 * 60 * 1000);
-    return () => clearInterval(interval);
-  }, [notes.length, queryClient]); // Depend on notes.length to trigger initially
+    
+    return () => {
+      clearTimeout(timeout);
+      clearInterval(interval);
+    };
+  }, [queryClient]);
 
   return {
     notes,

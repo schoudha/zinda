@@ -1,7 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Goal, GoalPeriod } from "@/types";
+import { Goal } from "@/types";
 import { api } from "@/lib/api";
-import { useCallback } from "react";
 
 export function useGoals() {
   const queryClient = useQueryClient();
@@ -29,23 +28,10 @@ export function useGoals() {
     },
   });
 
-  const getGoalsForPeriod = useCallback(
-    (period: GoalPeriod): Goal[] => {
-      return goals.filter((goal) => {
-        if (goal.period === "year") return true;
-        if (goal.period === "month")
-          return period === "month" || period === "week";
-        return goal.period === period;
-      });
-    },
-    [goals]
-  );
-
   return {
     goals,
     isLoading,
     refreshGoals: refetch,
     deleteGoal: deleteMutation.mutateAsync,
-    getGoalsForPeriod,
   };
 }
