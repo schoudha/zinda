@@ -33,9 +33,9 @@ export default function WellbeingPage() {
   const maxTime = apps.length > 0 ? apps[0].timeInForeground : 1;
 
   return (
-    <main className="flex min-h-screen flex-col bg-background">
+    <main className="flex min-h-screen flex-col bg-background pt-safe pb-safe">
       {/* Header */}
-      <div className="flex items-center gap-4 p-6 border-b border-border sticky top-0 bg-background/80 backdrop-blur-md z-10">
+      <div className="flex items-center gap-4 p-6 border-b border-border sticky top-0 bg-background/80 backdrop-blur-md z-10 pt-safe">
         <Button variant="ghost" size="icon" onClick={() => router.back()}>
           <ArrowLeft className="h-6 w-6" />
         </Button>

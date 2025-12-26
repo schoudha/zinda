@@ -29,7 +29,23 @@ export function useUsageStats() {
     try {
       const stats = await UsageStats.getDailyUsage();
       
-      const appList = stats.apps
+      // Deduplicate stats by package name
+      const aggregated = new Map<string, typeof stats.apps[0]>();
+      
+      stats.apps.forEach(app => {
+        const existing = aggregated.get(app.packageName);
+        if (existing) {
+          existing.time += app.time;
+          // Keep the "updated system" flag if either entry has it
+          existing.isUpdatedSystem = existing.isUpdatedSystem || app.isUpdatedSystem;
+        } else {
+          aggregated.set(app.packageName, { ...app });
+        }
+      });
+      
+      const uniqueApps = Array.from(aggregated.values());
+      
+      const appList = uniqueApps
         .filter((app) => {
           const pkg = app.packageName;
           
