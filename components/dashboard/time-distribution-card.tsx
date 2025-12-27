@@ -26,27 +26,28 @@ export const TimeDistributionCard = memo(function TimeDistributionCard() {
         </CardTitle>
       </CardHeader>
       <CardContent className="px-6 pb-6">
-        <div className="flex items-end justify-between h-48 gap-2 pt-4">
+        <div className="flex items-end justify-between h-52 gap-2.5 pt-4">
           {CATEGORIES.map((category) => {
             const heightPercentage = (category.hours / maxHours) * 100;
+            const barHeight = Math.max(heightPercentage, 3); // Minimum 3% height for visibility
             
             return (
               <div key={category.name} className="flex flex-col items-center gap-2 flex-1 group">
-                <div className="relative w-full flex-1 flex items-end justify-center">
+                <div className="relative w-full flex-1 flex items-end justify-center" style={{ minHeight: '160px' }}>
                   <div 
                     className={cn(
-                      "w-full rounded-t-lg transition-all duration-500 relative group-hover:opacity-80",
+                      "w-full rounded-t-md transition-all duration-300 relative group-hover:opacity-90 group-hover:shadow-xl",
                       category.color
                     )}
-                    style={{ height: `${heightPercentage}%` }}
+                    style={{ height: `${barHeight}%`, minHeight: '12px' }}
                   >
-                    <span className="absolute -top-6 left-1/2 -translate-x-1/2 text-[10px] font-bold text-gray-600 dark:text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap bg-white/80 dark:bg-black/80 px-1.5 py-0.5 rounded shadow-sm backdrop-blur-sm z-10">
+                    <span className="absolute -top-8 left-1/2 -translate-x-1/2 text-[11px] font-semibold text-gray-800 dark:text-gray-100 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap bg-white/95 dark:bg-gray-900/95 px-2 py-1 rounded-md shadow-lg backdrop-blur-sm z-10 border border-gray-200/50 dark:border-gray-700/50">
                       {category.hours}h
                     </span>
                   </div>
                 </div>
-                <div className="h-16 flex items-start justify-center">
-                  <span className="text-[9px] font-medium text-gray-500 dark:text-gray-400 -rotate-45 origin-top-left translate-y-3 whitespace-nowrap">
+                <div className="h-14 flex items-start justify-center pt-1">
+                  <span className="text-[10px] font-medium text-gray-600 dark:text-gray-400 -rotate-45 origin-top-left translate-y-3 whitespace-nowrap">
                     {category.name}
                   </span>
                 </div>
