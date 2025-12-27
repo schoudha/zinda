@@ -43,7 +43,7 @@ export const Header = memo(function Header({
 
   return (
     <div className="px-6 pt-12 pb-4 space-y-2">
-      <h1 className="text-3xl font-bold tracking-tight text-foreground">
+      <h1 className="text-3xl font-bold tracking-tight text-foreground mb-2">
         {greeting},<br />
         <span className="text-muted-foreground">{userName}.</span>
       </h1>
