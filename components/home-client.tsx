@@ -9,6 +9,7 @@ import { NotepadCard } from "@/components/dashboard/notepad";
 import { MediaCard } from "@/components/dashboard/media-card";
 import { WellbeingCard } from "@/components/dashboard/wellbeing-card";
 import { HealthCard } from "@/components/dashboard/health-card";
+import { TimeDistributionCard } from "@/components/dashboard/time-distribution-card";
 import { InputBar } from "@/components/dashboard/input-bar";
 import { BottomNav } from "@/components/dashboard/bottom-nav";
 import { GoalCard } from "@/components/dashboard/goal-card";
@@ -102,6 +103,7 @@ function HomeContent() {
               <div className="flex flex-col gap-6 px-6">
                 <TimeTabs value={selectedTimePeriod} onValueChange={setSelectedTimePeriod} />
                 <WellbeingCard period={selectedTimePeriod} />
+                <TimeDistributionCard />
               </div>
             ) : activeTab === "media" ? (
               <div className="flex flex-col gap-4 px-4 overflow-hidden">
