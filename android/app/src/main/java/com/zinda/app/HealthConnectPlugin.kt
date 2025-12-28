@@ -3,8 +3,9 @@ package com.zinda.app
 import androidx.health.connect.client.HealthConnectClient
 import androidx.health.connect.client.permission.HealthPermission
 import androidx.health.connect.client.records.ExerciseSessionRecord
-import androidx.health.connect.client.request.AggregateRequest
+import androidx.health.connect.client.request.ReadRecordsRequest
 import androidx.health.connect.client.time.TimeRangeFilter
+import java.time.Duration
 import com.getcapacitor.JSObject
 import com.getcapacitor.Plugin
 import com.getcapacitor.PluginCall
@@ -63,14 +64,22 @@ class HealthConnectPlugin : Plugin() {
                     now.toInstant()
                 )
 
-                val request = AggregateRequest(
-                    metrics = setOf(ExerciseSessionRecord.DURATION_TOTAL),
+                val request = ReadRecordsRequest(
+                    recordType = ExerciseSessionRecord::class,
                     timeRangeFilter = timeRangeFilter
                 )
 
-                val response = client.aggregate(request)
-                val duration = response[ExerciseSessionRecord.DURATION_TOTAL]
-                val totalMinutes = duration?.toMinutes()?.toInt() ?: 0
+                val response = client.readRecords(request)
+                val records = response.records
+                
+                // Calculate total duration from all exercise sessions
+                var totalDuration = Duration.ZERO
+                for (record in records) {
+                    val sessionDuration = Duration.between(record.startTime, record.endTime)
+                    totalDuration = totalDuration.plus(sessionDuration)
+                }
+                
+                val totalMinutes = totalDuration.toMinutes().toInt()
 
                 val result = JSObject()
                 result.put("totalMinutes", totalMinutes)
