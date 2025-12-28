@@ -15,7 +15,7 @@ class MainActivity : BridgeActivity() {
         try {
             healthPermissionLauncher = registerForActivityResult(
                 HealthConnectClient.permissionController.createRequestPermissionsResultContract()
-            ) { grantedPermissions ->
+            ) { grantedPermissions: Set<String> ->
                 // Permissions granted or denied
                 // The plugin will check permissions when needed
             }
