@@ -51,6 +51,9 @@ dependencies {
     
     // Kotlin Coroutines (compatible with Kotlin 2.3.0)
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0'
+    
+    // Activity KTX for ActivityResultLauncher
+    implementation "androidx.activity:activity-ktx:$androidxActivityVersion"
 }
 
 apply from: 'capacitor.build.gradle'

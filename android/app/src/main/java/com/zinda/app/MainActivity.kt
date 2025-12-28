@@ -1,7 +1,7 @@
 package com.zinda.app
 
 import android.os.Bundle
-import androidx.activity.result.contract.ActivityResultLauncher
+import androidx.activity.result.ActivityResultLauncher
 import androidx.health.connect.client.HealthConnectClient
 import com.getcapacitor.BridgeActivity
 
