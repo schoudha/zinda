@@ -4,7 +4,6 @@ import { useState, useEffect, memo, lazy, Suspense, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { X, Bell, MessageCircle, Plus, Minus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
 import { useRouter } from "next/navigation";
 import { Goal } from "@/types";
 import { api } from "@/lib/api";
@@ -22,7 +21,7 @@ interface GoalCardProps {
   selectedPeriod?: "today" | "week" | "month" | "year"; // Current period view
 }
 
-export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = false, onProgressUpdate, selectedPeriod = "week" }: GoalCardProps) {
+export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = false, onProgressUpdate, selectedPeriod = "today" }: GoalCardProps) {
   const router = useRouter();
   const [notificationDialogOpen, setNotificationDialogOpen] = useState(false);
   const [currentGoal, setCurrentGoal] = useState<Goal>(goal);
@@ -33,7 +32,6 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
   const [todayCompletion, setTodayCompletion] = useState<number>(0);
   const [weeklyCompletedDays, setWeeklyCompletedDays] = useState<number>(0);
   const [isLoadingCompletion, setIsLoadingCompletion] = useState(false);
-  const [isAnimating, setIsAnimating] = useState(false);
   const [smartTip, setSmartTip] = useState<string | null>(null);
 
   // Sync goal prop with local state when it changes
@@ -147,10 +145,6 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
     e.stopPropagation();
     if (!goal.target || isUpdating || todayCompletion >= Math.min(3, goal.target)) return;
     
-    // Trigger animation
-    setIsAnimating(true);
-    setTimeout(() => setIsAnimating(false), 600);
-    
     setIsUpdating(true);
     try {
       const result = await api.goals.completions.increment(goal.id, 1);
@@ -222,11 +216,9 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6 px-6 pb-6">
-        <div className="space-y-1">
-          <h3 className="text-lg font-bold text-gray-900 dark:text-white leading-snug tracking-tight">
-            {goal.text}
-          </h3>
-        </div>
+        <h3 className="text-lg font-bold text-gray-900 dark:text-white leading-snug tracking-tight">
+          {goal.text}
+        </h3>
 
         {/* Completion widget for goals with integer targets */}
         {goal.target ? (
@@ -313,33 +305,6 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
           </div>
         )}
 
-        {/* Footer Actions */}
-        <div className="flex items-center gap-2 pt-2">
-          <Button
-            onClick={handleDiscussClick}
-            variant="ghost"
-            size="sm"
-            className="flex-1 bg-white/50 hover:bg-white/70 dark:bg-white/5 dark:hover:bg-white/10 text-gray-700 dark:text-gray-200 font-medium shadow-sm"
-          >
-            <MessageCircle className="h-4 w-4 mr-2 opacity-70" />
-            Chat
-          </Button>
-          
-          {goal.tips.length > 0 && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="px-3 bg-white/30 hover:bg-white/50 dark:bg-white/5 dark:hover:bg-white/10"
-              onClick={() => {
-                // Toggle tips logic could go here, or just show them
-                // For now, let's keep them if user wants, but maybe hidden by default in future
-              }}
-            >
-              <span className="text-xs font-semibold opacity-60">Tips</span>
-            </Button>
-          )}
-        </div>
-
         {(smartTip || goal.tips.length > 0) && (
           <div className="space-y-2 pt-2 border-t border-black/5 dark:border-white/5">
             {smartTip ? (
@@ -357,6 +322,15 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
             )}
           </div>
         )}
+
+        <Button
+          onClick={handleDiscussClick}
+          size="sm"
+          className="w-full bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 text-white font-medium shadow-sm"
+        >
+          <MessageCircle className="h-4 w-4 mr-2" />
+          Chat
+        </Button>
       </CardContent>
     </Card>
   );

@@ -26,7 +26,7 @@ function HomeContent() {
   const { goals, isLoading: goalsLoading, refreshGoals, deleteGoal } = useGoals();
   
   const [activeTab, setActiveTab] = useState<"goals" | "notepad" | "media" | "time">("goals");
-  const [selectedPeriod, setSelectedPeriod] = useState<"today" | GoalPeriod>("week");
+  const [selectedPeriod, setSelectedPeriod] = useState<"today" | GoalPeriod>("today");
   const [selectedTimePeriod, setSelectedTimePeriod] = useState<"today" | "week" | "month" | "year">("today");
   const [goalsWithProgress, setGoalsWithProgress] = useState<Goal[]>(goals);
   
