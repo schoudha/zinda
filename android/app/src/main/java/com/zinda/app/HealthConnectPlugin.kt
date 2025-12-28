@@ -2,7 +2,7 @@ package com.zinda.app
 
 import androidx.health.connect.client.HealthConnectClient
 import androidx.health.connect.client.permission.HealthPermission
-import androidx.health.connect.client.records.ExerciseSessionRecord
+import androidx.health.connect.client.records.*
 import androidx.health.connect.client.request.ReadRecordsRequest
 import androidx.health.connect.client.time.TimeRangeFilter
 import java.time.Duration
@@ -26,6 +26,51 @@ class HealthConnectPlugin : Plugin() {
     
     private val mainActivity: MainActivity?
         get() = activity as? MainActivity
+
+    // Comprehensive set of all Health Connect permissions
+    private fun getAllHealthConnectPermissions(): Set<String> {
+        return setOf(
+            // Exercise & Activity
+            HealthPermission.getReadPermission(ExerciseSessionRecord::class),
+            HealthPermission.getReadPermission(StepsRecord::class),
+            HealthPermission.getReadPermission(DistanceRecord::class),
+            HealthPermission.getReadPermission(ActiveCaloriesBurnedRecord::class),
+            HealthPermission.getReadPermission(TotalCaloriesBurnedRecord::class),
+            HealthPermission.getReadPermission(SpeedRecord::class),
+            HealthPermission.getReadPermission(PowerRecord::class),
+            HealthPermission.getReadPermission(FloorClimbedRecord::class),
+            HealthPermission.getReadPermission(ElevationGainedRecord::class),
+            
+            // Heart & Cardiovascular
+            HealthPermission.getReadPermission(HeartRateRecord::class),
+            HealthPermission.getReadPermission(RestingHeartRateRecord::class),
+            HealthPermission.getReadPermission(HeartRateVariabilityRmssdRecord::class),
+            HealthPermission.getReadPermission(Vo2MaxRecord::class),
+            
+            // Body Metrics
+            HealthPermission.getReadPermission(WeightRecord::class),
+            HealthPermission.getReadPermission(HeightRecord::class),
+            HealthPermission.getReadPermission(BodyFatRecord::class),
+            HealthPermission.getReadPermission(LeanBodyMassRecord::class),
+            
+            // Vital Signs
+            HealthPermission.getReadPermission(BloodPressureRecord::class),
+            HealthPermission.getReadPermission(BloodGlucoseRecord::class),
+            HealthPermission.getReadPermission(OxygenSaturationRecord::class),
+            HealthPermission.getReadPermission(RespiratoryRateRecord::class),
+            HealthPermission.getReadPermission(BodyTemperatureRecord::class),
+            
+            // Sleep
+            HealthPermission.getReadPermission(SleepSessionRecord::class),
+            
+            // Nutrition & Hydration
+            HealthPermission.getReadPermission(NutritionRecord::class),
+            HealthPermission.getReadPermission(HydrationRecord::class),
+            
+            // Reproductive Health
+            HealthPermission.getReadPermission(MenstruationFlowRecord::class),
+        )
+    }
 
     override fun load() {
         super.load()
@@ -139,16 +184,19 @@ class HealthConnectPlugin : Plugin() {
         val client = healthConnectClient!!
         scope.launch {
             try {
-                val permissions = setOf(
-                    HealthPermission.getReadPermission(ExerciseSessionRecord::class)
-                )
+                val permissions = getAllHealthConnectPermissions()
                 val grantedPermissions = client.permissionController.getGrantedPermissions()
                 
+                android.util.Log.d("HealthConnect", "Required permissions count: ${permissions.size}")
+                android.util.Log.d("HealthConnect", "Granted permissions count: ${grantedPermissions.size}")
                 android.util.Log.d("HealthConnect", "Required: $permissions")
                 android.util.Log.d("HealthConnect", "Granted: $grantedPermissions")
                 
+                val hasAllPermissions = grantedPermissions.containsAll(permissions)
+                android.util.Log.d("HealthConnect", "Has all permissions: $hasAllPermissions")
+                
                 val result = JSObject()
-                result.put("hasPermission", grantedPermissions.containsAll(permissions))
+                result.put("hasPermission", hasAllPermissions)
                 
                 withContext(Dispatchers.Main) {
                     call.resolve(result)
@@ -190,14 +238,11 @@ class HealthConnectPlugin : Plugin() {
             }
         }
 
-        val permissions = setOf(
-            HealthPermission.getReadPermission(ExerciseSessionRecord::class)
-        )
+        val permissions = getAllHealthConnectPermissions()
         
         // Log the actual permission strings to verify they're correct
-        val permissionStrings = permissions.joinToString(", ")
-        android.util.Log.d("HealthConnect", "Requesting permissions: $permissions")
-        android.util.Log.d("HealthConnect", "Permission strings (formatted): $permissionStrings")
+        android.util.Log.d("HealthConnect", "Requesting ${permissions.size} permissions")
+        android.util.Log.d("HealthConnect", "Permission strings (formatted): ${permissions.joinToString(", ")}")
         
         // Verify the permission format matches Health Connect requirements
         permissions.forEach { perm ->
