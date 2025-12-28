@@ -204,113 +204,136 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
           {periodLabels[goal.period]} Goal
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-5 px-6 pb-6">
+      <CardContent className="space-y-6 px-6 pb-6">
         <div className="space-y-1">
-          <h3 className="text-xl font-bold text-gray-900 dark:text-white leading-snug tracking-tight">
+          <h3 className="text-lg font-bold text-gray-900 dark:text-white leading-snug tracking-tight">
             {goal.text}
           </h3>
         </div>
+
         {/* Completion widget for goals with integer targets */}
         {goal.target ? (
-          <div className="space-y-3 pt-1 border-t border-white/40 dark:border-white/10">
-            <div className="flex flex-col items-center gap-2">
-              <button
-                onClick={handleCompletionIncrement}
-                disabled={isUpdating || isLoadingCompletion || todayCompletion >= Math.min(3, goal.target)}
-                className={`
-                  text-5xl transition-all duration-300 ease-out select-none
-                  ${isUpdating || isLoadingCompletion || todayCompletion >= Math.min(3, goal.target)
-                    ? 'opacity-40 cursor-not-allowed'
-                    : 'opacity-100 hover:scale-110 active:scale-90 cursor-pointer'
-                  }
-                  ${isAnimating ? 'animate-bounce' : ''}
-                `}
-              >
-                👍
-              </button>
-              <div className="text-center">
-                <span className="text-lg font-bold text-gray-900 dark:text-white">
-                  {todayCompletion}
-                </span>
-                <span className="text-sm text-gray-500 dark:text-gray-400 mx-1">/</span>
-                <span className="text-lg font-bold text-gray-500 dark:text-gray-400">
-                  {goal.target}
-                </span>
-              </div>
+          <div className="flex flex-col gap-3">
+            {/* Interactive Progress Row */}
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              {Array.from({ length: Math.min(goal.target, 7) }).map((_, index) => {
+                const isActive = index < todayCompletion;
+                return (
+                  <button
+                    key={index}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (isUpdating) return;
+                      // If clicking the current level, decrement (toggle off)
+                      // If clicking a higher level, set to that level
+                      const newCount = index + 1 === todayCompletion ? index : index + 1;
+                      // Handle update logic here - we need a specific setter for arbitrary values
+                      // For now, we'll use the increment/set API we have
+                      setIsUpdating(true);
+                      api.goals.completions.set(goal.id, newCount)
+                        .then((res) => {
+                          setTodayCompletion(res.completion.completionCount);
+                          onProgressUpdate?.();
+                        })
+                        .finally(() => setIsUpdating(false));
+                    }}
+                    className={`
+                      relative group flex items-center justify-center w-12 h-12 rounded-2xl transition-all duration-300
+                      ${isActive 
+                        ? 'bg-white shadow-lg shadow-blue-500/20 scale-105 ring-2 ring-blue-500/20 dark:bg-white/10 dark:ring-white/20' 
+                        : 'bg-white/40 hover:bg-white/60 dark:bg-white/5 dark:hover:bg-white/10'
+                      }
+                    `}
+                  >
+                    <span className={`text-2xl transition-all duration-300 ${isActive ? 'scale-110 rotate-0 opacity-100' : 'scale-90 -rotate-12 opacity-40 grayscale'}`}>
+                      👍
+                    </span>
+                  </button>
+                );
+              })}
             </div>
-            {selectedPeriod === "week" && (
-              <div className="pt-2 border-t border-white/20 dark:border-white/5 text-center">
-                <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-1">
-                  Weekly Progress
-                </p>
-                <p className="text-sm text-gray-700 dark:text-gray-300">
-                  {weeklyCompletedDays} of 7 days completed
-                </p>
-              </div>
-            )}
+            
+            {/* Count & Weekly Progress Label */}
+            <div className="flex items-center justify-between text-xs font-medium text-gray-600 dark:text-gray-400 px-1">
+              <span>Today: {todayCompletion} / {goal.target}</span>
+              {selectedPeriod === "week" && (
+                <span>{weeklyCompletedDays}/7 days</span>
+              )}
+            </div>
           </div>
         ) : showProgress && (
-          <div className="space-y-3 pt-1 border-t border-white/40 dark:border-white/10">
-            <div className="flex items-center justify-between">
-              <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">
-                Today's Progress
-              </p>
-              <span className="text-sm font-bold text-gray-900 dark:text-white">
-                {Math.round(progressValue)}%
-              </span>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">
+              <span>Progress</span>
+              <span>{Math.round(progressValue)}%</span>
             </div>
-            <Progress value={progressValue} className="h-2" />
-            <div className="flex items-center gap-2">
+            <div className="relative h-3 w-full overflow-hidden rounded-full bg-black/5 dark:bg-white/10">
+              <div 
+                className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 transition-all duration-500 ease-out"
+                style={{ width: `${progressValue}%` }}
+              />
+            </div>
+            <div className="flex justify-between gap-2">
               <Button
-                variant="outline"
+                variant="ghost"
                 size="sm"
                 onClick={handleDecrement}
                 disabled={isUpdating || progressValue <= 0}
-                className="flex-1 gap-2 bg-white/50 dark:bg-black/20 border-gray-200 dark:border-gray-800"
+                className="h-8 rounded-full bg-white/40 hover:bg-white/60 dark:bg-white/5 dark:hover:bg-white/10 w-12"
               >
-                <Minus className="h-3 w-3" />
-                -10%
+                <Minus className="h-4 w-4" />
               </Button>
               <Button
-                variant="outline"
+                variant="ghost"
                 size="sm"
                 onClick={handleIncrement}
                 disabled={isUpdating || progressValue >= 100}
-                className="flex-1 gap-2 bg-white/50 dark:bg-black/20 border-gray-200 dark:border-gray-800"
+                className="h-8 rounded-full bg-white/40 hover:bg-white/60 dark:bg-white/5 dark:hover:bg-white/10 w-12"
               >
-                <Plus className="h-3 w-3" />
-                +10%
+                <Plus className="h-4 w-4" />
               </Button>
             </div>
           </div>
         )}
-        {goal.tips.length > 0 && (
-          <div className="space-y-4 pt-1 border-t border-white/40 dark:border-white/10">
-            <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">
-              Tips to achieve this goal
-            </p>
-            <ul className="space-y-3.5">
-              {goal.tips.map((tip, index) => (
-                <li key={index} className="flex items-start gap-3.5">
-                  <div className={`h-2 w-2 rounded-full ${goal.period === 'week' ? 'bg-blue-500' : goal.period === 'month' ? 'bg-purple-500' : 'bg-orange-500'} mt-1.5 shrink-0`} />
-                  <p 
-                    className="flex-1 text-sm text-gray-700 dark:text-gray-300 leading-relaxed font-medium"
-                    dangerouslySetInnerHTML={{ __html: tip }}
-                  />
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-        <div className="pt-4">
+
+        {/* Footer Actions */}
+        <div className="flex items-center gap-2 pt-2">
           <Button
             onClick={handleDiscussClick}
-            className="w-full bg-blue-700 hover:bg-blue-800 text-white font-semibold shadow-md dark:bg-blue-600 dark:hover:bg-blue-700"
+            variant="ghost"
+            size="sm"
+            className="flex-1 bg-white/50 hover:bg-white/70 dark:bg-white/5 dark:hover:bg-white/10 text-gray-700 dark:text-gray-200 font-medium shadow-sm"
           >
-            <MessageCircle className="h-4 w-4 mr-2" />
-            Chat about this
+            <MessageCircle className="h-4 w-4 mr-2 opacity-70" />
+            Chat
           </Button>
+          
+          {goal.tips.length > 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="px-3 bg-white/30 hover:bg-white/50 dark:bg-white/5 dark:hover:bg-white/10"
+              onClick={() => {
+                // Toggle tips logic could go here, or just show them
+                // For now, let's keep them if user wants, but maybe hidden by default in future
+              }}
+            >
+              <span className="text-xs font-semibold opacity-60">Tips</span>
+            </Button>
+          )}
         </div>
+
+        {goal.tips.length > 0 && (
+          <div className="space-y-2 pt-2 border-t border-black/5 dark:border-white/5">
+            {goal.tips.slice(0, 1).map((tip, index) => (
+              <p 
+                key={index}
+                className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed italic"
+                dangerouslySetInnerHTML={{ __html: tip }}
+              />
+            ))}
+          </div>
+        )}
       </CardContent>
     </Card>
   );
