@@ -49,9 +49,8 @@ export function useHealthConnect(period: string = 'week') {
 
   const loadExerciseMinutes = async () => {
     if (!Capacitor.isNativePlatform()) {
-      // Mock data for web
-      const mockMinutes = period === 'week' ? 180 : period === 'today' ? 45 : 720;
-      setTotalMinutes(mockMinutes);
+      // No mock data - show 0 on web
+      setTotalMinutes(0);
       return;
     }
 
@@ -126,7 +125,8 @@ export function useHealthConnect(period: string = 'week') {
           resumeListener.then((handle: any) => handle.remove());
       };
     } else {
-      loadExerciseMinutes();
+      // On web, just set to 0 (no mock data)
+      setTotalMinutes(0);
     }
   }, [period]);
 
