@@ -2,7 +2,7 @@ package com.zinda.app
 
 import android.os.Bundle
 import androidx.activity.result.ActivityResultLauncher
-import androidx.health.connect.client.HealthConnectClient
+import androidx.health.connect.client.PermissionController
 import com.getcapacitor.BridgeActivity
 
 class MainActivity : BridgeActivity() {
@@ -14,7 +14,7 @@ class MainActivity : BridgeActivity() {
         // minSdkVersion is 34, so Health Connect is always available
         try {
             healthPermissionLauncher = registerForActivityResult(
-                HealthConnectClient.permissionController.createRequestPermissionsResultContract()
+                PermissionController.createRequestPermissionResultContract()
             ) { grantedPermissions: Set<String> ->
                 // Permissions granted or denied
                 // The plugin will check permissions when needed
