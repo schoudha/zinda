@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { Capacitor } from "@capacitor/core";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Lock } from "lucide-react";
@@ -10,9 +11,20 @@ export function PasswordGate({ children }: { children: React.ReactNode }) {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [isAndroid, setIsAndroid] = useState(false);
 
-  // Check authentication status on mount
+  // Check if running on Android device
   useEffect(() => {
+    const platform = Capacitor.getPlatform();
+    setIsAndroid(platform === "android");
+    
+    // Skip auth check on Android
+    if (platform === "android") {
+      setIsAuthenticated(true);
+      return;
+    }
+    
+    // Check authentication status on mount for non-Android platforms
     checkAuth();
   }, []);
 
@@ -54,6 +66,11 @@ export function PasswordGate({ children }: { children: React.ReactNode }) {
       setLoading(false);
     }
   };
+
+  // Skip password gate on Android - show content directly
+  if (isAndroid) {
+    return <>{children}</>;
+  }
 
   // Show loading state while checking auth
   if (isAuthenticated === null) {
