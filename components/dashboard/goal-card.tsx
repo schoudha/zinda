@@ -2,7 +2,7 @@
 
 import { useState, useEffect, memo, lazy, Suspense, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { X, Bell } from "lucide-react";
+import { X, Bell, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { Goal } from "@/types";
@@ -137,7 +137,8 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete }: GoalCardProps
             onClick={handleDiscussClick}
             className="w-full bg-blue-700 hover:bg-blue-800 text-white font-semibold shadow-md dark:bg-blue-600 dark:hover:bg-blue-700"
           >
-            Discuss this goal
+            <MessageCircle className="h-4 w-4 mr-2" />
+            Chat about this
           </Button>
         </div>
       </CardContent>
