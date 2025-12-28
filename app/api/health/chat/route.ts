@@ -7,7 +7,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { message, history = [] } = await request.json();
+    const { message, history = [], healthStats } = await request.json();
 
     if (!message || typeof message !== 'string') {
       return NextResponse.json(
@@ -30,10 +30,33 @@ export async function POST(request: NextRequest) {
       parts: [{ text: msg.content }]
     }));
 
+    // Build health stats context
+    let healthContext = '';
+    if (healthStats) {
+      const { totalMinutes, goalMinutes, period, percentage, periodLabel } = healthStats;
+      const hours = Math.floor(totalMinutes / 60);
+      const mins = totalMinutes % 60;
+      const totalTimeFormatted = hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+      
+      const goalHours = Math.floor(goalMinutes / 60);
+      const goalMins = goalMinutes % 60;
+      const goalTimeFormatted = goalHours > 0 ? `${goalHours}h ${goalMins}m` : `${goalMins}m`;
+      
+      healthContext = `
+Current Health Connect Stats (${periodLabel}):
+- Total Exercise Time: ${totalTimeFormatted}
+- Goal: ${goalTimeFormatted}
+- Progress: ${percentage}%
+- Period: ${periodLabel}
+`;
+    }
+
     const systemPrompt = `You are a helpful health and fitness coach. 
 The user is tracking their exercise and health data through Health Connect.
+${healthContext}
 Help them understand their progress, provide motivation, suggest improvements, or answer questions about their health and fitness goals.
-Keep your responses concise, encouraging, and actionable. Use bold and italics for emphasis where appropriate.`;
+Keep your responses concise, encouraging, and actionable. Use bold and italics for emphasis where appropriate.
+When referencing their stats, use the actual numbers provided above.`;
 
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`,

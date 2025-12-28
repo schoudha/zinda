@@ -20,6 +20,20 @@ function HealthChatContent() {
   const [isSending, setIsSending] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  // Calculate goal minutes based on period (150 minutes/week as base)
+  const goalMinutes = period === "today" ? 21 : // ~21 min/day (150/7)
+                      period === "week" ? 150 :
+                      period === "month" ? 600 : // ~150 * 4 weeks
+                      7800; // ~150 * 52 weeks
+  
+  const percentage = Math.min(100, Math.round((totalMinutes / goalMinutes) * 100));
+  
+  // Get period label for display
+  const periodLabel = period === "today" ? "Today" :
+                      period === "week" ? "This Week" :
+                      period === "month" ? "This Month" :
+                      "This Year";
+
   // Scroll to bottom when messages change
   useEffect(() => {
     if (scrollRef.current) {
@@ -55,7 +69,14 @@ function HealthChatContent() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           message: userMsgText,
-          history 
+          history,
+          healthStats: {
+            totalMinutes,
+            goalMinutes,
+            period,
+            percentage,
+            periodLabel
+          }
         }),
       });
 
@@ -89,20 +110,6 @@ function HealthChatContent() {
       handleSendMessage();
     }
   };
-
-  // Calculate goal minutes based on period (150 minutes/week as base)
-  const goalMinutes = period === "today" ? 21 : // ~21 min/day (150/7)
-                      period === "week" ? 150 :
-                      period === "month" ? 600 : // ~150 * 4 weeks
-                      7800; // ~150 * 52 weeks
-  
-  const percentage = Math.min(100, Math.round((totalMinutes / goalMinutes) * 100));
-  
-  // Get period label for display
-  const periodLabel = period === "today" ? "Today" :
-                      period === "week" ? "This Week" :
-                      period === "month" ? "This Month" :
-                      "This Year";
 
   function formatMinutes(minutes: number): string {
     const hours = Math.floor(minutes / 60);
