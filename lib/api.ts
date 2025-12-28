@@ -58,6 +58,22 @@ export const api = {
       });
       return data.response;
     },
+    generateSmartTip: async (goalText: string, progress: number = 0, target?: number, completion?: number) => {
+      let progressContext = "";
+      if (target !== undefined && completion !== undefined) {
+        progressContext = `Current progress: ${completion}/${target} completed today.`;
+      } else {
+        progressContext = `Current progress: ${progress}% completed today.`;
+      }
+
+      const message = `Provide a single, short tip (maximum 2 sentences) on how to achieve this goal: "${goalText}". ${progressContext} The tip should be motivating and actionable.`;
+
+      const data = await fetchApi<{ response: string }>("/api/chat", {
+        method: "POST",
+        body: JSON.stringify({ message }),
+      });
+      return data.response;
+    },
     updateNotifications: async (goalId: string, notificationTime: Goal["notificationTime"] | null | undefined, notificationDays: Goal["notificationDays"] | null | undefined) => {
       const data = await fetchApi<{ goal: Goal }>(`/api/goals/${goalId}/notifications`, {
         method: "PATCH",

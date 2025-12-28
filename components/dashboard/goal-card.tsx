@@ -34,12 +34,24 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
   const [weeklyCompletedDays, setWeeklyCompletedDays] = useState<number>(0);
   const [isLoadingCompletion, setIsLoadingCompletion] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
+  const [smartTip, setSmartTip] = useState<string | null>(null);
 
   // Sync goal prop with local state when it changes
   useEffect(() => {
     setCurrentGoal(goal);
     setProgressValue(goal.todayProgress ?? 0);
   }, [goal]);
+
+  // Fetch smart tip on load
+  useEffect(() => {
+    // For target-based goals, we'll wait for completion stats in the other effect
+    // For percentage-based goals (or if no target), we fetch immediately
+    if (!goal.target) {
+      api.goals.generateSmartTip(goal.text, goal.todayProgress ?? 0)
+        .then(setSmartTip)
+        .catch(err => console.error("Failed to generate tip:", err));
+    }
+  }, [goal.text, goal.target, goal.todayProgress]);
 
   // Fetch completion stats if goal has a target
   useEffect(() => {
@@ -49,6 +61,11 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
         .then((stats) => {
           setTodayCompletion(stats.todayCompletion);
           setWeeklyCompletedDays(stats.weeklyCompletedDays);
+          
+          // Generate tip after getting completion stats
+          api.goals.generateSmartTip(goal.text, 0, goal.target, stats.todayCompletion)
+            .then(setSmartTip)
+            .catch(err => console.error("Failed to generate tip:", err));
         })
         .catch((error) => {
           console.error('Error fetching completion stats:', error);
@@ -57,7 +74,7 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
           setIsLoadingCompletion(false);
         });
     }
-  }, [goal.id, goal.target]);
+  }, [goal.id, goal.target, goal.text]);
 
   const periodLabels = {
     week: "Weekly",
@@ -323,15 +340,21 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
           )}
         </div>
 
-        {goal.tips.length > 0 && (
+        {(smartTip || goal.tips.length > 0) && (
           <div className="space-y-2 pt-2 border-t border-black/5 dark:border-white/5">
-            {goal.tips.slice(0, 1).map((tip, index) => (
-              <p 
-                key={index}
-                className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed italic"
-                dangerouslySetInnerHTML={{ __html: tip }}
-              />
-            ))}
+            {smartTip ? (
+              <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed italic animate-in fade-in duration-500">
+                {smartTip}
+              </p>
+            ) : (
+              goal.tips.slice(0, 1).map((tip, index) => (
+                <p 
+                  key={index}
+                  className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed italic"
+                  dangerouslySetInnerHTML={{ __html: tip }}
+                />
+              ))
+            )}
           </div>
         )}
       </CardContent>
