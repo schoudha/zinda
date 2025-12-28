@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { UsageStats } from '@/lib/capacitor/usage-stats';
 
@@ -23,7 +23,7 @@ export function useUsageStats(period: string = 'today') {
     }
   };
 
-  const loadStats = async () => {
+  const loadStats = useCallback(async () => {
     if (!Capacitor.isNativePlatform()) return;
     
     try {
@@ -103,13 +103,14 @@ export function useUsageStats(period: string = 'today') {
     } catch (e) {
       console.error('Failed to load usage stats', e);
     }
-  };
+  }, [period]); // Add period as dependency
 
   const requestPermission = async () => {
     if (!Capacitor.isNativePlatform()) return;
     await UsageStats.requestPermission();
-    // Re-check after a delay or on resume (simplified here)
     setTimeout(checkPermission, 1000);
+    // Also reload stats after permission is granted
+    setTimeout(loadStats, 1500);
   };
 
   useEffect(() => {
@@ -122,7 +123,7 @@ export function useUsageStats(period: string = 'today') {
       const interval = setInterval(loadStats, 60000);
       return () => clearInterval(interval);
     }
-  }, [period]);
+  }, [loadStats]); // Use loadStats as dependency instead of period
 
   return {
     isNative,
