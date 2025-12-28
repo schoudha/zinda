@@ -57,8 +57,11 @@ export function useHealthConnect(period: string = 'week') {
 
       // Re-check permission when app resumes (returns from settings/permission dialog)
       const resumeListener = App.addListener('resume', () => {
-          checkPermission();
-          loadExerciseMinutes();
+          // Add a small delay to allow Health Connect to update its permission state
+          setTimeout(() => {
+              checkPermission();
+              loadExerciseMinutes();
+          }, 500);
       });
 
       return () => {

@@ -17,7 +17,8 @@ class MainActivity : BridgeActivity() {
                 PermissionController.createRequestPermissionResultContract()
             ) { grantedPermissions: Set<String> ->
                 // Permissions granted or denied
-                // The plugin will check permissions when needed
+                // Notify the plugin to re-check permissions
+                // The plugin will check permissions when the app resumes
             }
         } catch (e: Exception) {
             // Health Connect not available (shouldn't happen with minSdk 34)
