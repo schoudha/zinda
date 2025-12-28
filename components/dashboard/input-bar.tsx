@@ -7,14 +7,39 @@ import { Card, CardContent } from "@/components/ui/card";
 import { detectPeriod, markdownToHtml } from "@/lib/utils";
 import { api } from "@/lib/api";
 import { GoalCategory } from "@/types";
+import { Heart, BookOpen, Users } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface InputBarProps {
   onGoalCreated?: () => void;
 }
 
+// Custom Islamic crescent icon
+const CrescentIcon = ({ className }: { className?: string }) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
+    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+  </svg>
+);
+
 export function InputBar({ onGoalCreated }: InputBarProps) {
   const [message, setMessage] = useState("");
+  const [category, setCategory] = useState<GoalCategory>("health");
   const [isLoading, setIsLoading] = useState(false);
+
+  const categories: { id: GoalCategory; icon: React.ElementType | React.FC<{ className?: string }>; label: string }[] = [
+    { id: "health", icon: Heart, label: "Health" },
+    { id: "faith", icon: CrescentIcon, label: "Faith" },
+    { id: "learn", icon: BookOpen, label: "Learn" },
+    { id: "family", icon: Users, label: "Family" },
+  ];
 
   // Parse tips from Gemini response
   const parseTips = (response: string): string[] => {
@@ -92,24 +117,13 @@ export function InputBar({ onGoalCreated }: InputBarProps) {
       const tipsResponse = await api.goals.tips(goalText);
       const tips = parseTips(tipsResponse);
 
-      // Get category from Gemini
-      let category = "health"; // Default
-      try {
-        const detectedCategory = await api.goals.categorize(goalText);
-        if (['health', 'faith', 'learn', 'family'].includes(detectedCategory)) {
-          category = detectedCategory;
-        }
-      } catch (e) {
-        console.error("Failed to categorize:", e);
-      }
-
-      // Create the goal
+      // Create the goal with selected category
       const goalId = Date.now().toString();
       await api.goals.create({
         id: goalId,
         text: goalText,
         period: period,
-        category: category as GoalCategory,
+        category: category,
         tips: tips,
         createdAt: new Date(),
       });
@@ -149,6 +163,28 @@ export function InputBar({ onGoalCreated }: InputBarProps) {
           />
         </CardContent>
       </Card>
+
+      <div className="flex gap-2 justify-center">
+        {categories.map((cat) => {
+          const Icon = cat.icon as React.ElementType<{ className?: string }>;
+          const isSelected = category === cat.id;
+          return (
+            <button
+              key={cat.id}
+              onClick={() => setCategory(cat.id)}
+              title={cat.label}
+              className={cn(
+                "flex items-center justify-center w-10 h-10 rounded-full border-2 transition-all",
+                isSelected
+                  ? "bg-black text-white border-black dark:bg-white dark:text-black dark:border-white shadow-md"
+                  : "bg-white text-gray-400 border-gray-200 dark:bg-white/5 dark:text-gray-500 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/10 hover:border-gray-300 dark:hover:border-white/20"
+              )}
+            >
+              <Icon className="h-5 w-5" />
+            </button>
+          );
+        })}
+      </div>
       
       <Button
         onClick={handleSubmit}
