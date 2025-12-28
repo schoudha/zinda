@@ -33,6 +33,7 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
   const [todayCompletion, setTodayCompletion] = useState<number>(0);
   const [weeklyCompletedDays, setWeeklyCompletedDays] = useState<number>(0);
   const [isLoadingCompletion, setIsLoadingCompletion] = useState(false);
+  const [isAnimating, setIsAnimating] = useState(false);
 
   // Sync goal prop with local state when it changes
   useEffect(() => {
@@ -127,7 +128,11 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
   // Completion handlers (for integer targets)
   const handleCompletionIncrement = useCallback(async (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!goal.target || isUpdating) return;
+    if (!goal.target || isUpdating || todayCompletion >= Math.min(3, goal.target)) return;
+    
+    // Trigger animation
+    setIsAnimating(true);
+    setTimeout(() => setIsAnimating(false), 600);
     
     setIsUpdating(true);
     try {
@@ -139,7 +144,7 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
     } finally {
       setIsUpdating(false);
     }
-  }, [goal.id, goal.target, isUpdating, onProgressUpdate]);
+  }, [goal.id, goal.target, todayCompletion, isUpdating, onProgressUpdate]);
 
   const handleCompletionDecrement = useCallback(async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -208,43 +213,33 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
         {/* Completion widget for goals with integer targets */}
         {goal.target ? (
           <div className="space-y-3 pt-1 border-t border-white/40 dark:border-white/10">
-            <div className="flex items-center justify-between">
-              <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">
-                Today's Completion
-              </p>
-              <span className="text-sm font-bold text-gray-900 dark:text-white">
-                {todayCompletion} / {goal.target}
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleCompletionDecrement}
-                disabled={isUpdating || isLoadingCompletion || todayCompletion <= 0}
-                className="flex-1 gap-2 bg-white/50 dark:bg-black/20 border-gray-200 dark:border-gray-800"
+            <div className="flex flex-col items-center gap-2">
+              <button
+                onClick={handleCompletionIncrement}
+                disabled={isUpdating || isLoadingCompletion || todayCompletion >= Math.min(3, goal.target)}
+                className={`
+                  text-5xl transition-all duration-300 ease-out select-none
+                  ${isUpdating || isLoadingCompletion || todayCompletion >= Math.min(3, goal.target)
+                    ? 'opacity-40 cursor-not-allowed'
+                    : 'opacity-100 hover:scale-110 active:scale-90 cursor-pointer'
+                  }
+                  ${isAnimating ? 'animate-bounce' : ''}
+                `}
               >
-                <Minus className="h-3 w-3" />
-                Done
-              </Button>
-              <div className="flex-1 text-center">
+                👍
+              </button>
+              <div className="text-center">
                 <span className="text-lg font-bold text-gray-900 dark:text-white">
                   {todayCompletion}
                 </span>
+                <span className="text-sm text-gray-500 dark:text-gray-400 mx-1">/</span>
+                <span className="text-lg font-bold text-gray-500 dark:text-gray-400">
+                  {goal.target}
+                </span>
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleCompletionIncrement}
-                disabled={isUpdating || isLoadingCompletion || todayCompletion >= Math.min(3, goal.target)}
-                className="flex-1 gap-2 bg-white/50 dark:bg-black/20 border-gray-200 dark:border-gray-800"
-              >
-                <Plus className="h-3 w-3" />
-                Done
-              </Button>
             </div>
             {selectedPeriod === "week" && (
-              <div className="pt-2 border-t border-white/20 dark:border-white/5">
+              <div className="pt-2 border-t border-white/20 dark:border-white/5 text-center">
                 <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-1">
                   Weekly Progress
                 </p>
