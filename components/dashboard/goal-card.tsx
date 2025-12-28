@@ -2,7 +2,7 @@
 
 import { useState, useEffect, memo, lazy, Suspense, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { X, Bell, MessageCircle, Plus, Minus } from "lucide-react";
+import { X, Bell, MessageCircle, Plus, Minus, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { Goal } from "@/types";
@@ -175,25 +175,25 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
 
   return (
     <Card 
-      className={`border-none bg-gradient-to-br ${periodColors[goal.period]} shadow-xl shadow-blue-900/5 dark:shadow-black/20 rounded-3xl ring-1 ring-black/5 dark:ring-white/5 overflow-hidden transition-all duration-300 hover:shadow-blue-900/10 dark:hover:shadow-black/30 relative`}
+      className={`border-none bg-gradient-to-br ${periodColors[goal.period]} shadow-lg shadow-blue-900/5 dark:shadow-black/20 rounded-2xl ring-1 ring-black/5 dark:ring-white/5 overflow-hidden transition-all duration-300 hover:shadow-blue-900/10 dark:hover:shadow-black/30 relative`}
     >
-      <div className="absolute top-2 right-2 flex gap-1 z-10">
+      <div className="absolute top-1.5 right-1.5 flex gap-0.5 z-10">
         <Button
           variant="ghost"
           size="icon"
-          className="h-8 w-8 rounded-full opacity-60 hover:opacity-100 hover:bg-white/50 dark:hover:bg-white/10 dark:text-white"
+          className="h-6 w-6 rounded-full opacity-60 hover:opacity-100 hover:bg-white/50 dark:hover:bg-white/10 dark:text-white"
           onClick={handleBellClick}
         >
-          <Bell className={`h-4 w-4 ${currentGoal.notificationTime && currentGoal.notificationDays ? 'fill-current' : ''}`} />
+          <Bell className={`h-3 w-3 ${currentGoal.notificationTime && currentGoal.notificationDays ? 'fill-current' : ''}`} />
         </Button>
         {onDelete && (
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8 rounded-full opacity-60 hover:opacity-100 hover:bg-white/50 dark:hover:bg-white/10 dark:text-white"
+            className="h-6 w-6 rounded-full opacity-60 hover:opacity-100 hover:bg-white/50 dark:hover:bg-white/10 dark:text-white"
             onClick={handleDelete}
           >
-            <X className="h-4 w-4" />
+            <X className="h-3 w-3" />
           </Button>
         )}
       </div>
@@ -209,22 +209,22 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
           />
         </Suspense>
       )}
-      <CardHeader className="pb-2 pt-6 px-6">
-        <CardTitle className={`text-[10px] font-bold uppercase tracking-widest ${periodColors[goal.period].split(' ')[2]} flex items-center gap-2`}>
-          <div className={`h-1.5 w-1.5 rounded-full ${goal.period === 'week' ? 'bg-blue-500' : goal.period === 'month' ? 'bg-purple-500' : 'bg-orange-500'} animate-pulse`} />
+      <CardHeader className="pb-1.5 pt-4 px-4">
+        <CardTitle className={`text-[9px] font-bold uppercase tracking-widest ${periodColors[goal.period].split(' ')[2]} flex items-center gap-1.5`}>
+          <div className={`h-1 w-1 rounded-full ${goal.period === 'week' ? 'bg-blue-500' : goal.period === 'month' ? 'bg-purple-500' : 'bg-orange-500'} animate-pulse`} />
           {periodLabels[goal.period]} Goal
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-6 px-6 pb-6">
-        <h3 className="text-lg font-bold text-gray-900 dark:text-white leading-snug tracking-tight">
+      <CardContent className="space-y-3 px-4 pb-4">
+        <h3 className="text-sm font-bold text-gray-900 dark:text-white leading-tight tracking-tight">
           {goal.text}
         </h3>
 
         {/* Completion widget for goals with integer targets */}
         {goal.target ? (
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-2">
             {/* Interactive Progress Row */}
-            <div className="flex flex-wrap items-center justify-center gap-2">
+            <div className="flex flex-wrap items-center justify-center gap-1.5">
               {Array.from({ length: Math.min(goal.target, 7) }).map((_, index) => {
                 const isActive = index < todayCompletion;
                 return (
@@ -247,14 +247,14 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
                         .finally(() => setIsUpdating(false));
                     }}
                     className={`
-                      relative group flex items-center justify-center w-12 h-12 rounded-2xl transition-all duration-300
+                      relative group flex items-center justify-center w-9 h-9 rounded-xl transition-all duration-300
                       ${isActive 
-                        ? 'bg-white shadow-lg shadow-blue-500/20 scale-105 ring-2 ring-blue-500/20 dark:bg-white/10 dark:ring-white/20' 
+                        ? 'bg-white shadow-md shadow-blue-500/20 scale-105 ring-1 ring-blue-500/20 dark:bg-white/10 dark:ring-white/20' 
                         : 'bg-white/40 hover:bg-white/60 dark:bg-white/5 dark:hover:bg-white/10'
                       }
                     `}
                   >
-                    <span className={`text-2xl transition-all duration-300 ${isActive ? 'scale-110 rotate-0 opacity-100' : 'scale-90 -rotate-12 opacity-40 grayscale'}`}>
+                    <span className={`text-lg transition-all duration-300 ${isActive ? 'scale-110 rotate-0 opacity-100' : 'scale-90 -rotate-12 opacity-40 grayscale'}`}>
                       👍
                     </span>
                   </button>
@@ -263,59 +263,59 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
             </div>
             
             {/* Count & Weekly Progress Label */}
-            <div className="flex items-center justify-between text-xs font-medium text-gray-600 dark:text-gray-400 px-1">
+            <div className="flex items-center justify-between text-[10px] font-medium text-gray-600 dark:text-gray-400">
               <span>Today: {todayCompletion} / {goal.target}</span>
               {selectedPeriod === "week" && (
-                <span>{weeklyCompletedDays}/7 days</span>
+                <span>{weeklyCompletedDays}/7</span>
               )}
             </div>
           </div>
         ) : showProgress && (
-          <div className="space-y-3">
-            <div className="flex items-center justify-between text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
               <span>Progress</span>
               <span>{Math.round(progressValue)}%</span>
             </div>
-            <div className="relative h-3 w-full overflow-hidden rounded-full bg-black/5 dark:bg-white/10">
+            <div className="relative h-2 w-full overflow-hidden rounded-full bg-black/5 dark:bg-white/10">
               <div 
                 className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 transition-all duration-500 ease-out"
                 style={{ width: `${progressValue}%` }}
               />
             </div>
-            <div className="flex justify-between gap-2">
+            <div className="flex justify-between gap-1.5">
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={handleDecrement}
                 disabled={isUpdating || progressValue <= 0}
-                className="h-8 rounded-full bg-white/40 hover:bg-white/60 dark:bg-white/5 dark:hover:bg-white/10 w-12"
+                className="h-7 rounded-full bg-white/40 hover:bg-white/60 dark:bg-white/5 dark:hover:bg-white/10 w-10"
               >
-                <Minus className="h-4 w-4" />
+                <Minus className="h-3 w-3" />
               </Button>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={handleIncrement}
                 disabled={isUpdating || progressValue >= 100}
-                className="h-8 rounded-full bg-white/40 hover:bg-white/60 dark:bg-white/5 dark:hover:bg-white/10 w-12"
+                className="h-7 rounded-full bg-white/40 hover:bg-white/60 dark:bg-white/5 dark:hover:bg-white/10 w-10"
               >
-                <Plus className="h-4 w-4" />
+                <Plus className="h-3 w-3" />
               </Button>
             </div>
           </div>
         )}
 
         {(smartTip || goal.tips.length > 0) && (
-          <div className="space-y-2 pt-2 border-t border-black/5 dark:border-white/5">
+          <div className="pt-1.5 border-t border-black/5 dark:border-white/5">
             {smartTip ? (
-              <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed italic animate-in fade-in duration-500">
+              <p className="text-[10px] text-gray-600 dark:text-gray-400 leading-relaxed italic animate-in fade-in duration-500">
                 {smartTip}
               </p>
             ) : (
               goal.tips.slice(0, 1).map((tip, index) => (
                 <p 
                   key={index}
-                  className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed italic"
+                  className="text-[10px] text-gray-600 dark:text-gray-400 leading-relaxed italic"
                   dangerouslySetInnerHTML={{ __html: tip }}
                 />
               ))
@@ -326,10 +326,10 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
         <Button
           onClick={handleDiscussClick}
           size="sm"
-          className="w-full bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 text-white font-medium shadow-sm"
+          className="w-full h-8 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 dark:from-purple-600 dark:to-indigo-700 dark:hover:from-purple-700 dark:hover:to-indigo-800 text-white text-xs font-medium shadow-sm"
         >
-          <MessageCircle className="h-4 w-4 mr-2" />
-          Chat
+          <Sparkles className="h-3 w-3 mr-1.5" />
+          Ask Gemini
         </Button>
       </CardContent>
     </Card>

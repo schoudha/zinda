@@ -84,13 +84,18 @@ export const api = {
         progressContext = `Current progress: ${progress}% completed today.`;
       }
 
-      const message = `Provide a single, short tip (maximum 2 sentences) on how to achieve this goal: "${goalText}". ${progressContext} The tip should be motivating and actionable.`;
+      const message = `Provide a single, short tip (exactly 1 sentence, no more) on how to achieve this goal: "${goalText}". ${progressContext} The tip should be motivating and actionable. Return only one sentence without any additional text.`;
 
       const data = await fetchApi<{ response: string }>("/api/chat", {
         method: "POST",
         body: JSON.stringify({ message }),
       });
-      return data.response;
+      
+      // Ensure we only return 1 sentence by splitting on sentence endings and taking the first
+      const response = data.response.trim();
+      const firstSentence = response.split(/[.!?]+/)[0].trim();
+      // Add back the punctuation if it exists, otherwise add a period
+      return firstSentence + (firstSentence.match(/[.!?]$/) ? '' : '.');
     },
     updateNotifications: async (goalId: string, notificationTime: Goal["notificationTime"] | null | undefined, notificationDays: Goal["notificationDays"] | null | undefined) => {
       const data = await fetchApi<{ goal: Goal }>(`/api/goals/${goalId}/notifications`, {
