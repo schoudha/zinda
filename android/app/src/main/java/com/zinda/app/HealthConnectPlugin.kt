@@ -38,20 +38,15 @@ class HealthConnectPlugin : Plugin() {
             HealthPermission.getReadPermission(TotalCaloriesBurnedRecord::class),
             HealthPermission.getReadPermission(SpeedRecord::class),
             HealthPermission.getReadPermission(PowerRecord::class),
-            HealthPermission.getReadPermission(FloorClimbedRecord::class),
-            HealthPermission.getReadPermission(ElevationGainedRecord::class),
             
             // Heart & Cardiovascular
             HealthPermission.getReadPermission(HeartRateRecord::class),
             HealthPermission.getReadPermission(RestingHeartRateRecord::class),
-            HealthPermission.getReadPermission(HeartRateVariabilityRmssdRecord::class),
             HealthPermission.getReadPermission(Vo2MaxRecord::class),
             
             // Body Metrics
             HealthPermission.getReadPermission(WeightRecord::class),
             HealthPermission.getReadPermission(HeightRecord::class),
-            HealthPermission.getReadPermission(BodyFatRecord::class),
-            HealthPermission.getReadPermission(LeanBodyMassRecord::class),
             
             // Vital Signs
             HealthPermission.getReadPermission(BloodPressureRecord::class),
@@ -66,9 +61,6 @@ class HealthConnectPlugin : Plugin() {
             // Nutrition & Hydration
             HealthPermission.getReadPermission(NutritionRecord::class),
             HealthPermission.getReadPermission(HydrationRecord::class),
-            
-            // Reproductive Health
-            HealthPermission.getReadPermission(MenstruationFlowRecord::class),
         )
     }
 

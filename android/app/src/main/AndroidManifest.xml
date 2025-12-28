@@ -58,8 +58,6 @@
     <uses-permission android:name="android.permission.health.READ_EXERCISE" />
     <uses-permission android:name="android.permission.health.READ_STEPS" />
     <uses-permission android:name="android.permission.health.READ_DISTANCE" />
-    <uses-permission android:name="android.permission.health.READ_FLOORS_CLIMBED" />
-    <uses-permission android:name="android.permission.health.READ_ELEVATION_GAINED" />
     <uses-permission android:name="android.permission.health.READ_ACTIVE_CALORIES_BURNED" />
     <uses-permission android:name="android.permission.health.READ_TOTAL_CALORIES_BURNED" />
     <uses-permission android:name="android.permission.health.READ_SPEED" />
@@ -68,14 +66,11 @@
     <!-- Health Connect Permissions - Heart & Cardiovascular -->
     <uses-permission android:name="android.permission.health.READ_HEART_RATE" />
     <uses-permission android:name="android.permission.health.READ_RESTING_HEART_RATE" />
-    <uses-permission android:name="android.permission.health.READ_HEART_RATE_VARIABILITY" />
     <uses-permission android:name="android.permission.health.READ_VO2_MAX" />
     
     <!-- Health Connect Permissions - Body Metrics -->
     <uses-permission android:name="android.permission.health.READ_WEIGHT" />
     <uses-permission android:name="android.permission.health.READ_HEIGHT" />
-    <uses-permission android:name="android.permission.health.READ_BODY_FAT" />
-    <uses-permission android:name="android.permission.health.READ_LEAN_BODY_MASS" />
     
     <!-- Health Connect Permissions - Vital Signs -->
     <uses-permission android:name="android.permission.health.READ_BLOOD_PRESSURE" />
@@ -90,9 +85,6 @@
     <!-- Health Connect Permissions - Nutrition & Hydration -->
     <uses-permission android:name="android.permission.health.READ_NUTRITION" />
     <uses-permission android:name="android.permission.health.READ_HYDRATION" />
-    
-    <!-- Health Connect Permissions - Reproductive Health -->
-    <uses-permission android:name="android.permission.health.READ_MENSTRUATION" />
 
     <queries>
         <package android:name="com.google.android.apps.healthdata" />
