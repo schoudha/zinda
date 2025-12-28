@@ -116,7 +116,7 @@ class HealthConnectPlugin : Plugin() {
                 val permissions = setOf(
                     HealthPermission.getReadPermission(ExerciseSessionRecord::class)
                 )
-                val grantedPermissions = client.permissionController.getGrantedPermissions(permissions)
+                val grantedPermissions = client.permissionController.getGrantedPermissions()
                 
                 val result = JSObject()
                 result.put("hasPermission", grantedPermissions.containsAll(permissions))

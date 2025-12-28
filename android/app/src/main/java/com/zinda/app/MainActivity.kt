@@ -3,12 +3,11 @@ package com.zinda.app
 import android.os.Bundle
 import androidx.activity.result.contract.ActivityResultLauncher
 import androidx.health.connect.client.HealthConnectClient
-import androidx.health.connect.client.permission.HealthPermission
 import com.getcapacitor.BridgeActivity
 
 class MainActivity : BridgeActivity() {
     
-    private var healthPermissionLauncher: ActivityResultLauncher<Set<HealthPermission>>? = null
+    private var healthPermissionLauncher: ActivityResultLauncher<Set<String>>? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // Initialize permission launcher before super.onCreate()
@@ -30,7 +29,7 @@ class MainActivity : BridgeActivity() {
         super.onCreate(savedInstanceState)
     }
     
-    fun requestHealthConnectPermissions(permissions: Set<HealthPermission>) {
+    fun requestHealthConnectPermissions(permissions: Set<String>) {
         healthPermissionLauncher?.launch(permissions)
     }
 }
