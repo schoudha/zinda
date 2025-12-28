@@ -124,5 +124,15 @@ export const api = {
       return data.summary;
     },
   },
+  health: {
+    chat: {
+      send: async (message: string, history: Array<{ role: string; content: string }> = []) => {
+        return fetchApi<{ userMessage: { role: string; content: string }; aiMessage: { role: string; content: string } }>("/api/health/chat", {
+          method: "POST",
+          body: JSON.stringify({ message, history }),
+        });
+      },
+    },
+  },
 };
 

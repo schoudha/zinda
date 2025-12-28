@@ -4,7 +4,8 @@ import { memo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useHealthConnect } from "@/hooks/useHealthConnect";
-import { Lock } from "lucide-react";
+import { Lock, MessageCircle } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 function RadialProgress({ value, size = 60 }: { value: number; size?: number }) {
   const radius = 24;
@@ -55,6 +56,7 @@ function formatMinutes(minutes: number): string {
 }
 
 export const HealthCard = memo(function HealthCard() {
+  const router = useRouter();
   const { totalMinutes, hasPermission, isNative, requestPermission } = useHealthConnect('week');
   
   // Calculate percentage (assuming 150 minutes/week as goal, roughly 21 min/day)
@@ -73,6 +75,11 @@ export const HealthCard = memo(function HealthCard() {
   const handlePermissionClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     requestPermission();
+  };
+
+  const handleChatClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    router.push('/health/chat');
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -102,42 +109,55 @@ export const HealthCard = memo(function HealthCard() {
         </CardTitle>
       </CardHeader>
       <CardContent 
-        className="flex items-center gap-6 px-6 pb-6"
+        className="flex flex-col gap-4 px-6 pb-6"
         onClick={isClickable ? handleCardClick : undefined}
       >
-        <div className="relative">
-          <div className="absolute inset-0 bg-green-50 dark:bg-green-900/20 rounded-full blur-xl scale-110" />
-          <RadialProgress value={percentage} size={72} />
-        </div>
-        <div className="space-y-3 flex-1">
-          {isNative && !hasPermission ? (
-            <div className="py-2">
-              <Button 
-                size="sm" 
-                variant="outline" 
-                onClick={handlePermissionClick}
-                className="w-full gap-2 bg-white/50 dark:bg-black/20 border-green-200 dark:border-green-800"
-              >
-                <Lock className="h-3 w-3" />
-                Connect Health Data
-              </Button>
-            </div>
-          ) : (
-            <>
-              <div className="flex items-baseline justify-between">
-                <span className="text-2xl font-extrabold text-gray-900 dark:text-white tracking-tight">
-                  {formatMinutes(totalMinutes)}
-                </span>
-                <span className="text-xs font-medium text-gray-500 dark:text-gray-400 bg-white/50 dark:bg-white/5 px-2 py-1 rounded-full backdrop-blur-sm">
-                  Goal: {formatMinutes(goalMinutes)}
-                </span>
+        <div className="flex items-center gap-6">
+          <div className="relative">
+            <div className="absolute inset-0 bg-green-50 dark:bg-green-900/20 rounded-full blur-xl scale-110" />
+            <RadialProgress value={percentage} size={72} />
+          </div>
+          <div className="space-y-3 flex-1">
+            {isNative && !hasPermission ? (
+              <div className="py-2">
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  onClick={handlePermissionClick}
+                  className="w-full gap-2 bg-white/50 dark:bg-black/20 border-green-200 dark:border-green-800"
+                >
+                  <Lock className="h-3 w-3" />
+                  Connect Health Data
+                </Button>
               </div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                Total exercise time this week from Health Connect
-              </p>
-            </>
-          )}
+            ) : (
+              <>
+                <div className="flex items-baseline justify-between">
+                  <span className="text-2xl font-extrabold text-gray-900 dark:text-white tracking-tight">
+                    {formatMinutes(totalMinutes)}
+                  </span>
+                  <span className="text-xs font-medium text-gray-500 dark:text-gray-400 bg-white/50 dark:bg-white/5 px-2 py-1 rounded-full backdrop-blur-sm">
+                    Goal: {formatMinutes(goalMinutes)}
+                  </span>
+                </div>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Total exercise time this week from Health Connect
+                </p>
+              </>
+            )}
+          </div>
         </div>
+        {!isNative || hasPermission ? (
+          <div className="pt-2">
+            <Button
+              onClick={handleChatClick}
+              className="w-full bg-green-700 hover:bg-green-800 text-white font-semibold shadow-md dark:bg-green-600 dark:hover:bg-green-700"
+            >
+              <MessageCircle className="h-4 w-4 mr-2" />
+              Chat about this
+            </Button>
+          </div>
+        ) : null}
       </CardContent>
     </Card>
   );
