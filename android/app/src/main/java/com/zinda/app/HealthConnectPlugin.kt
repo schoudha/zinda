@@ -194,8 +194,18 @@ class HealthConnectPlugin : Plugin() {
             HealthPermission.getReadPermission(ExerciseSessionRecord::class)
         )
         
+        // Log the actual permission strings to verify they're correct
+        val permissionStrings = permissions.joinToString(", ")
         android.util.Log.d("HealthConnect", "Requesting permissions: $permissions")
-        android.util.Log.d("HealthConnect", "Permission strings: ${permissions.joinToString()}")
+        android.util.Log.d("HealthConnect", "Permission strings (formatted): $permissionStrings")
+        
+        // Verify the permission format matches Health Connect requirements
+        permissions.forEach { perm ->
+            android.util.Log.d("HealthConnect", "Permission: $perm")
+            if (!perm.startsWith("android.permission.health.")) {
+                android.util.Log.e("HealthConnect", "WARNING: Permission doesn't match expected format: $perm")
+            }
+        }
         
         val mainActivity = mainActivity
         if (mainActivity == null) {
@@ -205,7 +215,6 @@ class HealthConnectPlugin : Plugin() {
         }
 
         // Ensure we're on the main thread when launching the permission request
-        // Use bridge's activity to ensure we have the right context
         bridge.activity?.runOnUiThread {
             try {
                 android.util.Log.d("HealthConnect", "Launching permission request on main thread")
