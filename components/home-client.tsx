@@ -17,7 +17,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { PasswordGate } from "@/components/auth/password-gate";
 import { useGoals } from "@/hooks/useGoals";
 import { useNotes } from "@/hooks/useNotes";
-import { GoalPeriod, Goal } from "@/types";
+import { GoalPeriod, Goal, GoalCategory } from "@/types";
 import { DashboardSkeleton, GoalCardSkeleton } from "@/components/ui/skeleton";
 import { api } from "@/lib/api";
 
@@ -32,6 +32,13 @@ function HomeContent() {
   
   const searchParams = useSearchParams();
   const router = useRouter();
+
+  const categories: { id: GoalCategory; label: string; color: string }[] = [
+    { id: "health", label: "Health", color: "text-rose-500" },
+    { id: "faith", label: "Faith", color: "text-violet-500" },
+    { id: "learn", label: "Learn", color: "text-blue-500" },
+    { id: "family", label: "Family", color: "text-emerald-500" },
+  ];
 
   // Fetch today's progress when in "today" view
   useEffect(() => {
@@ -66,6 +73,27 @@ function HomeContent() {
       return goal.period === selectedPeriod;
     });
   }, [goalsWithProgress, selectedPeriod]);
+
+  // Group goals by category
+  const goalsByCategory = useMemo(() => {
+    const grouped: Record<string, Goal[]> = {
+      health: [],
+      faith: [],
+      learn: [],
+      family: []
+    };
+    
+    filteredGoals.forEach(goal => {
+      const cat = goal.category || 'health'; // Default to health
+      if (grouped[cat]) {
+        grouped[cat].push(goal);
+      } else {
+        // Handle unexpected categories or if category is null/undefined
+        if (grouped.health) grouped.health.push(goal);
+      }
+    });
+    return grouped;
+  }, [filteredGoals]);
 
   // Memoize tab change handler
   const handleTabChange = useCallback((tab: "goals" | "notepad" | "media" | "time") => {
@@ -125,26 +153,43 @@ function HomeContent() {
                 <div className="px-6">
                   <DateTabs value={selectedPeriod} onValueChange={handlePeriodChange} />
                 </div>
+                
+                {goalsLoading ? (
+                  <div className="flex flex-col gap-4 px-6">
+                    <GoalCardSkeleton />
+                    <GoalCardSkeleton />
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-3 px-6">
+                    {categories.map((cat) => (
+                      <div key={cat.id} className="flex flex-col gap-2 min-w-0">
+                        <h3 className={`text-[10px] font-bold uppercase tracking-widest ${cat.color} mb-1 pl-1`}>
+                          {cat.label}
+                        </h3>
+                        <div className="flex flex-col gap-3">
+                          {goalsByCategory[cat.id].length > 0 ? (
+                            goalsByCategory[cat.id].map(goal => (
+                              <GoalCard 
+                                key={goal.id} 
+                                goal={goal} 
+                                onDelete={deleteGoal}
+                                showProgress={selectedPeriod === "today"}
+                                onProgressUpdate={handleProgressUpdate}
+                                selectedPeriod={selectedPeriod}
+                              />
+                            ))
+                          ) : (
+                            <div className="h-24 rounded-2xl border-2 border-dashed border-gray-100 dark:border-white/5 flex items-center justify-center">
+                              <span className="text-xs text-gray-300 dark:text-gray-600">Empty</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                
                 <div className="flex flex-col gap-4 px-6">
-                  {/* Display goals for the selected period */}
-                  {goalsLoading ? (
-                    <>
-                      <GoalCardSkeleton />
-                      <GoalCardSkeleton />
-                    </>
-                  ) : (
-                    filteredGoals.map((goal) => (
-                      <GoalCard 
-                        key={goal.id} 
-                        goal={goal} 
-                        onDelete={deleteGoal}
-                        showProgress={selectedPeriod === "today"}
-                        onProgressUpdate={handleProgressUpdate}
-                        selectedPeriod={selectedPeriod}
-                      />
-                    ))
-                  )}
-                  
                   {/* Show other cards - rendered once, not duplicated */}
                   <HealthCard period={selectedPeriod} />
                 </div>

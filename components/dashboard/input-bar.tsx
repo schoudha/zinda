@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { detectPeriod, markdownToHtml } from "@/lib/utils";
 import { api } from "@/lib/api";
+import { GoalCategory } from "@/types";
 
 interface InputBarProps {
   onGoalCreated?: () => void;
@@ -91,12 +92,24 @@ export function InputBar({ onGoalCreated }: InputBarProps) {
       const tipsResponse = await api.goals.tips(goalText);
       const tips = parseTips(tipsResponse);
 
+      // Get category from Gemini
+      let category = "health"; // Default
+      try {
+        const detectedCategory = await api.goals.categorize(goalText);
+        if (['health', 'faith', 'learn', 'family'].includes(detectedCategory)) {
+          category = detectedCategory;
+        }
+      } catch (e) {
+        console.error("Failed to categorize:", e);
+      }
+
       // Create the goal
       const goalId = Date.now().toString();
       await api.goals.create({
         id: goalId,
         text: goalText,
         period: period,
+        category: category as GoalCategory,
         tips: tips,
         createdAt: new Date(),
       });
