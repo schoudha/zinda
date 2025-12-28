@@ -164,9 +164,6 @@ function HomeContent() {
             {activeTab === "goals" ? (
               <>
                 <div className="px-6">
-                  <InputBar onGoalCreated={refreshGoals} />
-                </div>
-                <div className="px-6">
                   <DateTabs value={selectedPeriod} onValueChange={handlePeriodChange} />
                 </div>
                 
@@ -207,6 +204,10 @@ function HomeContent() {
                     })}
                   </div>
                 )}
+                
+                <div className="px-6">
+                  <InputBar onGoalCreated={refreshGoals} />
+                </div>
               </>
             ) : activeTab === "time" ? (
               <div className="flex flex-col gap-6 px-6">
