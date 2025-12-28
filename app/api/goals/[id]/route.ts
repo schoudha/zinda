@@ -39,6 +39,7 @@ export async function GET(
       notificationTime: data.notification_time as 'morning' | 'evening' | 'night' | undefined,
       notificationDays: data.notification_days as 'everyday' | 'weekday' | 'weekend' | undefined,
       target: data.target || undefined,
+      category: data.category as 'health' | 'faith' | 'learn' | 'family' | undefined,
     };
 
     return NextResponse.json({ goal });

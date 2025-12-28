@@ -34,6 +34,7 @@ export async function GET() {
       notification_time: string | null;
       notification_days: string | null;
       target: number | null;
+      category: string | null;
     }) => ({
       id: goal.id,
       text: goal.text,
@@ -44,6 +45,7 @@ export async function GET() {
       notificationTime: goal.notification_time as 'morning' | 'evening' | 'night' | undefined,
       notificationDays: goal.notification_days as 'everyday' | 'weekday' | 'weekend' | undefined,
       target: goal.target || undefined,
+      category: goal.category as 'health' | 'faith' | 'learn' | 'family' | undefined,
     }));
 
     return NextResponse.json({ goals });
@@ -64,7 +66,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { id, text, period, tips, createdAt } = body;
+    const { id, text, period, tips, createdAt, category } = body;
 
     if (!id || !text || !period) {
       return NextResponse.json(
@@ -80,6 +82,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (category && !['health', 'faith', 'learn', 'family'].includes(category)) {
+      return NextResponse.json(
+        { error: 'category must be health, faith, learn, or family' },
+        { status: 400 }
+      );
+    }
+
     // Extract integer target from goal text
     const target = extractIntegerTarget(text);
 
@@ -91,6 +100,7 @@ export async function POST(request: NextRequest) {
         period,
         tips: tips || [],
         target: target || null,
+        category: category || null,
         created_at: createdAt || new Date().toISOString(),
       })
       .select()
@@ -114,6 +124,7 @@ export async function POST(request: NextRequest) {
       notificationTime: data.notification_time as 'morning' | 'evening' | 'night' | undefined,
       notificationDays: data.notification_days as 'everyday' | 'weekday' | 'weekend' | undefined,
       target: data.target || undefined,
+      category: data.category as 'health' | 'faith' | 'learn' | 'family' | undefined,
     };
 
     return NextResponse.json({ goal }, { status: 201 });
@@ -161,6 +172,15 @@ export async function PATCH(request: NextRequest) {
     }
     if (tips !== undefined) {
       updateData.tips = tips;
+    }
+    if (body.category !== undefined) {
+      if (body.category !== null && !['health', 'faith', 'learn', 'family'].includes(body.category)) {
+        return NextResponse.json(
+          { error: 'category must be health, faith, learn, or family' },
+          { status: 400 }
+        );
+      }
+      updateData.category = body.category;
     }
     if (body.notificationTime !== undefined) {
       if (body.notificationTime !== null && !['morning', 'evening', 'night'].includes(body.notificationTime)) {
