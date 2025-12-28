@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Capacitor } from '@capacitor/core';
+import { App } from '@capacitor/app';
 import { HealthConnect } from '@/lib/capacitor/health-connect';
 
 export function useHealthConnect(period: string = 'week') {
@@ -12,6 +13,9 @@ export function useHealthConnect(period: string = 'week') {
     try {
       const { hasPermission: hasPerm } = await HealthConnect.hasPermission();
       setHasPermission(hasPerm);
+      if (hasPerm) {
+          loadExerciseMinutes();
+      }
     } catch (e) {
       console.error('Failed to check health connect permission', e);
       setHasPermission(false);
@@ -38,7 +42,8 @@ export function useHealthConnect(period: string = 'week') {
   const requestPermission = async () => {
     if (!Capacitor.isNativePlatform()) return;
     await HealthConnect.requestPermission();
-    setTimeout(checkPermission, 1000);
+    // The permission flow is asynchronous and native. 
+    // We rely on the App 'resume' event to re-check permissions.
   };
 
   useEffect(() => {
@@ -49,7 +54,17 @@ export function useHealthConnect(period: string = 'week') {
       
       // Refresh every 5 minutes
       const interval = setInterval(loadExerciseMinutes, 5 * 60000);
-      return () => clearInterval(interval);
+
+      // Re-check permission when app resumes (returns from settings/permission dialog)
+      const resumeListener = App.addListener('resume', () => {
+          checkPermission();
+          loadExerciseMinutes();
+      });
+
+      return () => {
+          clearInterval(interval);
+          resumeListener.then((handle: any) => handle.remove());
+      };
     } else {
       loadExerciseMinutes();
     }
