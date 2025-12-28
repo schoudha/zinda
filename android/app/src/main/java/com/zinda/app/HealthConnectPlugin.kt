@@ -1,6 +1,5 @@
 package com.zinda.app
 
-import android.os.Build
 import androidx.health.connect.client.HealthConnectClient
 import androidx.health.connect.client.permission.HealthPermission
 import androidx.health.connect.client.records.ExerciseSessionRecord
@@ -29,12 +28,11 @@ class HealthConnectPlugin : Plugin() {
 
     override fun load() {
         super.load()
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            try {
-                healthConnectClient = HealthConnectClient.getOrCreate(context)
-            } catch (e: Exception) {
-                // Health Connect not available
-            }
+        // minSdkVersion is 34, so Health Connect is always available
+        try {
+            healthConnectClient = HealthConnectClient.getOrCreate(context)
+        } catch (e: Exception) {
+            // Health Connect not available (shouldn't happen with minSdk 34)
         }
     }
 
@@ -42,7 +40,7 @@ class HealthConnectPlugin : Plugin() {
     fun getExerciseMinutes(call: PluginCall) {
         val period = call.getString("period", "week")
 
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE || healthConnectClient == null) {
+        if (healthConnectClient == null) {
             val result = JSObject()
             result.put("totalMinutes", 0)
             call.resolve(result)
@@ -96,7 +94,7 @@ class HealthConnectPlugin : Plugin() {
 
     @PluginMethod
     fun hasPermission(call: PluginCall) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE || healthConnectClient == null) {
+        if (healthConnectClient == null) {
             val result = JSObject()
             result.put("hasPermission", false)
             call.resolve(result)
@@ -132,7 +130,7 @@ class HealthConnectPlugin : Plugin() {
 
     @PluginMethod
     fun requestPermission(call: PluginCall) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE || healthConnectClient == null) {
+        if (healthConnectClient == null) {
             call.resolve()
             return
         }
