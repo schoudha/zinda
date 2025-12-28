@@ -167,31 +167,58 @@ class HealthConnectPlugin : Plugin() {
 
     @PluginMethod
     fun requestPermission(call: PluginCall) {
+        // Check SDK availability first
+        val availability = try {
+            HealthConnectClient.getSdkStatus(context)
+        } catch (e: Exception) {
+            android.util.Log.e("HealthConnect", "Error checking SDK status", e)
+            call.reject("Health Connect SDK not available: ${e.message}")
+            return
+        }
+
+        if (availability != HealthConnectClient.SDK_AVAILABLE) {
+            android.util.Log.e("HealthConnect", "Health Connect SDK not available. Status: $availability")
+            call.reject("Health Connect SDK not available. Status: $availability")
+            return
+        }
+
         if (healthConnectClient == null) {
             checkAvailabilityInternal()
             if (healthConnectClient == null) {
-                call.reject("Health Connect SDK not available")
+                call.reject("Failed to initialize Health Connect client")
                 return
             }
         }
 
-        try {
-            val permissions = setOf(
-                HealthPermission.getReadPermission(ExerciseSessionRecord::class)
-            )
-            
-            android.util.Log.d("HealthConnect", "Requesting permissions: $permissions")
-            
-            val mainActivity = mainActivity
-            if (mainActivity != null) {
+        val permissions = setOf(
+            HealthPermission.getReadPermission(ExerciseSessionRecord::class)
+        )
+        
+        android.util.Log.d("HealthConnect", "Requesting permissions: $permissions")
+        android.util.Log.d("HealthConnect", "Permission strings: ${permissions.joinToString()}")
+        
+        val mainActivity = mainActivity
+        if (mainActivity == null) {
+            android.util.Log.e("HealthConnect", "MainActivity is null")
+            call.reject("MainActivity not found")
+            return
+        }
+
+        // Ensure we're on the main thread when launching the permission request
+        // Use bridge's activity to ensure we have the right context
+        bridge.activity?.runOnUiThread {
+            try {
+                android.util.Log.d("HealthConnect", "Launching permission request on main thread")
                 mainActivity.requestHealthConnectPermissions(permissions)
                 call.resolve()
-            } else {
-                call.reject("MainActivity not found")
+            } catch (e: Exception) {
+                android.util.Log.e("HealthConnect", "Error requesting permissions", e)
+                e.printStackTrace()
+                call.reject(e.message ?: "Failed to request permissions")
             }
-        } catch (e: Exception) {
-            android.util.Log.e("HealthConnect", "Error requesting permissions", e)
-            call.reject(e.message)
+        } ?: run {
+            android.util.Log.e("HealthConnect", "Bridge activity is null")
+            call.reject("Activity context not available")
         }
     }
 }

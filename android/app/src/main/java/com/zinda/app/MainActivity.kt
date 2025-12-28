@@ -47,19 +47,30 @@ class MainActivity : BridgeActivity() {
     }
     
     fun requestHealthConnectPermissions(permissions: Set<String>) {
-        android.util.Log.d("HealthConnect", "Launching permission request for: $permissions")
+        android.util.Log.d("HealthConnect", "requestHealthConnectPermissions called with: $permissions")
+        
         if (healthPermissionLauncher == null) {
-            android.util.Log.e("HealthConnect", "Permission launcher is null!")
-            return
+            android.util.Log.e("HealthConnect", "Permission launcher is null! Attempting to re-register...")
+            // Try to re-register if it's null (shouldn't happen, but just in case)
+            try {
+                healthPermissionLauncher = registerForActivityResult(
+                    PermissionController.createRequestPermissionResultContract()
+                ) { grantedPermissions: Set<String> ->
+                    android.util.Log.d("HealthConnect", "Permission callback triggered. Granted: $grantedPermissions")
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("HealthConnect", "Failed to re-register permission launcher", e)
+                return
+            }
         }
         
-        // Ensure launch is on main thread
-        runOnUiThread {
-            try {
-                healthPermissionLauncher?.launch(permissions)
-            } catch (e: Exception) {
-                android.util.Log.e("HealthConnect", "Error launching permission request", e)
-            }
+        try {
+            android.util.Log.d("HealthConnect", "Launching permission request launcher")
+            healthPermissionLauncher?.launch(permissions)
+            android.util.Log.d("HealthConnect", "Permission request launcher called successfully")
+        } catch (e: Exception) {
+            android.util.Log.e("HealthConnect", "Error launching permission request", e)
+            e.printStackTrace()
         }
     }
 }
