@@ -188,15 +188,11 @@ function HomeContent() {
                     ))}
                   </div>
                 )}
-                
-                <div className="flex flex-col gap-4 px-6">
-                  {/* Show other cards - rendered once, not duplicated */}
-                  <HealthCard period={selectedPeriod} />
-                </div>
               </>
             ) : activeTab === "time" ? (
               <div className="flex flex-col gap-6 px-6">
                 <TimeTabs value={selectedTimePeriod} onValueChange={setSelectedTimePeriod} />
+                <HealthCard period={selectedTimePeriod} />
                 <WellbeingCard period={selectedTimePeriod} />
                 <TimeDistributionCard />
               </div>

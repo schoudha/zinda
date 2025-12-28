@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, memo } from "react";
-import { getRandomQuranQuote, type QuranQuote } from "@/lib/quran-quotes";
 
 interface HeaderProps {
   userName?: string;
@@ -24,7 +23,6 @@ export const Header = memo(function Header({
   userName = "Salahuddin"
 }: HeaderProps) {
   const [greeting, setGreeting] = useState(getGreeting());
-  const [quote, setQuote] = useState<QuranQuote | null>(null);
 
   useEffect(() => {
     // Set initial greeting
@@ -35,9 +33,6 @@ export const Header = memo(function Header({
       setGreeting(getGreeting());
     }, 60000);
 
-    // Load random Quran quote on mount
-    setQuote(getRandomQuranQuote());
-
     return () => clearInterval(interval);
   }, []);
 
@@ -47,16 +42,6 @@ export const Header = memo(function Header({
         {greeting},<br />
         <span className="text-muted-foreground">{userName}.</span>
       </h1>
-      {quote && (
-        <div className="pt-2 space-y-1">
-          <p className="text-sm font-medium text-foreground/80 leading-relaxed italic border-l-2 border-blue-500 pl-3">
-            "{quote.english}"
-          </p>
-          <p className="text-[10px] uppercase tracking-widest text-muted-foreground pl-3">
-            {quote.reference}
-          </p>
-        </div>
-      )}
     </div>
   );
 });

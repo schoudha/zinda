@@ -10,6 +10,7 @@ import { Goal, Message } from "@/types";
 import { markdownToHtml } from "@/lib/utils";
 import { api } from "@/lib/api";
 import { NotificationDialog } from "@/components/goals/notification-dialog";
+import { getRandomQuranQuote, type QuranQuote } from "@/lib/quran-quotes";
 
 export default function GoalDetailPage() {
   const paramsRaw = useParams();
@@ -22,6 +23,7 @@ export default function GoalDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
   const [notificationDialogOpen, setNotificationDialogOpen] = useState(false);
+  const [quote, setQuote] = useState<QuranQuote | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Resolve params (handle both Promise and direct object cases)
@@ -52,6 +54,11 @@ export default function GoalDetailPage() {
           ...m,
           createdAt: new Date(m.createdAt)
         })));
+        
+        // Load Quran quote if this is a faith goal
+        if (goalData.category === 'faith') {
+          setQuote(getRandomQuranQuote());
+        }
       } catch (error) {
         console.error("Error loading data:", error);
       } finally {
@@ -179,7 +186,7 @@ export default function GoalDetailPage() {
       )}
 
       {/* Goal Context Card */}
-      <div className="p-4 bg-background z-10 shrink-0">
+      <div className="p-4 bg-background z-10 shrink-0 space-y-4">
         <Card className={`border-none shadow-sm ${periodColors[goal.period]} transition-all`}>
           <CardContent className="p-4 space-y-2">
             <div className="flex items-center gap-2 mb-1">
@@ -191,6 +198,20 @@ export default function GoalDetailPage() {
             <p className="font-bold text-lg leading-tight">{goal.text}</p>
           </CardContent>
         </Card>
+
+        {/* Quran Quote for Faith Goals */}
+        {goal.category === 'faith' && quote && (
+          <Card className="border-none shadow-sm bg-violet-50 dark:bg-violet-950/30 text-violet-900 dark:text-violet-100 transition-all">
+            <CardContent className="p-4 space-y-2">
+              <p className="text-sm font-medium leading-relaxed italic">
+                "{quote.english}"
+              </p>
+              <p className="text-[10px] uppercase tracking-widest opacity-70">
+                {quote.reference}
+              </p>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* Chat Area */}
