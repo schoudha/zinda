@@ -140,6 +140,7 @@ class HealthConnectPlugin : Plugin() {
     @PluginMethod
     fun requestPermission(call: PluginCall) {
         if (healthConnectClient == null) {
+            android.util.Log.e("HealthConnect", "HealthConnectClient is null")
             call.resolve()
             return
         }
@@ -149,12 +150,16 @@ class HealthConnectPlugin : Plugin() {
                 HealthPermission.getReadPermission(ExerciseSessionRecord::class)
             )
             
+            android.util.Log.d("HealthConnect", "Requesting permissions: $permissions")
+            
             // Use MainActivity's permission launcher if available
             val mainActivity = mainActivity
             if (mainActivity != null) {
+                android.util.Log.d("HealthConnect", "Using MainActivity launcher")
                 mainActivity.requestHealthConnectPermissions(permissions)
                 call.resolve()
             } else {
+                android.util.Log.e("HealthConnect", "MainActivity is null, falling back to settings")
                 // Fallback: open app settings
                 val intent = android.content.Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
                 val uri = android.net.Uri.fromParts("package", context.packageName, null)
@@ -164,6 +169,7 @@ class HealthConnectPlugin : Plugin() {
                 call.resolve()
             }
         } catch (e: Exception) {
+            android.util.Log.e("HealthConnect", "Error requesting permissions", e)
             call.resolve()
         }
     }

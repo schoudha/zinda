@@ -7,7 +7,8 @@ import com.getcapacitor.BridgeActivity
 
 class MainActivity : BridgeActivity() {
     
-    private var healthPermissionLauncher: ActivityResultLauncher<Set<String>>? = null
+    var healthPermissionLauncher: ActivityResultLauncher<Set<String>>? = null
+        private set
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // Initialize permission launcher before super.onCreate()
@@ -17,7 +18,6 @@ class MainActivity : BridgeActivity() {
                 PermissionController.createRequestPermissionResultContract()
             ) { grantedPermissions: Set<String> ->
                 // Permissions granted or denied
-                // Notify the plugin to re-check permissions
                 // The plugin will check permissions when the app resumes
             }
         } catch (e: Exception) {
@@ -31,6 +31,10 @@ class MainActivity : BridgeActivity() {
     }
     
     fun requestHealthConnectPermissions(permissions: Set<String>) {
+        android.util.Log.d("HealthConnect", "Launching permission request for: $permissions")
+        if (healthPermissionLauncher == null) {
+            android.util.Log.e("HealthConnect", "Permission launcher is null!")
+        }
         healthPermissionLauncher?.launch(permissions)
     }
 }
