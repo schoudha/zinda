@@ -65,6 +65,18 @@ export const api = {
       });
       return data.goal;
     },
+    progress: {
+      getToday: async () => {
+        const data = await fetchApi<{ progress: Record<string, number> }>("/api/goals/progress");
+        return data.progress;
+      },
+      updateToday: async (goalId: string, progressValue: number) => {
+        return fetchApi<{ success: boolean; progress: { goalId: string; date: string; progressValue: number } }>("/api/goals/progress", {
+          method: "PATCH",
+          body: JSON.stringify({ goalId, progressValue }),
+        });
+      },
+    },
   },
   notes: {
     list: async () => {

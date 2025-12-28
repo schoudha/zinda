@@ -2,8 +2,9 @@
 
 import { useState, useEffect, memo, lazy, Suspense, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { X, Bell, MessageCircle } from "lucide-react";
+import { X, Bell, MessageCircle, Plus, Minus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import { useRouter } from "next/navigation";
 import { Goal } from "@/types";
 import { api } from "@/lib/api";
@@ -16,16 +17,21 @@ const NotificationDialog = lazy(() =>
 interface GoalCardProps {
   goal: Goal;
   onDelete?: (goalId: string) => void;
+  showProgress?: boolean; // Whether to show today's progress
+  onProgressUpdate?: () => void; // Callback when progress is updated
 }
 
-export const GoalCard = memo(function GoalCard({ goal, onDelete }: GoalCardProps) {
+export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = false, onProgressUpdate }: GoalCardProps) {
   const router = useRouter();
   const [notificationDialogOpen, setNotificationDialogOpen] = useState(false);
   const [currentGoal, setCurrentGoal] = useState<Goal>(goal);
+  const [progressValue, setProgressValue] = useState<number>(goal.todayProgress ?? 0);
+  const [isUpdating, setIsUpdating] = useState(false);
 
   // Sync goal prop with local state when it changes
   useEffect(() => {
     setCurrentGoal(goal);
+    setProgressValue(goal.todayProgress ?? 0);
   }, [goal]);
 
   const periodLabels = {
@@ -65,6 +71,34 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete }: GoalCardProps
     e.stopPropagation();
     router.push(`/goals/${goal.id}`);
   }, [router, goal.id]);
+
+  const handleProgressUpdate = useCallback(async (newValue: number) => {
+    if (isUpdating || newValue < 0 || newValue > 100) return;
+    
+    setIsUpdating(true);
+    try {
+      await api.goals.progress.updateToday(goal.id, newValue);
+      setProgressValue(newValue);
+      setCurrentGoal({ ...currentGoal, todayProgress: newValue });
+      onProgressUpdate?.();
+    } catch (error) {
+      console.error('Error updating progress:', error);
+    } finally {
+      setIsUpdating(false);
+    }
+  }, [goal.id, isUpdating, currentGoal, onProgressUpdate]);
+
+  const handleIncrement = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    const newValue = Math.min(100, progressValue + 10);
+    handleProgressUpdate(newValue);
+  }, [progressValue, handleProgressUpdate]);
+
+  const handleDecrement = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    const newValue = Math.max(0, progressValue - 10);
+    handleProgressUpdate(newValue);
+  }, [progressValue, handleProgressUpdate]);
 
   return (
     <Card 
@@ -114,6 +148,41 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete }: GoalCardProps
             {goal.text}
           </h3>
         </div>
+        {showProgress && (
+          <div className="space-y-3 pt-1 border-t border-white/40 dark:border-white/10">
+            <div className="flex items-center justify-between">
+              <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">
+                Today's Progress
+              </p>
+              <span className="text-sm font-bold text-gray-900 dark:text-white">
+                {Math.round(progressValue)}%
+              </span>
+            </div>
+            <Progress value={progressValue} className="h-2" />
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleDecrement}
+                disabled={isUpdating || progressValue <= 0}
+                className="flex-1 gap-2 bg-white/50 dark:bg-black/20 border-gray-200 dark:border-gray-800"
+              >
+                <Minus className="h-3 w-3" />
+                -10%
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleIncrement}
+                disabled={isUpdating || progressValue >= 100}
+                className="flex-1 gap-2 bg-white/50 dark:bg-black/20 border-gray-200 dark:border-gray-800"
+              >
+                <Plus className="h-3 w-3" />
+                +10%
+              </Button>
+            </div>
+          </div>
+        )}
         {goal.tips.length > 0 && (
           <div className="space-y-4 pt-1 border-t border-white/40 dark:border-white/10">
             <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">

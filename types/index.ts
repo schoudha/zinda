@@ -22,6 +22,7 @@ export interface Goal {
   userId?: string;
   notificationTime?: NotificationTime;
   notificationDays?: NotificationDays;
+  todayProgress?: number; // Progress value for today (0-100 or custom scale)
 }
 
 export interface Message {

@@ -17,28 +17,55 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { PasswordGate } from "@/components/auth/password-gate";
 import { useGoals } from "@/hooks/useGoals";
 import { useNotes } from "@/hooks/useNotes";
-import { GoalPeriod } from "@/types";
+import { GoalPeriod, Goal } from "@/types";
 import { DashboardSkeleton, GoalCardSkeleton } from "@/components/ui/skeleton";
+import { api } from "@/lib/api";
 
 function HomeContent() {
   const { notes, addNote, toggleNote, updateNote, deleteNote } = useNotes();
   const { goals, isLoading: goalsLoading, refreshGoals, deleteGoal } = useGoals();
   
   const [activeTab, setActiveTab] = useState<"goals" | "notepad" | "media" | "time">("goals");
-  const [selectedPeriod, setSelectedPeriod] = useState<GoalPeriod>("week");
+  const [selectedPeriod, setSelectedPeriod] = useState<"today" | GoalPeriod>("week");
   const [selectedTimePeriod, setSelectedTimePeriod] = useState<"today" | "week" | "month" | "year">("today");
+  const [goalsWithProgress, setGoalsWithProgress] = useState<Goal[]>(goals);
   
   const searchParams = useSearchParams();
   const router = useRouter();
 
+  // Fetch today's progress when in "today" view
+  useEffect(() => {
+    if (selectedPeriod === "today") {
+      const fetchProgress = async () => {
+        try {
+          const progress = await api.goals.progress.getToday();
+          const updatedGoals = goals.map(goal => ({
+            ...goal,
+            todayProgress: progress[goal.id] ?? 0
+          }));
+          setGoalsWithProgress(updatedGoals);
+        } catch (error) {
+          console.error('Error fetching progress:', error);
+          setGoalsWithProgress(goals);
+        }
+      };
+      fetchProgress();
+    } else {
+      setGoalsWithProgress(goals);
+    }
+  }, [selectedPeriod, goals]);
+
   // Memoize goals filtering to prevent recalculation on every render
   const filteredGoals = useMemo(() => {
-    return goals.filter((goal) => {
+    if (selectedPeriod === "today") {
+      return goalsWithProgress; // Show all goals in today view
+    }
+    return goalsWithProgress.filter((goal) => {
       if (goal.period === "year") return true;
       if (goal.period === "month") return selectedPeriod === "month" || selectedPeriod === "week";
       return goal.period === selectedPeriod;
     });
-  }, [goals, selectedPeriod]);
+  }, [goalsWithProgress, selectedPeriod]);
 
   // Memoize tab change handler
   const handleTabChange = useCallback((tab: "goals" | "notepad" | "media" | "time") => {
@@ -47,8 +74,24 @@ function HomeContent() {
 
   // Memoize period change handler
   const handlePeriodChange = useCallback((period: string) => {
-    setSelectedPeriod(period as GoalPeriod);
+    setSelectedPeriod(period as "today" | GoalPeriod);
   }, []);
+
+  // Handle progress update callback
+  const handleProgressUpdate = useCallback(async () => {
+    if (selectedPeriod === "today") {
+      try {
+        const progress = await api.goals.progress.getToday();
+        const updatedGoals = goalsWithProgress.map(goal => ({
+          ...goal,
+          todayProgress: progress[goal.id] ?? goal.todayProgress ?? 0
+        }));
+        setGoalsWithProgress(updatedGoals);
+      } catch (error) {
+        console.error('Error refreshing progress:', error);
+      }
+    }
+  }, [selectedPeriod, goalsWithProgress]);
 
   // Handle shared content from share target
   useEffect(() => {
@@ -91,7 +134,13 @@ function HomeContent() {
                     </>
                   ) : (
                     filteredGoals.map((goal) => (
-                      <GoalCard key={goal.id} goal={goal} onDelete={deleteGoal} />
+                      <GoalCard 
+                        key={goal.id} 
+                        goal={goal} 
+                        onDelete={deleteGoal}
+                        showProgress={selectedPeriod === "today"}
+                        onProgressUpdate={handleProgressUpdate}
+                      />
                     ))
                   )}
                   
