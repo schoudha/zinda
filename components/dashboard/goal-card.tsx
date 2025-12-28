@@ -2,7 +2,7 @@
 
 import { useState, useEffect, memo, lazy, Suspense, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { X, Bell, MessageCircle, Plus, Minus, Sparkles } from "lucide-react";
+import { X, Bell, MessageCircle, Plus, Minus, Sparkles, Calendar, CalendarRange, CalendarCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { Goal } from "@/types";
@@ -74,10 +74,10 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
     }
   }, [goal.id, goal.target, goal.text]);
 
-  const periodLabels = {
-    week: "Weekly",
-    month: "Monthly",
-    year: "Yearly",
+  const periodIcons = {
+    week: Calendar,
+    month: CalendarRange,
+    year: CalendarCheck,
   };
 
   const periodColors = {
@@ -210,9 +210,12 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
         </Suspense>
       )}
       <CardHeader className="pb-1.5 pt-4 px-4">
-        <CardTitle className={`text-[9px] font-bold uppercase tracking-widest ${periodColors[goal.period].split(' ')[2]} flex items-center gap-1.5`}>
+        <CardTitle className={`${periodColors[goal.period].split(' ')[2]} flex items-center gap-1.5`}>
           <div className={`h-1 w-1 rounded-full ${goal.period === 'week' ? 'bg-blue-500' : goal.period === 'month' ? 'bg-purple-500' : 'bg-orange-500'} animate-pulse`} />
-          {periodLabels[goal.period]} Goal
+          {(() => {
+            const IconComponent = periodIcons[goal.period];
+            return <IconComponent className="h-3.5 w-3.5" />;
+          })()}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3 px-4 pb-4">

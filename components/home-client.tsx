@@ -20,6 +20,22 @@ import { useNotes } from "@/hooks/useNotes";
 import { GoalPeriod, Goal, GoalCategory } from "@/types";
 import { DashboardSkeleton, GoalCardSkeleton } from "@/components/ui/skeleton";
 import { api } from "@/lib/api";
+import { Heart, BookOpen, Users } from "lucide-react";
+
+// Custom Islamic crescent icon
+const CrescentIcon = ({ className }: { className?: string }) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
+    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+  </svg>
+);
 
 function HomeContent() {
   const { notes, addNote, toggleNote, updateNote, deleteNote } = useNotes();
@@ -33,11 +49,11 @@ function HomeContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  const categories: { id: GoalCategory; label: string; color: string }[] = [
-    { id: "health", label: "Health", color: "text-rose-500" },
-    { id: "faith", label: "Faith", color: "text-violet-500" },
-    { id: "learn", label: "Learn", color: "text-blue-500" },
-    { id: "family", label: "Family", color: "text-emerald-500" },
+  const categories: { id: GoalCategory; icon: React.ElementType | React.FC<{ className?: string }>; color: string }[] = [
+    { id: "health", icon: Heart, color: "text-rose-500" },
+    { id: "faith", icon: CrescentIcon, color: "text-violet-500" },
+    { id: "learn", icon: BookOpen, color: "text-blue-500" },
+    { id: "family", icon: Users, color: "text-emerald-500" },
   ];
 
   // Fetch today's progress when in "today" view
@@ -161,11 +177,13 @@ function HomeContent() {
                   </div>
                 ) : (
                   <div className="grid grid-cols-2 gap-3 px-6">
-                    {categories.map((cat) => (
+                    {categories.map((cat) => {
+                      const IconComponent = cat.icon as React.ElementType<{ className?: string }>;
+                      return (
                       <div key={cat.id} className="flex flex-col gap-2 min-w-0">
-                        <h3 className={`text-[10px] font-bold uppercase tracking-widest ${cat.color} mb-1 pl-1`}>
-                          {cat.label}
-                        </h3>
+                        <div className={`${cat.color} mb-1 pl-1 flex items-center`}>
+                          <IconComponent className="h-4 w-4" />
+                        </div>
                         <div className="flex flex-col gap-3">
                           {goalsByCategory[cat.id].length > 0 ? (
                             goalsByCategory[cat.id].map(goal => (
@@ -185,7 +203,8 @@ function HomeContent() {
                           )}
                         </div>
                       </div>
-                    ))}
+                    );
+                    })}
                   </div>
                 )}
               </>
