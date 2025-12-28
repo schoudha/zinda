@@ -1,6 +1,7 @@
 import { registerPlugin } from '@capacitor/core';
 
 export interface HealthConnectPlugin {
+  checkAvailability(): Promise<{ status: number; isAvailable: boolean }>;
   getExerciseMinutes(options?: { period: string }): Promise<{
     totalMinutes: number;
   }>;
@@ -9,4 +10,3 @@ export interface HealthConnectPlugin {
 }
 
 export const HealthConnect = registerPlugin<HealthConnectPlugin>('HealthConnect');
-

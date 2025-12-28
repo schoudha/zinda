@@ -29,12 +29,34 @@ class HealthConnectPlugin : Plugin() {
 
     override fun load() {
         super.load()
-        // minSdkVersion is 34, so Health Connect is always available
+        checkAvailabilityInternal()
+    }
+
+    private fun checkAvailabilityInternal() {
         try {
-            healthConnectClient = HealthConnectClient.getOrCreate(context)
+            val availability = HealthConnectClient.getSdkStatus(context)
+            if (availability == HealthConnectClient.SDK_AVAILABLE) {
+                healthConnectClient = HealthConnectClient.getOrCreate(context)
+            } else {
+                android.util.Log.w("HealthConnect", "Health Connect SDK not available. Status: $availability")
+            }
         } catch (e: Exception) {
-            // Health Connect not available (shouldn't happen with minSdk 34)
+            android.util.Log.e("HealthConnect", "Error checking availability", e)
         }
+    }
+
+    @PluginMethod
+    fun checkAvailability(call: PluginCall) {
+        val availability = try {
+            HealthConnectClient.getSdkStatus(context)
+        } catch (e: Exception) {
+            HealthConnectClient.SDK_UNAVAILABLE
+        }
+        
+        val result = JSObject()
+        result.put("status", availability)
+        result.put("isAvailable", availability == HealthConnectClient.SDK_AVAILABLE)
+        call.resolve(result)
     }
 
     @PluginMethod
@@ -42,13 +64,16 @@ class HealthConnectPlugin : Plugin() {
         val period = call.getString("period", "week")
 
         if (healthConnectClient == null) {
-            val result = JSObject()
-            result.put("totalMinutes", 0)
-            call.resolve(result)
-            return
+            checkAvailabilityInternal()
+            if (healthConnectClient == null) {
+                val result = JSObject()
+                result.put("totalMinutes", 0)
+                call.resolve(result)
+                return
+            }
         }
 
-        val client = healthConnectClient!! // Safe: already checked for null above
+        val client = healthConnectClient!! 
         scope.launch {
             try {
                 val now = ZonedDateTime.now(ZoneId.systemDefault())
@@ -72,7 +97,6 @@ class HealthConnectPlugin : Plugin() {
                 val response = client.readRecords(request)
                 val records = response.records
                 
-                // Calculate total duration from all exercise sessions
                 var totalDuration = Duration.ZERO
                 for (record in records) {
                     val sessionDuration = Duration.between(record.startTime, record.endTime)
@@ -84,16 +108,15 @@ class HealthConnectPlugin : Plugin() {
                 val result = JSObject()
                 result.put("totalMinutes", totalMinutes)
                 
-                // Resolve on main thread
                 withContext(Dispatchers.Main) {
                     call.resolve(result)
                 }
 
             } catch (e: Exception) {
+                android.util.Log.e("HealthConnect", "Error getting exercise minutes", e)
                 val result = JSObject()
                 result.put("totalMinutes", 0)
                 
-                // Resolve on main thread
                 withContext(Dispatchers.Main) {
                     call.resolve(result)
                 }
@@ -104,13 +127,16 @@ class HealthConnectPlugin : Plugin() {
     @PluginMethod
     fun hasPermission(call: PluginCall) {
         if (healthConnectClient == null) {
-            val result = JSObject()
-            result.put("hasPermission", false)
-            call.resolve(result)
-            return
+            checkAvailabilityInternal()
+            if (healthConnectClient == null) {
+                val result = JSObject()
+                result.put("hasPermission", false)
+                call.resolve(result)
+                return
+            }
         }
 
-        val client = healthConnectClient!! // Safe: already checked for null above
+        val client = healthConnectClient!!
         scope.launch {
             try {
                 val permissions = setOf(
@@ -118,18 +144,20 @@ class HealthConnectPlugin : Plugin() {
                 )
                 val grantedPermissions = client.permissionController.getGrantedPermissions()
                 
+                android.util.Log.d("HealthConnect", "Required: $permissions")
+                android.util.Log.d("HealthConnect", "Granted: $grantedPermissions")
+                
                 val result = JSObject()
                 result.put("hasPermission", grantedPermissions.containsAll(permissions))
                 
-                // Resolve on main thread
                 withContext(Dispatchers.Main) {
                     call.resolve(result)
                 }
             } catch (e: Exception) {
+                android.util.Log.e("HealthConnect", "Error checking permissions", e)
                 val result = JSObject()
                 result.put("hasPermission", false)
                 
-                // Resolve on main thread
                 withContext(Dispatchers.Main) {
                     call.resolve(result)
                 }
@@ -140,9 +168,11 @@ class HealthConnectPlugin : Plugin() {
     @PluginMethod
     fun requestPermission(call: PluginCall) {
         if (healthConnectClient == null) {
-            android.util.Log.e("HealthConnect", "HealthConnectClient is null")
-            call.resolve()
-            return
+            checkAvailabilityInternal()
+            if (healthConnectClient == null) {
+                call.reject("Health Connect SDK not available")
+                return
+            }
         }
 
         try {
@@ -152,26 +182,16 @@ class HealthConnectPlugin : Plugin() {
             
             android.util.Log.d("HealthConnect", "Requesting permissions: $permissions")
             
-            // Use MainActivity's permission launcher if available
             val mainActivity = mainActivity
             if (mainActivity != null) {
-                android.util.Log.d("HealthConnect", "Using MainActivity launcher")
                 mainActivity.requestHealthConnectPermissions(permissions)
                 call.resolve()
             } else {
-                android.util.Log.e("HealthConnect", "MainActivity is null, falling back to settings")
-                // Fallback: open app settings
-                val intent = android.content.Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
-                val uri = android.net.Uri.fromParts("package", context.packageName, null)
-                intent.data = uri
-                intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
-                context.startActivity(intent)
-                call.resolve()
+                call.reject("MainActivity not found")
             }
         } catch (e: Exception) {
             android.util.Log.e("HealthConnect", "Error requesting permissions", e)
-            call.resolve()
+            call.reject(e.message)
         }
     }
 }
-

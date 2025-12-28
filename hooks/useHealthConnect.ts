@@ -7,9 +7,30 @@ export function useHealthConnect(period: string = 'week') {
   const [totalMinutes, setTotalMinutes] = useState<number>(0);
   const [hasPermission, setHasPermission] = useState<boolean>(false);
   const [isNative, setIsNative] = useState<boolean>(false);
+  const [isAvailable, setIsAvailable] = useState<boolean>(false);
+
+  const checkAvailability = async () => {
+    if (!Capacitor.isNativePlatform()) return false;
+    try {
+      const { isAvailable } = await HealthConnect.checkAvailability();
+      setIsAvailable(isAvailable);
+      return isAvailable;
+    } catch (e) {
+      console.error('Failed to check health connect availability', e);
+      setIsAvailable(false);
+      return false;
+    }
+  };
 
   const checkPermission = async () => {
     if (!Capacitor.isNativePlatform()) return;
+    
+    // Check availability if we haven't confirmed it's available
+    if (!isAvailable) {
+        const available = await checkAvailability();
+        if (!available) return;
+    }
+
     try {
       const { hasPermission: hasPerm } = await HealthConnect.hasPermission();
       setHasPermission(hasPerm);
@@ -41,6 +62,16 @@ export function useHealthConnect(period: string = 'week') {
 
   const requestPermission = async () => {
     if (!Capacitor.isNativePlatform()) return;
+    
+    // Check availability first
+    if (!isAvailable) {
+        const available = await checkAvailability();
+        if (!available) {
+            console.warn("Health Connect is not available on this device");
+            return;
+        }
+    }
+
     await HealthConnect.requestPermission();
     // The permission flow is asynchronous and native. 
     // We rely on the App 'resume' event to re-check permissions.
@@ -49,11 +80,17 @@ export function useHealthConnect(period: string = 'week') {
   useEffect(() => {
     setIsNative(Capacitor.isNativePlatform());
     if (Capacitor.isNativePlatform()) {
-      checkPermission();
-      loadExerciseMinutes();
+      checkAvailability().then((available) => {
+          if (available) {
+            checkPermission();
+            loadExerciseMinutes();
+          }
+      });
       
       // Refresh every 5 minutes
-      const interval = setInterval(loadExerciseMinutes, 5 * 60000);
+      const interval = setInterval(() => {
+          if (isAvailable) loadExerciseMinutes();
+      }, 5 * 60000);
 
       // Re-check permission when app resumes (returns from settings/permission dialog)
       const resumeListener = App.addListener('resume', () => {
@@ -75,10 +112,10 @@ export function useHealthConnect(period: string = 'week') {
 
   return {
     isNative,
+    isAvailable,
     hasPermission,
     totalMinutes,
     requestPermission,
     refresh: loadExerciseMinutes
   };
 }
-
