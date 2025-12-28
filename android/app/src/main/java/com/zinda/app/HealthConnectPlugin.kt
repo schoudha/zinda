@@ -14,15 +14,18 @@ import com.getcapacitor.annotation.CapacitorPlugin
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import java.time.Instant
 import java.time.ZoneId
 import java.time.ZonedDateTime
+import kotlinx.coroutines.withContext
 
 @CapacitorPlugin(name = "HealthConnect")
 class HealthConnectPlugin : Plugin() {
 
     private var healthConnectClient: HealthConnectClient? = null
     private val scope = CoroutineScope(Dispatchers.IO)
+    
+    private val mainActivity: MainActivity?
+        get() = activity as? MainActivity
 
     override fun load() {
         super.load()
@@ -46,6 +49,7 @@ class HealthConnectPlugin : Plugin() {
             return
         }
 
+        val client = healthConnectClient!! // Safe: already checked for null above
         scope.launch {
             try {
                 val now = ZonedDateTime.now(ZoneId.systemDefault())
@@ -66,18 +70,26 @@ class HealthConnectPlugin : Plugin() {
                     timeRangeFilter = timeRangeFilter
                 )
 
-                val response = healthConnectClient!!.aggregate(request)
+                val response = client.aggregate(request)
                 val duration = response[ExerciseSessionRecord.DURATION_TOTAL]
-                val totalMinutes = duration?.toMinutes() ?: 0
+                val totalMinutes = duration?.toMinutes()?.toInt() ?: 0
 
                 val result = JSObject()
                 result.put("totalMinutes", totalMinutes)
-                call.resolve(result)
+                
+                // Resolve on main thread
+                withContext(Dispatchers.Main) {
+                    call.resolve(result)
+                }
 
             } catch (e: Exception) {
                 val result = JSObject()
                 result.put("totalMinutes", 0)
-                call.resolve(result)
+                
+                // Resolve on main thread
+                withContext(Dispatchers.Main) {
+                    call.resolve(result)
+                }
             }
         }
     }
@@ -91,42 +103,62 @@ class HealthConnectPlugin : Plugin() {
             return
         }
 
+        val client = healthConnectClient!! // Safe: already checked for null above
         scope.launch {
             try {
                 val permissions = setOf(
                     HealthPermission.getReadPermission(ExerciseSessionRecord::class)
                 )
-                val grantedPermissions = healthConnectClient!!.permissionController.getGrantedPermissions()
+                val grantedPermissions = client.permissionController.getGrantedPermissions(permissions)
                 
                 val result = JSObject()
                 result.put("hasPermission", grantedPermissions.containsAll(permissions))
-                call.resolve(result)
+                
+                // Resolve on main thread
+                withContext(Dispatchers.Main) {
+                    call.resolve(result)
+                }
             } catch (e: Exception) {
                 val result = JSObject()
                 result.put("hasPermission", false)
-                call.resolve(result)
+                
+                // Resolve on main thread
+                withContext(Dispatchers.Main) {
+                    call.resolve(result)
+                }
             }
         }
     }
 
     @PluginMethod
     fun requestPermission(call: PluginCall) {
-        // Permission request requires ActivityResultContract which is tricky in a pure plugin class without a custom Activity or bridge hook.
-        // For now, we rely on the bridge to handle the intent if possible, or we just open the settings.
-        // However, correct Health Connect flow requires `registerForActivityResult`.
-        // Capacitor plugins usually handle this via `startActivityForResult` with a custom code.
-        
-        // Simplified flow: Directing user to Health Connect settings as a fallback if programmatic request is complex
-        // But let's try to implement the proper request if possible via the bridge.
-        
-        // Note: The Capacitor Plugin class has `startActivityForResult`. 
-        // But Health Connect uses a contract. We might need a bridge wrapper.
-        
-        // Ideally, we'd launch the permission controller intent.
-        // Since we can't easily register a contract dynamically here, we'll return for now.
-        // A full implementation requires modifying MainActivity to handle the result or using the `PermissionController.createRequestPermissionResultContract()`.
-        
-        call.resolve()
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE || healthConnectClient == null) {
+            call.resolve()
+            return
+        }
+
+        try {
+            val permissions = setOf(
+                HealthPermission.getReadPermission(ExerciseSessionRecord::class)
+            )
+            
+            // Use MainActivity's permission launcher if available
+            val mainActivity = mainActivity
+            if (mainActivity != null) {
+                mainActivity.requestHealthConnectPermissions(permissions)
+                call.resolve()
+            } else {
+                // Fallback: open app settings
+                val intent = android.content.Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+                val uri = android.net.Uri.fromParts("package", context.packageName, null)
+                intent.data = uri
+                intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                context.startActivity(intent)
+                call.resolve()
+            }
+        } catch (e: Exception) {
+            call.resolve()
+        }
     }
 }
 
