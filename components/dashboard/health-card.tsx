@@ -61,8 +61,11 @@ export const HealthCard = memo(function HealthCard() {
   const goalMinutes = 150;
   const percentage = Math.min(100, Math.round((totalMinutes / goalMinutes) * 100));
 
-  const handleCardClick = () => {
-    if (isNative && !hasPermission) {
+  const handleCardClick = (e: React.MouseEvent | React.TouchEvent) => {
+    // Only handle clicks when we need permission and are on native
+    if (isNative && !hasPermission && requestPermission) {
+      e.preventDefault();
+      e.stopPropagation();
       requestPermission();
     }
   };
@@ -72,20 +75,36 @@ export const HealthCard = memo(function HealthCard() {
     requestPermission();
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (isNative && !hasPermission && (e.key === 'Enter' || e.key === ' ')) {
+      e.preventDefault();
+      requestPermission();
+    }
+  };
+
   const isClickable = isNative && !hasPermission;
 
   return (
     <Card 
-      className={`border-none bg-white dark:bg-card shadow-xl shadow-green-900/5 dark:shadow-black/20 rounded-3xl ring-1 ring-black/5 dark:ring-white/10 overflow-hidden transition-all duration-300 hover:shadow-green-900/10 dark:hover:shadow-black/30 hover:scale-[1.02] ${isClickable ? 'cursor-pointer' : ''}`}
+      className={`border-none bg-white dark:bg-card shadow-xl shadow-green-900/5 dark:shadow-black/20 rounded-3xl ring-1 ring-black/5 dark:ring-white/10 overflow-hidden transition-all duration-300 hover:shadow-green-900/10 dark:hover:shadow-black/30 hover:scale-[1.02] ${isClickable ? 'cursor-pointer active:scale-95' : ''}`}
       onClick={handleCardClick}
+      onKeyDown={handleKeyDown}
+      role={isClickable ? "button" : undefined}
+      tabIndex={isClickable ? 0 : undefined}
     >
-      <CardHeader className="pb-2 pt-6 px-6">
+      <CardHeader 
+        className="pb-2 pt-6 px-6"
+        onClick={isClickable ? handleCardClick : undefined}
+      >
         <CardTitle className="text-[10px] font-bold uppercase tracking-widest text-green-600/80 dark:text-green-400 flex items-center gap-2">
           <div className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
           Health • Exercise This Week
         </CardTitle>
       </CardHeader>
-      <CardContent className="flex items-center gap-6 px-6 pb-6">
+      <CardContent 
+        className="flex items-center gap-6 px-6 pb-6"
+        onClick={isClickable ? handleCardClick : undefined}
+      >
         <div className="relative">
           <div className="absolute inset-0 bg-green-50 dark:bg-green-900/20 rounded-full blur-xl scale-110" />
           <RadialProgress value={percentage} size={72} />
