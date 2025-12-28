@@ -61,13 +61,24 @@ export const HealthCard = memo(function HealthCard() {
   const goalMinutes = 150;
   const percentage = Math.min(100, Math.round((totalMinutes / goalMinutes) * 100));
 
+  const handleCardClick = () => {
+    if (isNative && !hasPermission) {
+      requestPermission();
+    }
+  };
+
   const handlePermissionClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     requestPermission();
   };
 
+  const isClickable = isNative && !hasPermission;
+
   return (
-    <Card className="border-none bg-white dark:bg-card shadow-xl shadow-green-900/5 dark:shadow-black/20 rounded-3xl ring-1 ring-black/5 dark:ring-white/10 overflow-hidden transition-all duration-300 hover:shadow-green-900/10 dark:hover:shadow-black/30 hover:scale-[1.02]">
+    <Card 
+      className={`border-none bg-white dark:bg-card shadow-xl shadow-green-900/5 dark:shadow-black/20 rounded-3xl ring-1 ring-black/5 dark:ring-white/10 overflow-hidden transition-all duration-300 hover:shadow-green-900/10 dark:hover:shadow-black/30 hover:scale-[1.02] ${isClickable ? 'cursor-pointer' : ''}`}
+      onClick={handleCardClick}
+    >
       <CardHeader className="pb-2 pt-6 px-6">
         <CardTitle className="text-[10px] font-bold uppercase tracking-widest text-green-600/80 dark:text-green-400 flex items-center gap-2">
           <div className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
