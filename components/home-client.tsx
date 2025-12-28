@@ -145,7 +145,7 @@ function HomeContent() {
                   )}
                   
                   {/* Show other cards - rendered once, not duplicated */}
-                  <HealthCard />
+                  <HealthCard period={selectedPeriod} />
                 </div>
               </>
             ) : activeTab === "time" ? (

@@ -55,13 +55,27 @@ function formatMinutes(minutes: number): string {
   return `${mins}m`;
 }
 
-export const HealthCard = memo(function HealthCard() {
+interface HealthCardProps {
+  period?: "today" | "week" | "month" | "year";
+}
+
+export const HealthCard = memo(function HealthCard({ period = "week" }: HealthCardProps) {
   const router = useRouter();
-  const { totalMinutes, hasPermission, isNative, requestPermission } = useHealthConnect('week');
+  const { totalMinutes, hasPermission, isNative, requestPermission } = useHealthConnect(period);
   
-  // Calculate percentage (assuming 150 minutes/week as goal, roughly 21 min/day)
-  const goalMinutes = 150;
+  // Calculate goal minutes based on period (150 minutes/week as base)
+  const goalMinutes = period === "today" ? 21 : // ~21 min/day (150/7)
+                      period === "week" ? 150 :
+                      period === "month" ? 600 : // ~150 * 4 weeks
+                      7800; // ~150 * 52 weeks
+  
   const percentage = Math.min(100, Math.round((totalMinutes / goalMinutes) * 100));
+  
+  // Get period label for display
+  const periodLabel = period === "today" ? "Today" :
+                      period === "week" ? "This Week" :
+                      period === "month" ? "This Month" :
+                      "This Year";
 
   const handleCardClick = (e: React.MouseEvent | React.TouchEvent) => {
     // Only handle clicks when we need permission and are on native
@@ -79,7 +93,7 @@ export const HealthCard = memo(function HealthCard() {
 
   const handleChatClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    router.push('/health/chat');
+    router.push(`/health/chat?period=${period}`);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -105,7 +119,7 @@ export const HealthCard = memo(function HealthCard() {
       >
         <CardTitle className="text-[10px] font-bold uppercase tracking-widest text-green-600/80 dark:text-green-400 flex items-center gap-2">
           <div className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
-          Health • Exercise This Week
+          Health • Exercise {periodLabel}
         </CardTitle>
       </CardHeader>
       <CardContent 
@@ -141,7 +155,7 @@ export const HealthCard = memo(function HealthCard() {
                   </span>
                 </div>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Total exercise time this week from Health Connect
+                  Total exercise time {period === "today" ? "today" : period === "week" ? "this week" : period === "month" ? "this month" : "this year"} from Health Connect
                 </p>
               </>
             )}
