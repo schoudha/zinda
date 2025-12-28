@@ -140,6 +140,7 @@ function HomeContent() {
                         onDelete={deleteGoal}
                         showProgress={selectedPeriod === "today"}
                         onProgressUpdate={handleProgressUpdate}
+                        selectedPeriod={selectedPeriod}
                       />
                     ))
                   )}

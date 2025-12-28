@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminClient } from '@/lib/supabase/server';
 import { isAuthenticated } from '@/lib/auth';
+import { extractIntegerTarget } from '@/lib/utils';
 
 // GET - Fetch all goals
 export async function GET() {
@@ -32,6 +33,7 @@ export async function GET() {
       user_id: string | null;
       notification_time: string | null;
       notification_days: string | null;
+      target: number | null;
     }) => ({
       id: goal.id,
       text: goal.text,
@@ -41,6 +43,7 @@ export async function GET() {
       userId: goal.user_id || undefined,
       notificationTime: goal.notification_time as 'morning' | 'evening' | 'night' | undefined,
       notificationDays: goal.notification_days as 'everyday' | 'weekday' | 'weekend' | undefined,
+      target: goal.target || undefined,
     }));
 
     return NextResponse.json({ goals });
@@ -77,6 +80,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Extract integer target from goal text
+    const target = extractIntegerTarget(text);
+
     const { data, error } = await adminClient
       .from('goals')
       .insert({
@@ -84,6 +90,7 @@ export async function POST(request: NextRequest) {
         text,
         period,
         tips: tips || [],
+        target: target || null,
         created_at: createdAt || new Date().toISOString(),
       })
       .select()
@@ -106,6 +113,7 @@ export async function POST(request: NextRequest) {
       userId: data.user_id || undefined,
       notificationTime: data.notification_time as 'morning' | 'evening' | 'night' | undefined,
       notificationDays: data.notification_days as 'everyday' | 'weekday' | 'weekend' | undefined,
+      target: data.target || undefined,
     };
 
     return NextResponse.json({ goal }, { status: 201 });
@@ -138,6 +146,9 @@ export async function PATCH(request: NextRequest) {
     const updateData: Record<string, unknown> = {};
     if (text !== undefined) {
       updateData.text = text;
+      // Re-extract target if text is updated
+      const target = extractIntegerTarget(text);
+      updateData.target = target || null;
     }
     if (period !== undefined) {
       if (!['week', 'month', 'year'].includes(period)) {
@@ -194,6 +205,7 @@ export async function PATCH(request: NextRequest) {
       userId: data.user_id || undefined,
       notificationTime: data.notification_time as 'morning' | 'evening' | 'night' | undefined,
       notificationDays: data.notification_days as 'everyday' | 'weekday' | 'weekend' | undefined,
+      target: data.target || undefined,
     };
 
     return NextResponse.json({ goal });

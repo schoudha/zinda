@@ -77,6 +77,23 @@ export const api = {
         });
       },
     },
+    completions: {
+      get: async (goalId: string) => {
+        return fetchApi<{ todayCompletion: number; weeklyCompletedDays: number; weeklyTotalDays: number; target: number }>(`/api/goals/completions?goalId=${goalId}`);
+      },
+      increment: async (goalId: string, increment: number = 1) => {
+        return fetchApi<{ success: boolean; completion: { goalId: string; date: string; completionCount: number; target: number } }>("/api/goals/completions", {
+          method: "POST",
+          body: JSON.stringify({ goalId, increment }),
+        });
+      },
+      set: async (goalId: string, completionCount: number) => {
+        return fetchApi<{ success: boolean; completion: { goalId: string; date: string; completionCount: number; target: number } }>("/api/goals/completions", {
+          method: "PATCH",
+          body: JSON.stringify({ goalId, completionCount }),
+        });
+      },
+    },
   },
   notes: {
     list: async () => {

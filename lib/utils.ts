@@ -36,3 +36,38 @@ export function markdownToHtml(text: string): string {
   
   return html;
 }
+
+/**
+ * Extracts an integer target from goal text (e.g., "Pray namaz 3 times" -> 3)
+ * Returns null if no integer target is found
+ */
+export function extractIntegerTarget(text: string): number | null {
+  // Match patterns like "3 times", "5x", "10 per day", etc.
+  // Look for numbers followed by common completion words
+  const patterns = [
+    /(\d+)\s*(?:times?|x|per\s*(?:day|week|month|year))/i,
+    /(\d+)\s*(?:completions?|tasks?|items?)/i,
+  ];
+  
+  for (const pattern of patterns) {
+    const match = text.match(pattern);
+    if (match) {
+      const num = parseInt(match[1], 10);
+      if (num > 0 && num <= 100) { // Reasonable range
+        return num;
+      }
+    }
+  }
+  
+  // Fallback: look for standalone numbers that might be targets
+  // This is less reliable, so we'll be conservative
+  const standaloneMatch = text.match(/\b(\d{1,2})\s+(?:times?|x)\b/i);
+  if (standaloneMatch) {
+    const num = parseInt(standaloneMatch[1], 10);
+    if (num > 0 && num <= 10) { // More conservative for standalone
+      return num;
+    }
+  }
+  
+  return null;
+}

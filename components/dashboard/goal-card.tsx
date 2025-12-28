@@ -19,20 +19,44 @@ interface GoalCardProps {
   onDelete?: (goalId: string) => void;
   showProgress?: boolean; // Whether to show today's progress
   onProgressUpdate?: () => void; // Callback when progress is updated
+  selectedPeriod?: "today" | "week" | "month" | "year"; // Current period view
 }
 
-export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = false, onProgressUpdate }: GoalCardProps) {
+export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = false, onProgressUpdate, selectedPeriod = "week" }: GoalCardProps) {
   const router = useRouter();
   const [notificationDialogOpen, setNotificationDialogOpen] = useState(false);
   const [currentGoal, setCurrentGoal] = useState<Goal>(goal);
   const [progressValue, setProgressValue] = useState<number>(goal.todayProgress ?? 0);
   const [isUpdating, setIsUpdating] = useState(false);
+  
+  // Completion tracking state (for goals with integer targets)
+  const [todayCompletion, setTodayCompletion] = useState<number>(0);
+  const [weeklyCompletedDays, setWeeklyCompletedDays] = useState<number>(0);
+  const [isLoadingCompletion, setIsLoadingCompletion] = useState(false);
 
   // Sync goal prop with local state when it changes
   useEffect(() => {
     setCurrentGoal(goal);
     setProgressValue(goal.todayProgress ?? 0);
   }, [goal]);
+
+  // Fetch completion stats if goal has a target
+  useEffect(() => {
+    if (goal.target) {
+      setIsLoadingCompletion(true);
+      api.goals.completions.get(goal.id)
+        .then((stats) => {
+          setTodayCompletion(stats.todayCompletion);
+          setWeeklyCompletedDays(stats.weeklyCompletedDays);
+        })
+        .catch((error) => {
+          console.error('Error fetching completion stats:', error);
+        })
+        .finally(() => {
+          setIsLoadingCompletion(false);
+        });
+    }
+  }, [goal.id, goal.target]);
 
   const periodLabels = {
     week: "Weekly",
@@ -100,6 +124,39 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
     handleProgressUpdate(newValue);
   }, [progressValue, handleProgressUpdate]);
 
+  // Completion handlers (for integer targets)
+  const handleCompletionIncrement = useCallback(async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!goal.target || isUpdating) return;
+    
+    setIsUpdating(true);
+    try {
+      const result = await api.goals.completions.increment(goal.id, 1);
+      setTodayCompletion(result.completion.completionCount);
+      onProgressUpdate?.();
+    } catch (error) {
+      console.error('Error incrementing completion:', error);
+    } finally {
+      setIsUpdating(false);
+    }
+  }, [goal.id, goal.target, isUpdating, onProgressUpdate]);
+
+  const handleCompletionDecrement = useCallback(async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!goal.target || isUpdating || todayCompletion <= 0) return;
+    
+    setIsUpdating(true);
+    try {
+      const result = await api.goals.completions.set(goal.id, todayCompletion - 1);
+      setTodayCompletion(result.completion.completionCount);
+      onProgressUpdate?.();
+    } catch (error) {
+      console.error('Error decrementing completion:', error);
+    } finally {
+      setIsUpdating(false);
+    }
+  }, [goal.id, goal.target, todayCompletion, isUpdating, onProgressUpdate]);
+
   return (
     <Card 
       className={`border-none bg-gradient-to-br ${periodColors[goal.period]} shadow-xl shadow-blue-900/5 dark:shadow-black/20 rounded-3xl ring-1 ring-black/5 dark:ring-white/5 overflow-hidden transition-all duration-300 hover:shadow-blue-900/10 dark:hover:shadow-black/30 relative`}
@@ -148,7 +205,56 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
             {goal.text}
           </h3>
         </div>
-        {showProgress && (
+        {/* Completion widget for goals with integer targets */}
+        {goal.target ? (
+          <div className="space-y-3 pt-1 border-t border-white/40 dark:border-white/10">
+            <div className="flex items-center justify-between">
+              <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">
+                Today's Completion
+              </p>
+              <span className="text-sm font-bold text-gray-900 dark:text-white">
+                {todayCompletion} / {goal.target}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleCompletionDecrement}
+                disabled={isUpdating || isLoadingCompletion || todayCompletion <= 0}
+                className="flex-1 gap-2 bg-white/50 dark:bg-black/20 border-gray-200 dark:border-gray-800"
+              >
+                <Minus className="h-3 w-3" />
+                Done
+              </Button>
+              <div className="flex-1 text-center">
+                <span className="text-lg font-bold text-gray-900 dark:text-white">
+                  {todayCompletion}
+                </span>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleCompletionIncrement}
+                disabled={isUpdating || isLoadingCompletion || todayCompletion >= Math.min(3, goal.target)}
+                className="flex-1 gap-2 bg-white/50 dark:bg-black/20 border-gray-200 dark:border-gray-800"
+              >
+                <Plus className="h-3 w-3" />
+                Done
+              </Button>
+            </div>
+            {selectedPeriod === "week" && (
+              <div className="pt-2 border-t border-white/20 dark:border-white/5">
+                <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-1">
+                  Weekly Progress
+                </p>
+                <p className="text-sm text-gray-700 dark:text-gray-300">
+                  {weeklyCompletedDays} of 7 days completed
+                </p>
+              </div>
+            )}
+          </div>
+        ) : showProgress && (
           <div className="space-y-3 pt-1 border-t border-white/40 dark:border-white/10">
             <div className="flex items-center justify-between">
               <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">

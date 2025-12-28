@@ -38,6 +38,7 @@ export async function GET(
       userId: data.user_id || undefined,
       notificationTime: data.notification_time as 'morning' | 'evening' | 'night' | undefined,
       notificationDays: data.notification_days as 'everyday' | 'weekday' | 'weekend' | undefined,
+      target: data.target || undefined,
     };
 
     return NextResponse.json({ goal });
