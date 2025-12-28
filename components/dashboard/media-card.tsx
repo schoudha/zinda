@@ -34,6 +34,10 @@ export function MediaCard({ notes, onToggleNote, onUpdateNote, onDeleteNote }: M
 
   // Filter notes to only show those with URLs
   const mediaNotes = notes.filter(note => note.url);
+  
+  // Separate articles and YouTube videos
+  const articles = mediaNotes.filter(note => note.url && !isYoutubeUrl(note.url));
+  const youtubeVideos = mediaNotes.filter(note => note.url && isYoutubeUrl(note.url));
 
   // Effect to fetch missing titles for URLs
   useEffect(() => {
@@ -110,17 +114,7 @@ export function MediaCard({ notes, onToggleNote, onUpdateNote, onDeleteNote }: M
 
   return (
     <Card className="border-none bg-card shadow-xl shadow-black/5 rounded-3xl overflow-hidden ring-1 ring-border w-full max-w-full">
-      <CardHeader className="pb-4 pt-6 px-4 bg-gradient-to-b from-card to-muted/50">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-lg font-bold text-foreground tracking-tight">
-            Read/Listen/Watch
-          </CardTitle>
-          <span className="text-xs font-medium px-2.5 py-1 bg-muted text-muted-foreground rounded-full">
-            {mediaNotes.length} {mediaNotes.length === 1 ? 'item' : 'items'}
-          </span>
-        </div>
-      </CardHeader>
-      <CardContent className="px-4 pb-6">
+      <CardContent className="px-4 pb-6 pt-6">
         {mediaNotes.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-center space-y-3 opacity-50">
             <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
@@ -134,71 +128,143 @@ export function MediaCard({ notes, onToggleNote, onUpdateNote, onDeleteNote }: M
             </p>
           </div>
         ) : (
-          <ul className="space-y-2">
-            {mediaNotes.map((note) => (
-              <li key={note.id} className="group flex items-start gap-3 p-3 rounded-xl hover:bg-muted/50 transition-colors duration-200 overflow-hidden">
-                <Checkbox
-                  checked={note.checked}
-                  onCheckedChange={() => onToggleNote(note.id)}
-                  className="mt-0.5 border-2 border-muted-foreground data-[state=checked]:bg-primary data-[state=checked]:border-primary rounded-md h-5 w-5 transition-all duration-200 shrink-0"
-                />
-                <div className="flex-1 min-w-0 overflow-hidden">
-                  <div className="flex items-start gap-2 w-full">
-                    <div className="flex-1 min-w-0 overflow-hidden">
-                      <a
-                        href={note.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className={`text-sm font-medium flex items-start gap-2 hover:underline transition-colors ${
-                          note.checked
-                            ? "line-through text-muted-foreground decoration-muted-foreground/50"
-                            : "text-blue-500 hover:text-blue-400"
-                        }`}
-                      >
-                        {isYoutubeUrl(note.url!) ? (
-                          <div className="flex items-center justify-center h-5 w-5 rounded bg-red-900/20 text-red-500 shrink-0">
-                            <Youtube className="h-3.5 w-3.5" />
+          <div className="space-y-6">
+            {/* Read Section - Articles */}
+            {articles.length > 0 && (
+              <div className="space-y-3">
+                <h2 className="text-lg font-bold text-foreground tracking-tight">
+                  Read
+                </h2>
+                <ul className="space-y-2">
+                  {articles.map((note) => (
+                    <li key={note.id} className="group flex items-start gap-3 p-3 rounded-xl hover:bg-muted/50 transition-colors duration-200 overflow-hidden">
+                      <Checkbox
+                        checked={note.checked}
+                        onCheckedChange={() => onToggleNote(note.id)}
+                        className="mt-0.5 border-2 border-muted-foreground data-[state=checked]:bg-primary data-[state=checked]:border-primary rounded-md h-5 w-5 transition-all duration-200 shrink-0"
+                      />
+                      <div className="flex-1 min-w-0 overflow-hidden">
+                        <div className="flex items-start gap-2 w-full">
+                          <div className="flex-1 min-w-0 overflow-hidden">
+                            <a
+                              href={note.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className={`text-sm font-medium flex items-start gap-2 hover:underline transition-colors ${
+                                note.checked
+                                  ? "line-through text-muted-foreground decoration-muted-foreground/50"
+                                  : "text-blue-500 hover:text-blue-400"
+                              }`}
+                            >
+                              <div className="flex items-center justify-center h-5 w-5 rounded bg-blue-900/20 text-blue-500 shrink-0">
+                                <ExternalLink className="h-3.5 w-3.5" />
+                              </div>
+                              <span className="break-words" style={{ wordBreak: 'break-word' }}>
+                                {note.urlTitle || note.text}
+                              </span>
+                            </a>
                           </div>
-                        ) : (
-                          <div className="flex items-center justify-center h-5 w-5 rounded bg-blue-900/20 text-blue-500 shrink-0">
-                            <ExternalLink className="h-3.5 w-3.5" />
+                          <div className="flex items-center gap-1 shrink-0 ml-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleGetSummary(note.id, note.url!, note.urlTitle || note.text)}
+                              disabled={loadingSummaries.has(note.id)}
+                              className="h-8 w-8 p-0 rounded-full hover:bg-purple-900/20 text-purple-500 transition-all duration-200"
+                            >
+                              {loadingSummaries.has(note.id) ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Sparkles className="h-4 w-4" />
+                              )}
+                            </Button>
+                            {onDeleteNote && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => onDeleteNote(note.id)}
+                                className="h-8 w-8 p-0 rounded-full hover:bg-red-900/20 text-red-500 transition-all duration-200"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            )}
                           </div>
-                        )}
-                        <span className="break-words" style={{ wordBreak: 'break-word' }}>
-                          {note.urlTitle || note.text}
-                        </span>
-                      </a>
-                    </div>
-                    <div className="flex items-center gap-1 shrink-0 ml-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleGetSummary(note.id, note.url!, note.urlTitle || note.text)}
-                        disabled={loadingSummaries.has(note.id)}
-                        className="h-8 w-8 p-0 rounded-full hover:bg-purple-900/20 text-purple-500 transition-all duration-200"
-                      >
-                        {loadingSummaries.has(note.id) ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Sparkles className="h-4 w-4" />
-                        )}
-                      </Button>
-                      {onDeleteNote && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => onDeleteNote(note.id)}
-                          className="h-8 w-8 p-0 rounded-full hover:bg-red-900/20 text-red-500 transition-all duration-200"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </li>
-            ))}
-          </ul>
+                        </div>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Watch Section - YouTube Videos */}
+            {youtubeVideos.length > 0 && (
+              <div className="space-y-3">
+                <h2 className="text-lg font-bold text-foreground tracking-tight">
+                  Watch
+                </h2>
+                <ul className="space-y-2">
+                  {youtubeVideos.map((note) => (
+                    <li key={note.id} className="group flex items-start gap-3 p-3 rounded-xl hover:bg-muted/50 transition-colors duration-200 overflow-hidden">
+                      <Checkbox
+                        checked={note.checked}
+                        onCheckedChange={() => onToggleNote(note.id)}
+                        className="mt-0.5 border-2 border-muted-foreground data-[state=checked]:bg-primary data-[state=checked]:border-primary rounded-md h-5 w-5 transition-all duration-200 shrink-0"
+                      />
+                      <div className="flex-1 min-w-0 overflow-hidden">
+                        <div className="flex items-start gap-2 w-full">
+                          <div className="flex-1 min-w-0 overflow-hidden">
+                            <a
+                              href={note.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className={`text-sm font-medium flex items-start gap-2 hover:underline transition-colors ${
+                                note.checked
+                                  ? "line-through text-muted-foreground decoration-muted-foreground/50"
+                                  : "text-blue-500 hover:text-blue-400"
+                              }`}
+                            >
+                              <div className="flex items-center justify-center h-5 w-5 rounded bg-red-900/20 text-red-500 shrink-0">
+                                <Youtube className="h-3.5 w-3.5" />
+                              </div>
+                              <span className="break-words" style={{ wordBreak: 'break-word' }}>
+                                {note.urlTitle || note.text}
+                              </span>
+                            </a>
+                          </div>
+                          <div className="flex items-center gap-1 shrink-0 ml-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleGetSummary(note.id, note.url!, note.urlTitle || note.text)}
+                              disabled={loadingSummaries.has(note.id)}
+                              className="h-8 w-8 p-0 rounded-full hover:bg-purple-900/20 text-purple-500 transition-all duration-200"
+                            >
+                              {loadingSummaries.has(note.id) ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Sparkles className="h-4 w-4" />
+                              )}
+                            </Button>
+                            {onDeleteNote && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => onDeleteNote(note.id)}
+                                className="h-8 w-8 p-0 rounded-full hover:bg-red-900/20 text-red-500 transition-all duration-200"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
         )}
       </CardContent>
 
