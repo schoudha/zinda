@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 
 interface InputBarProps {
   onGoalCreated?: () => void;
+  initialCategory?: GoalCategory | null;
 }
 
 // Custom Islamic crescent icon
@@ -29,10 +30,22 @@ const CrescentIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
-export function InputBar({ onGoalCreated }: InputBarProps) {
+export function InputBar({ onGoalCreated, initialCategory }: InputBarProps) {
   const [message, setMessage] = useState("");
-  const [category, setCategory] = useState<GoalCategory>("health");
+  const [category, setCategory] = useState<GoalCategory>(initialCategory || "health");
   const [isLoading, setIsLoading] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Update category when initialCategory prop changes and focus input
+  useEffect(() => {
+    if (initialCategory) {
+      setCategory(initialCategory);
+      // Focus the input when category is pre-selected
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 200);
+    }
+  }, [initialCategory]);
 
   const categories: { id: GoalCategory; icon: React.ElementType | React.FC<{ className?: string }>; label: string }[] = [
     { id: "health", icon: Heart, label: "Health" },
@@ -129,6 +142,7 @@ export function InputBar({ onGoalCreated }: InputBarProps) {
       });
 
       setMessage(""); // Clear input after successful creation
+      setCategory("health"); // Reset to default category
       
       // Notify parent to refresh goals
       if (onGoalCreated) {
@@ -154,6 +168,7 @@ export function InputBar({ onGoalCreated }: InputBarProps) {
       <Card className="rounded-2xl border-none shadow-xl shadow-blue-900/5 dark:shadow-black/20 bg-white dark:bg-card overflow-hidden ring-1 ring-black/5 dark:ring-white/10 transition-all duration-300 hover:shadow-2xl hover:shadow-blue-900/10 dark:hover:shadow-black/30">
         <CardContent className="p-0">
           <Input
+            ref={inputRef}
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             onKeyDown={handleKeyDown}

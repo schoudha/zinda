@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense, useMemo, useCallback } from "react";
+import { useState, useEffect, Suspense, useMemo, useCallback, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Header } from "@/components/dashboard/header";
 import { DateTabs } from "@/components/dashboard/date-tabs";
@@ -45,6 +45,8 @@ function HomeContent() {
   const [selectedPeriod, setSelectedPeriod] = useState<"today" | GoalPeriod>("today");
   const [selectedTimePeriod, setSelectedTimePeriod] = useState<"today" | "week" | "month" | "year">("today");
   const [goalsWithProgress, setGoalsWithProgress] = useState<Goal[]>(goals);
+  const [preselectedCategory, setPreselectedCategory] = useState<GoalCategory | null>(null);
+  const inputBarRef = useRef<HTMLDivElement>(null);
   
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -194,9 +196,18 @@ function HomeContent() {
                               />
                             ))
                           ) : (
-                            <div className="h-24 rounded-2xl border-2 border-dashed border-gray-100 dark:border-white/5 flex items-center justify-center">
-                              <span className="text-xs text-gray-300 dark:text-gray-600">Empty</span>
-                            </div>
+                            <button
+                              onClick={() => {
+                                setPreselectedCategory(cat.id);
+                                // Scroll to input bar after a brief delay to ensure it's rendered
+                                setTimeout(() => {
+                                  inputBarRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                }, 100);
+                              }}
+                              className="h-24 rounded-2xl border-2 border-dashed border-gray-100 dark:border-white/5 flex items-center justify-center hover:border-gray-200 dark:hover:border-white/10 hover:bg-gray-50/50 dark:hover:bg-white/5 transition-colors cursor-pointer active:scale-95"
+                            >
+                              <span className="text-xs text-gray-300 dark:text-gray-600">Tap to add goal</span>
+                            </button>
                           )}
                         </div>
                       </div>
@@ -205,8 +216,14 @@ function HomeContent() {
                   </div>
                 )}
                 
-                <div className="px-6">
-                  <InputBar onGoalCreated={refreshGoals} />
+                <div className="px-6" ref={inputBarRef}>
+                  <InputBar 
+                    onGoalCreated={() => {
+                      refreshGoals();
+                      setPreselectedCategory(null); // Reset after creation
+                    }}
+                    initialCategory={preselectedCategory}
+                  />
                 </div>
               </>
             ) : activeTab === "time" ? (
