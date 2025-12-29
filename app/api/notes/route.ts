@@ -121,7 +121,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { id, checked, checkedAt, urlTitle } = body;
+    const { id, checked, checkedAt, urlTitle, text } = body;
 
     if (!id) {
       return NextResponse.json(
@@ -137,6 +137,9 @@ export async function PATCH(request: NextRequest) {
     }
     if (urlTitle !== undefined) {
       updateData.url_title = urlTitle || null;
+    }
+    if (text !== undefined) {
+      updateData.text = text;
     }
 
     const { data, error } = await adminClient

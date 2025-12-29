@@ -60,54 +60,61 @@ class UsageStatsPlugin : Plugin() {
             }
         }
 
-        val usageStatsMap = usm.queryAndAggregateUsageStats(startTime, endTime)
+        val usageStatsList = usm.queryUsageStats(UsageStatsManager.INTERVAL_DAILY, startTime, endTime)
+        val timePerPackage = mutableMapOf<String, Long>()
+
+        if (usageStatsList != null) {
+            for (stats in usageStatsList) {
+                if (stats.totalTimeInForeground > 0) {
+                    val pkg = stats.packageName
+                    val current = timePerPackage[pkg] ?: 0L
+                    timePerPackage[pkg] = current + stats.totalTimeInForeground
+                }
+            }
+        }
 
         val result = JSObject()
         var totalScreenTime: Long = 0
         val apps = JSArray()
 
-        if (usageStatsMap != null && usageStatsMap.isNotEmpty()) {
-            for (stats in usageStatsMap.values) {
-                if (stats.totalTimeInForeground > 0) {
-                    val packageName = stats.packageName
-
-                    // Filter out system apps/services that don't have a launch intent
-                    val launchIntent = pm.getLaunchIntentForPackage(packageName)
-                    if (launchIntent == null) {
-                        continue
-                    }
-
-                    // Explicitly filter out known non-consumer apps
-                    if (packageName == "com.android.systemui" ||
-                        packageName == "android" ||
-                        packageName == "com.google.android.googlequicksearchbox" ||
-                        packageName.contains("launcher") ||
-                        packageName.contains("nexuslauncher") ||
-                        packageName.contains("pixellauncher")) {
-                        continue
-                    }
-
-                    var isSystem = false
-                    var isUpdatedSystem = false
-
-                    try {
-                        val appInfo = pm.getApplicationInfo(packageName, 0)
-                        isSystem = (appInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0
-                        isUpdatedSystem = (appInfo.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0
-                    } catch (e: PackageManager.NameNotFoundException) {
-                        // ignore
-                    }
-
-                    val appObj = JSObject()
-                    appObj.put("packageName", packageName)
-                    appObj.put("time", stats.totalTimeInForeground)
-                    appObj.put("isSystem", isSystem)
-                    appObj.put("isUpdatedSystem", isUpdatedSystem)
-
-                    apps.put(appObj)
-
-                    totalScreenTime += stats.totalTimeInForeground
+        if (timePerPackage.isNotEmpty()) {
+            for ((packageName, time) in timePerPackage) {
+                // Filter out system apps/services that don't have a launch intent
+                val launchIntent = pm.getLaunchIntentForPackage(packageName)
+                if (launchIntent == null) {
+                    continue
                 }
+
+                // Explicitly filter out known non-consumer apps
+                if (packageName == "com.android.systemui" ||
+                    packageName == "android" ||
+                    packageName == "com.google.android.googlequicksearchbox" ||
+                    packageName.contains("launcher") ||
+                    packageName.contains("nexuslauncher") ||
+                    packageName.contains("pixellauncher")) {
+                    continue
+                }
+
+                var isSystem = false
+                var isUpdatedSystem = false
+
+                try {
+                    val appInfo = pm.getApplicationInfo(packageName, 0)
+                    isSystem = (appInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0
+                    isUpdatedSystem = (appInfo.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0
+                } catch (e: PackageManager.NameNotFoundException) {
+                    // ignore
+                }
+
+                val appObj = JSObject()
+                appObj.put("packageName", packageName)
+                appObj.put("time", time)
+                appObj.put("isSystem", isSystem)
+                appObj.put("isUpdatedSystem", isUpdatedSystem)
+
+                apps.put(appObj)
+
+                totalScreenTime += time
             }
         }
 

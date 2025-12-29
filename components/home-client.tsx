@@ -244,13 +244,7 @@ function HomeContent() {
               </div>
             ) : (
               <div className="flex flex-col gap-4 px-4 overflow-hidden">
-                <NotepadCard 
-                  notes={notes} 
-                  onToggleNote={toggleNote} 
-                  onAddNote={addNote}
-                  onUpdateNote={updateNote}
-                  onDeleteNote={deleteNote}
-                />
+                <NotepadCard notes={notes} />
               </div>
             )}
           </div>
