@@ -3,7 +3,7 @@ import { adminClient } from '@/lib/supabase/server';
 import { isAuthenticated } from '@/lib/auth';
 
 // GET - Fetch all notes
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     if (!await isAuthenticated()) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
