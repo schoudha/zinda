@@ -2,16 +2,87 @@
 
 import { useState, useEffect, memo, lazy, Suspense, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { X, Bell, MessageCircle, Plus, Minus, Sparkles, Calendar, CalendarRange, CalendarCheck } from "lucide-react";
+import { X, Bell, MessageCircle, Plus, Minus, Sparkles, Calendar, CalendarRange, CalendarCheck, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { Goal } from "@/types";
 import { api } from "@/lib/api";
+import { useHealthConnect } from "@/hooks/useHealthConnect";
 
 // Lazy load NotificationDialog - only needed when user clicks bell icon
 const NotificationDialog = lazy(() => 
   import("@/components/goals/notification-dialog").then(mod => ({ default: mod.NotificationDialog }))
 );
+
+function RadialProgress({ value, size = 60 }: { value: number; size?: number }) {
+  const radius = 24;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference - (value / 100) * circumference;
+
+  // Color coding: red <40%, yellow 40-70%, green >70%
+  const getColorClass = () => {
+    if (value < 40) {
+      return "text-red-500 dark:text-red-400";
+    } else if (value < 70) {
+      return "text-yellow-500 dark:text-yellow-400";
+    } else {
+      return "text-green-500 dark:text-green-400";
+    }
+  };
+
+  const getBlurColorClass = () => {
+    if (value < 40) {
+      return "bg-red-50 dark:bg-red-900/20";
+    } else if (value < 70) {
+      return "bg-yellow-50 dark:bg-yellow-900/20";
+    } else {
+      return "bg-green-50 dark:bg-green-900/20";
+    }
+  };
+
+  return (
+    <div className="relative flex items-center justify-center" style={{ width: size, height: size }}>
+      <div className={`absolute inset-0 ${getBlurColorClass()} rounded-full blur-xl scale-110`} />
+      <svg className="h-full w-full -rotate-90 transform relative z-10" viewBox="0 0 60 60">
+        {/* Background circle */}
+        <circle
+          className="text-gray-100 dark:text-gray-800"
+          strokeWidth="6"
+          stroke="currentColor"
+          fill="transparent"
+          r={radius}
+          cx="30"
+          cy="30"
+        />
+        {/* Progress circle */}
+        <circle
+          className={`${getColorClass()} transition-all duration-1000 ease-out`}
+          strokeWidth="6"
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
+          strokeLinecap="round"
+          stroke="currentColor"
+          fill="transparent"
+          r={radius}
+          cx="30"
+          cy="30"
+        />
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center z-10">
+        <span className="text-sm font-extrabold text-gray-900 dark:text-white">{value}%</span>
+      </div>
+    </div>
+  );
+}
+
+function formatMinutes(minutes: number): string {
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  if (hours > 0) {
+    return `${hours}h ${mins}m`;
+  }
+  return `${mins}m`;
+}
 
 interface GoalCardProps {
   goal: Goal;
@@ -35,14 +106,36 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
   const [isLoadingCompletion, setIsLoadingCompletion] = useState(false);
   const [smartTip, setSmartTip] = useState<string | null>(null);
 
+  // Health Connect integration for health goals
+  const isHealthGoal = goal.category === "health";
+  const healthPeriod = selectedPeriod === "today" ? "today" : selectedPeriod === "week" ? "week" : selectedPeriod === "month" ? "month" : "year";
+  const { totalMinutes, hasPermission, isNative, requestPermission } = useHealthConnect(isHealthGoal ? healthPeriod : "week");
+  
+  // Calculate health goal progress
+  const healthProgress = isHealthGoal ? (() => {
+    const minutesPerDay = goal.minutesPerDay;
+    const goalMinutes = minutesPerDay 
+      ? (healthPeriod === "today" ? minutesPerDay :
+         healthPeriod === "week" ? minutesPerDay * 7 :
+         healthPeriod === "month" ? minutesPerDay * 30 :
+         minutesPerDay * 365)
+      : (healthPeriod === "today" ? 21 :
+         healthPeriod === "week" ? 150 :
+         healthPeriod === "month" ? 600 :
+         7800);
+    return Math.min(100, Math.round((totalMinutes / goalMinutes) * 100));
+  })() : 0;
+
   // Sync goal prop with local state when it changes
   useEffect(() => {
     setCurrentGoal(goal);
     setProgressValue(goal.todayProgress ?? 0);
   }, [goal]);
 
-  // Fetch smart tip on load
+  // Fetch smart tip on load (skip for health goals)
   useEffect(() => {
+    if (isHealthGoal) return; // Don't fetch tips for health goals
+    
     // For target-based goals, we'll wait for completion stats in the other effect
     // For percentage-based goals (or if no target), we fetch immediately
     if (!goal.target) {
@@ -50,30 +143,30 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
         .then(setSmartTip)
         .catch(err => console.error("Failed to generate tip:", err));
     }
-  }, [goal.text, goal.target, goal.todayProgress]);
+  }, [goal.text, goal.target, goal.todayProgress, isHealthGoal]);
 
-  // Fetch completion stats if goal has a target
+  // Fetch completion stats if goal has a target (skip for health goals)
   useEffect(() => {
-    if (goal.target) {
-      setIsLoadingCompletion(true);
-      api.goals.completions.get(goal.id)
-        .then((stats) => {
-          setTodayCompletion(stats.todayCompletion);
-          setWeeklyCompletedDays(stats.weeklyCompletedDays);
-          
-          // Generate tip after getting completion stats
-          api.goals.generateSmartTip(goal.text, 0, goal.target, stats.todayCompletion)
-            .then(setSmartTip)
-            .catch(err => console.error("Failed to generate tip:", err));
-        })
-        .catch((error) => {
-          console.error('Error fetching completion stats:', error);
-        })
-        .finally(() => {
-          setIsLoadingCompletion(false);
-        });
-    }
-  }, [goal.id, goal.target, goal.text]);
+    if (isHealthGoal || !goal.target) return;
+    
+    setIsLoadingCompletion(true);
+    api.goals.completions.get(goal.id)
+      .then((stats) => {
+        setTodayCompletion(stats.todayCompletion);
+        setWeeklyCompletedDays(stats.weeklyCompletedDays);
+        
+        // Generate tip after getting completion stats
+        api.goals.generateSmartTip(goal.text, 0, goal.target, stats.todayCompletion)
+          .then(setSmartTip)
+          .catch(err => console.error("Failed to generate tip:", err));
+      })
+      .catch((error) => {
+        console.error('Error fetching completion stats:', error);
+      })
+      .finally(() => {
+        setIsLoadingCompletion(false);
+      });
+  }, [goal.id, goal.target, goal.text, isHealthGoal]);
 
   const periodIcons = {
     week: Calendar,
@@ -112,6 +205,31 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
     e.stopPropagation();
     router.push(`/goals/${goal.id}`);
   }, [router, goal.id]);
+
+  const handleCardClick = useCallback(async (e: React.MouseEvent | React.TouchEvent) => {
+    // Only make health goals clickable
+    if (!isHealthGoal) return;
+    
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // If native and no permission, request permission first
+    if (isNative && !hasPermission) {
+      await requestPermission();
+      return;
+    }
+    
+    // Navigate to goal detail page
+    router.push(`/goals/${goal.id}`);
+  }, [isHealthGoal, isNative, hasPermission, requestPermission, router, goal.id]);
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (!isHealthGoal) return;
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      handleCardClick(e as any);
+    }
+  }, [isHealthGoal, handleCardClick]);
 
   const handleProgressUpdate = useCallback(async (newValue: number) => {
     if (isUpdating || newValue < 0 || newValue > 100) return;
@@ -180,17 +298,23 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
 
   return (
     <Card 
-      className={`border-none bg-gradient-to-br ${periodColors[goal.period]} shadow-lg shadow-blue-900/5 dark:shadow-black/20 rounded-2xl ring-1 ring-black/5 dark:ring-white/5 overflow-hidden transition-all duration-300 hover:shadow-blue-900/10 dark:hover:shadow-black/30 relative`}
+      className={`border-none bg-gradient-to-br ${periodColors[goal.period]} shadow-lg shadow-blue-900/5 dark:shadow-black/20 rounded-2xl ring-1 ring-black/5 dark:ring-white/5 overflow-hidden transition-all duration-300 hover:shadow-blue-900/10 dark:hover:shadow-black/30 relative ${isHealthGoal ? 'cursor-pointer active:scale-95' : ''}`}
+      onClick={isHealthGoal ? handleCardClick : undefined}
+      onKeyDown={isHealthGoal ? handleKeyDown : undefined}
+      role={isHealthGoal ? "button" : undefined}
+      tabIndex={isHealthGoal ? 0 : undefined}
     >
       <div className="absolute top-1.5 right-1.5 flex gap-0.5 z-10">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-6 w-6 rounded-full opacity-60 hover:opacity-100 hover:bg-white/50 dark:hover:bg-white/10 dark:text-white"
-          onClick={handleBellClick}
-        >
-          <Bell className={`h-3 w-3 ${currentGoal.notificationTime && currentGoal.notificationDays ? 'fill-current' : ''}`} />
-        </Button>
+        {!isHealthGoal && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6 rounded-full opacity-60 hover:opacity-100 hover:bg-white/50 dark:hover:bg-white/10 dark:text-white"
+            onClick={handleBellClick}
+          >
+            <Bell className={`h-3 w-3 ${currentGoal.notificationTime && currentGoal.notificationDays ? 'fill-current' : ''}`} />
+          </Button>
+        )}
         {onDelete && (
           <Button
             variant="ghost"
@@ -228,8 +352,41 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
           {goal.text}
         </h3>
 
-        {/* Completion widget for goals with integer targets */}
-        {goal.target ? (
+        {/* Health goal progress with HealthConnect data */}
+        {isHealthGoal ? (
+          <div className="flex items-center gap-4 py-2">
+            {isNative && !hasPermission ? (
+              <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400 w-full justify-center py-2">
+                <Lock className="h-3.5 w-3.5" />
+                <span>Tap to connect Health Data</span>
+              </div>
+            ) : (
+              <>
+                <RadialProgress value={healthProgress} size={56} />
+                <div className="flex-1 space-y-1">
+                  <div className="flex items-baseline justify-between">
+                    <span className="text-lg font-extrabold text-gray-900 dark:text-white tracking-tight">
+                      {formatMinutes(totalMinutes)}
+                    </span>
+                    {goal.minutesPerDay && (
+                      <span className="text-[10px] font-medium text-gray-500 dark:text-gray-400 bg-white/50 dark:bg-white/5 px-2 py-0.5 rounded-full backdrop-blur-sm">
+                        Goal: {formatMinutes(
+                          healthPeriod === "today" ? goal.minutesPerDay :
+                          healthPeriod === "week" ? goal.minutesPerDay * 7 :
+                          healthPeriod === "month" ? goal.minutesPerDay * 30 :
+                          goal.minutesPerDay * 365
+                        )}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[10px] text-gray-600 dark:text-gray-400">
+                    Exercise time {healthPeriod === "today" ? "today" : healthPeriod === "week" ? "this week" : healthPeriod === "month" ? "this month" : "this year"}
+                  </p>
+                </div>
+              </>
+            )}
+          </div>
+        ) : goal.target ? (
           <div className="flex flex-col gap-2">
             {/* Interactive Progress Row */}
             <div className="flex flex-wrap items-center justify-center gap-1.5">
@@ -278,7 +435,7 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
               )}
             </div>
           </div>
-        ) : showProgress && (
+        ) : showProgress && !isHealthGoal && (
           <div className="space-y-2">
             <div className="flex items-center justify-between text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
               <span>Progress</span>
@@ -313,7 +470,8 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
           </div>
         )}
 
-        {(smartTip || goal.tips.length > 0) && (
+        {/* Don't show tips/insights for health goals */}
+        {!isHealthGoal && (smartTip || goal.tips.length > 0) && (
           <div className="pt-1.5 border-t border-black/5 dark:border-white/5">
             {smartTip ? (
               <p className="text-[10px] text-gray-600 dark:text-gray-400 leading-relaxed italic animate-in fade-in duration-500">
@@ -331,14 +489,17 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
           </div>
         )}
 
-        <Button
-          onClick={handleDiscussClick}
-          size="sm"
-          className="w-full h-8 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 dark:from-purple-600 dark:to-indigo-700 dark:hover:from-purple-700 dark:hover:to-indigo-800 text-white text-xs font-medium shadow-sm"
-        >
-          <Sparkles className="h-3 w-3 mr-1.5" />
-          Ask Gemini
-        </Button>
+        {/* Don't show "Ask Gemini" button for health goals */}
+        {!isHealthGoal && (
+          <Button
+            onClick={handleDiscussClick}
+            size="sm"
+            className="w-full h-8 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 dark:from-purple-600 dark:to-indigo-700 dark:hover:from-purple-700 dark:hover:to-indigo-800 text-white text-xs font-medium shadow-sm"
+          >
+            <Sparkles className="h-3 w-3 mr-1.5" />
+            Ask Gemini
+          </Button>
+        )}
       </CardContent>
     </Card>
   );
