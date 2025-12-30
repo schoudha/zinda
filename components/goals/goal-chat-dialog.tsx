@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogClose } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Goal, Message } from "@/types";
+import { Goal, Message, ChatContext } from "@/types";
 import { markdownToHtml } from "@/lib/utils";
 import { api } from "@/lib/api";
 import { Send, Loader2 } from "lucide-react";
@@ -13,10 +13,7 @@ interface GoalChatDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   goal: Goal;
-  additionalContext?: {
-    progressData?: any;
-    healthData?: any;
-  };
+  additionalContext?: ChatContext;
 }
 
 export function GoalChatDialog({ open, onOpenChange, goal, additionalContext }: GoalChatDialogProps) {

@@ -1,4 +1,4 @@
-import { Note, Goal, Message, Thought } from "@/types";
+import { Note, Goal, Message, Thought, ChatContext } from "@/types";
 
 // Helper for standardized API calls
 async function fetchApi<T>(url: string, options?: RequestInit): Promise<T> {
@@ -49,7 +49,7 @@ export const api = {
         const data = await fetchApi<{ messages: Message[] }>(`/api/goals/${goalId}/messages`);
         return data.messages;
       },
-      send: async (goalId: string, message: string, additionalContext?: any) => {
+      send: async (goalId: string, message: string, additionalContext?: ChatContext) => {
         return fetchApi<{ userMessage: Message; aiMessage: Message }>(`/api/goals/${goalId}/chat`, {
           method: "POST",
           body: JSON.stringify({ message, ...additionalContext }),

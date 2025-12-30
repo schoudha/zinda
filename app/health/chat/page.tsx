@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Message } from "@/types";
-import { markdownToHtml } from "@/lib/utils";
+import { markdownToHtml, formatMinutes } from "@/lib/utils";
 import { useHealthConnect } from "@/hooks/useHealthConnect";
 
 function HealthChatContent() {
@@ -110,15 +110,6 @@ function HealthChatContent() {
       handleSendMessage();
     }
   };
-
-  function formatMinutes(minutes: number): string {
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    if (hours > 0) {
-      return `${hours}h ${mins}m`;
-    }
-    return `${mins}m`;
-  }
 
   return (
     <div className="flex flex-col h-screen bg-background max-w-md mx-auto shadow-2xl overflow-hidden relative pt-[env(safe-area-inset-top)]">

@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { App } from '@capacitor/app';
-import { HealthConnect } from '@/lib/capacitor/health-connect';
+import { HealthConnect, ExerciseSession } from '@/lib/capacitor/health-connect';
 
 export function useHealthConnect(period: string = 'week') {
   const [totalMinutes, setTotalMinutes] = useState<number>(0);
   const [dailyStats, setDailyStats] = useState<Record<string, number>>({});
+  const [sessions, setSessions] = useState<ExerciseSession[]>([]);
   const [hasPermission, setHasPermission] = useState<boolean>(false);
   const [isNative, setIsNative] = useState<boolean>(false);
   const [isAvailable, setIsAvailable] = useState<boolean>(false);
@@ -72,6 +73,7 @@ export function useHealthConnect(period: string = 'week') {
       ]);
       
       setTotalMinutes(minutesResult.totalMinutes || 0);
+      setSessions(sessionsResult.sessions || []);
 
       // Process sessions into daily stats
       const stats: Record<string, number> = {};
@@ -141,12 +143,12 @@ export function useHealthConnect(period: string = 'week') {
       };
     } else {
       // On web, provide mock data for development
-      const mockSessions = [
-        { startTime: Date.now() - 1000 * 60 * 60 * 2, durationMinutes: 45, title: 'Morning Run', exerciseType: 'running' },
-        { startTime: Date.now() - 1000 * 60 * 60 * 24 * 1, durationMinutes: 30, title: 'Yoga Flow', exerciseType: 'yoga' },
-        { startTime: Date.now() - 1000 * 60 * 60 * 24 * 2, durationMinutes: 60, title: 'Gym Workout', exerciseType: 'strength_training' },
-        { startTime: Date.now() - 1000 * 60 * 60 * 24 * 3, durationMinutes: 20, title: 'Quick HIIT', exerciseType: 'high_intensity_interval_training' },
-        { startTime: Date.now() - 1000 * 60 * 60 * 24 * 4, durationMinutes: 40, title: 'Evening Walk', exerciseType: 'walking' },
+      const mockSessions: ExerciseSession[] = [
+        { startTime: Date.now() - 1000 * 60 * 60 * 2, endTime: Date.now() - 1000 * 60 * 60 * 2 + 1000 * 60 * 45, durationMinutes: 45, title: 'Morning Run', exerciseType: 'running', notes: '' },
+        { startTime: Date.now() - 1000 * 60 * 60 * 24 * 1, endTime: Date.now() - 1000 * 60 * 60 * 24 * 1 + 1000 * 60 * 30, durationMinutes: 30, title: 'Yoga Flow', exerciseType: 'yoga', notes: '' },
+        { startTime: Date.now() - 1000 * 60 * 60 * 24 * 2, endTime: Date.now() - 1000 * 60 * 60 * 24 * 2 + 1000 * 60 * 60, durationMinutes: 60, title: 'Gym Workout', exerciseType: 'strength_training', notes: '' },
+        { startTime: Date.now() - 1000 * 60 * 60 * 24 * 3, endTime: Date.now() - 1000 * 60 * 60 * 24 * 3 + 1000 * 60 * 20, durationMinutes: 20, title: 'Quick HIIT', exerciseType: 'high_intensity_interval_training', notes: '' },
+        { startTime: Date.now() - 1000 * 60 * 60 * 24 * 4, endTime: Date.now() - 1000 * 60 * 60 * 24 * 4 + 1000 * 60 * 40, durationMinutes: 40, title: 'Evening Walk', exerciseType: 'walking', notes: '' },
       ];
       
       const filteredSessions = mockSessions.filter(s => {
@@ -167,6 +169,7 @@ export function useHealthConnect(period: string = 'week') {
         stats[date] = (stats[date] || 0) + session.durationMinutes;
       });
       setDailyStats(stats);
+      setSessions(filteredSessions);
       setHasPermission(true);
       setIsAvailable(true);
     }
@@ -178,6 +181,7 @@ export function useHealthConnect(period: string = 'week') {
     hasPermission,
     totalMinutes,
     dailyStats,
+    sessions,
     requestPermission,
     refresh: loadExerciseMinutes
   };

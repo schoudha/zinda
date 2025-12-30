@@ -6,6 +6,15 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+export function formatMinutes(minutes: number): string {
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  if (hours > 0) {
+    return `${hours}h ${mins}m`;
+  }
+  return `${mins}m`;
+}
+
 export function detectPeriod(text: string): GoalPeriod {
   const lowerText = text.toLowerCase();
   if (lowerText.includes("year") || lowerText.includes("yearly") || lowerText.includes("annual")) {

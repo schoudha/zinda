@@ -43,3 +43,23 @@ export interface Thought {
   date: string; // ISO date string (YYYY-MM-DD)
 }
 
+export interface HealthData {
+  totalMinutes: number;
+  goalMinutes: number;
+  period: string;
+  percentage: number;
+  periodLabel: string;
+}
+
+export interface ProgressData {
+  todayProgress?: number;
+  completionStats?: {
+    todayCompletion: number;
+    weeklyCompletedDays: number;
+  };
+}
+
+export interface ChatContext {
+  progressData?: ProgressData;
+  healthData?: HealthData;
+}

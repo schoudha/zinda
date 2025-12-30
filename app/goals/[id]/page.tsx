@@ -6,7 +6,6 @@ import { ArrowLeft, Bell, Edit2, Sparkles, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogClose } from "@/components/ui/dialog";
 import { Goal } from "@/types";
 import { api } from "@/lib/api";
@@ -14,28 +13,22 @@ import { NotificationDialog } from "@/components/goals/notification-dialog";
 import { GoalChatDialog } from "@/components/goals/goal-chat-dialog";
 import { getRandomQuranQuote, type QuranQuote } from "@/lib/quran-quotes";
 import { useHealthConnect } from "@/hooks/useHealthConnect";
-import { HealthConnect, ExerciseSession } from "@/lib/capacitor/health-connect";
-import { Capacitor } from "@capacitor/core";
-import { getExerciseTypeName } from "@/lib/exercise-type-map";
 import { useNotes } from "@/hooks/useNotes";
 import { useGoalProgress } from "@/hooks/useGoals";
-import { MediaCard } from "@/components/dashboard/media-card";
-import { BookOpen, FileText, Plus } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { HealthGoalView } from "@/components/goals/health-goal-view";
+import { LearnGoalView } from "@/components/goals/learn-goal-view";
 
 export default function GoalDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const queryClient = useQueryClient();
+  const id = params.id as string;
   
-  const [goal, setGoal] = useState<Goal | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const [notificationDialogOpen, setNotificationDialogOpen] = useState(false);
   const [chatDialogOpen, setChatDialogOpen] = useState(false);
   const [quote, setQuote] = useState<QuranQuote | null>(null);
   const [healthPeriod, setHealthPeriod] = useState<"today" | "week" | "month" | "year">("today");
-  const [exerciseSessions, setExerciseSessions] = useState<ExerciseSession[]>([]);
-  const [isLoadingExercises, setIsLoadingExercises] = useState(false);
-  const [healthInsight, setHealthInsight] = useState<string | null>(null);
-  const [isLoadingInsight, setIsLoadingInsight] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editText, setEditText] = useState("");
   const [editMinutesPerDay, setEditMinutesPerDay] = useState<string>("");
@@ -43,10 +36,26 @@ export default function GoalDetailPage() {
   const [learnProgress, setLearnProgress] = useState<number>(0);
   const [isUpdatingLearnProgress, setIsUpdatingLearnProgress] = useState(false);
   
-  const id = params.id as string;
-  
+  // React Query for Goal Data
+  const { data: goal, isLoading: isGoalLoading } = useQuery({
+    queryKey: ['goal', id],
+    queryFn: () => api.goals.get(id),
+    enabled: !!id,
+  });
+
+  // Initialize edit state when goal loads
+  useEffect(() => {
+    if (goal) {
+      setEditText(goal.text);
+      setEditMinutesPerDay(goal.minutesPerDay?.toString() || "30");
+      if (goal.category === 'faith' && !quote) {
+        setQuote(getRandomQuranQuote());
+      }
+    }
+  }, [goal, quote]);
+
   // Health data
-  const { totalMinutes, hasPermission, isNative } = useHealthConnect(healthPeriod);
+  const { totalMinutes, hasPermission, sessions } = useHealthConnect(healthPeriod);
   
   // Notes for learn goals
   const { notes, toggleNote, updateNote, deleteNote } = useNotes();
@@ -54,115 +63,6 @@ export default function GoalDetailPage() {
   // Get progress for learn goals
   const { progress, refreshProgress } = useGoalProgress();
 
-  useEffect(() => {
-    if (!id) return;
-
-    const loadData = async () => {
-      try {
-        const goalData = await api.goals.get(id);
-        
-        setGoal(goalData);
-        setEditText(goalData.text);
-        setEditMinutesPerDay(goalData.minutesPerDay?.toString() || "30");
-        
-        // Load Quran quote if this is a faith goal
-        if (goalData.category === 'faith') {
-          setQuote(getRandomQuranQuote());
-        }
-      } catch (error) {
-        console.error("Error loading data:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadData();
-  }, [id]);
-  
-  // Load exercise sessions for health goals
-  useEffect(() => {
-    if (goal?.category === 'health' && hasPermission) {
-      loadExerciseSessions();
-    }
-  }, [goal?.category, healthPeriod, hasPermission]);
-  
-  // Load health insight
-  useEffect(() => {
-    if (goal?.category === 'health' && hasPermission && totalMinutes !== undefined) {
-      loadHealthInsight();
-    }
-  }, [goal?.category, healthPeriod, totalMinutes, goal?.minutesPerDay, hasPermission]);
-  
-  const loadExerciseSessions = async () => {
-    if (!Capacitor.isNativePlatform()) {
-      // Mock sessions for web
-      const mockSessions: ExerciseSession[] = [
-        { startTime: Date.now() - 1000 * 60 * 60 * 2, endTime: Date.now() - 1000 * 60 * 60 * 2 + 1000 * 60 * 45, durationMinutes: 45, title: 'Morning Run', exerciseType: 'running', exerciseTypeValue: 56, notes: '' },
-        { startTime: Date.now() - 1000 * 60 * 60 * 24 * 1, endTime: Date.now() - 1000 * 60 * 60 * 24 * 1 + 1000 * 60 * 30, durationMinutes: 30, title: 'Yoga Flow', exerciseType: 'yoga', exerciseTypeValue: 78, notes: '' },
-        { startTime: Date.now() - 1000 * 60 * 60 * 24 * 2, endTime: Date.now() - 1000 * 60 * 60 * 24 * 2 + 1000 * 60 * 60, durationMinutes: 60, title: 'Gym Workout', exerciseType: 'strength_training', exerciseTypeValue: 65, notes: '' },
-        { startTime: Date.now() - 1000 * 60 * 60 * 24 * 3, endTime: Date.now() - 1000 * 60 * 60 * 24 * 3 + 1000 * 60 * 20, durationMinutes: 20, title: 'Quick HIIT', exerciseType: 'high_intensity_interval_training', exerciseTypeValue: 33, notes: '' },
-        { startTime: Date.now() - 1000 * 60 * 60 * 24 * 4, endTime: Date.now() - 1000 * 60 * 60 * 24 * 4 + 1000 * 60 * 40, durationMinutes: 40, title: 'Evening Walk', exerciseType: 'walking', exerciseTypeValue: 75, notes: '' },
-      ];
-      
-      const filtered = mockSessions.filter(s => {
-        const date = new Date(s.startTime);
-        const now = new Date();
-        if (healthPeriod === 'today') return date.toDateString() === now.toDateString();
-        if (healthPeriod === 'week') return date.getTime() > now.getTime() - 7 * 24 * 60 * 60 * 1000;
-        if (healthPeriod === 'month') return date.getTime() > now.getTime() - 30 * 24 * 60 * 60 * 1000;
-        return true;
-      });
-      
-      setExerciseSessions(filtered);
-      return;
-    }
-    
-    setIsLoadingExercises(true);
-    try {
-      const { sessions } = await HealthConnect.getExerciseSessions({ period: healthPeriod });
-      const sorted = sessions.sort((a, b) => b.startTime - a.startTime);
-      setExerciseSessions(sorted);
-    } catch (error) {
-      console.error("Failed to load exercise sessions", error);
-      setExerciseSessions([]);
-    } finally {
-      setIsLoadingExercises(false);
-    }
-  };
-  
-  const loadHealthInsight = async () => {
-    if (!goal) return;
-    
-    const minutesPerDay = goal.minutesPerDay || 30;
-    const goalMinutes = healthPeriod === "today" ? minutesPerDay :
-                       healthPeriod === "week" ? minutesPerDay * 7 :
-                       healthPeriod === "month" ? minutesPerDay * 30 :
-                       minutesPerDay * 365;
-    
-    setIsLoadingInsight(true);
-    try {
-      const response = await fetch('/api/health/insight', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          totalMinutes,
-          goalMinutes,
-          period: healthPeriod,
-          minutesPerDay: goal.minutesPerDay,
-        }),
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        setHealthInsight(data.insight);
-      }
-    } catch (error) {
-      console.error('Failed to fetch insight:', error);
-    } finally {
-      setIsLoadingInsight(false);
-    }
-  };
-  
   const handleSaveEdit = async () => {
     if (!goal || isSavingEdit) return;
     
@@ -176,8 +76,8 @@ export default function GoalDetailPage() {
         }
       }
       
-      const updatedGoal = await api.goals.update(goal.id, updates);
-      setGoal(updatedGoal);
+      await api.goals.update(goal.id, updates);
+      queryClient.invalidateQueries({ queryKey: ['goal', id] });
       setEditDialogOpen(false);
     } catch (error) {
       console.error("Error updating goal:", error);
@@ -187,11 +87,10 @@ export default function GoalDetailPage() {
     }
   };
 
-
   const handleSaveNotification = async (time: Goal["notificationTime"] | null, days: Goal["notificationDays"] | null) => {
     if (!goal) return;
-    const updatedGoal = await api.goals.updateNotifications(goal.id, time ?? undefined, days ?? undefined);
-    setGoal(updatedGoal);
+    await api.goals.updateNotifications(goal.id, time ?? undefined, days ?? undefined);
+    queryClient.invalidateQueries({ queryKey: ['goal', id] });
   };
   
   // Update learn progress when progress data changes
@@ -218,7 +117,7 @@ export default function GoalDetailPage() {
     }
   }, [goal, progress, isUpdatingLearnProgress, refreshProgress]);
 
-  if (isLoading) {
+  if (isGoalLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-50">
         <div className="h-8 w-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
@@ -282,16 +181,15 @@ export default function GoalDetailPage() {
           <Bell className={`h-5 w-5 ${goal.notificationTime && goal.notificationDays ? 'fill-current text-blue-600 dark:text-blue-400' : 'text-muted-foreground'}`} />
         </Button>
       </div>
-      {goal && (
-        <NotificationDialog
-          open={notificationDialogOpen}
-          onOpenChange={setNotificationDialogOpen}
-          goalId={goal.id}
-          currentTime={goal.notificationTime}
-          currentDays={goal.notificationDays}
-          onSave={handleSaveNotification}
-        />
-      )}
+
+      <NotificationDialog
+        open={notificationDialogOpen}
+        onOpenChange={setNotificationDialogOpen}
+        goalId={goal.id}
+        currentTime={goal.notificationTime}
+        currentDays={goal.notificationDays}
+        onSave={handleSaveNotification}
+      />
 
       {/* Goal Context Card */}
       <div className="p-4 bg-background z-10 shrink-0 space-y-4">
@@ -323,151 +221,27 @@ export default function GoalDetailPage() {
         
         {/* Learn-specific content */}
         {goal.category === 'learn' && (
-          <div className="space-y-4">
-            {/* Manual Progress Tracking */}
-            <Card className="border-none shadow-sm bg-blue-50 dark:bg-blue-950/30">
-              <CardContent className="p-4 space-y-4">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-blue-900 dark:text-blue-100">
-                    Today's Progress
-                  </span>
-                  <span className="text-lg font-bold text-blue-700 dark:text-blue-300">
-                    {learnProgress} points
-                  </span>
-                </div>
-                <div className="flex gap-3">
-                  <Button
-                    onClick={() => handleIncrementLearnProgress(1)}
-                    disabled={isUpdatingLearnProgress}
-                    className="flex-1 h-12 bg-blue-600 hover:bg-blue-700 text-white"
-                  >
-                    <FileText className="h-4 w-4 mr-2" />
-                    Article (+1)
-                  </Button>
-                  <Button
-                    onClick={() => handleIncrementLearnProgress(10)}
-                    disabled={isUpdatingLearnProgress}
-                    className="flex-1 h-12 bg-blue-700 hover:bg-blue-800 text-white"
-                  >
-                    <BookOpen className="h-4 w-4 mr-2" />
-                    Book (+10)
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-            
-            <MediaCard 
-              notes={notes} 
-              onToggleNote={toggleNote}
-              onUpdateNote={updateNote}
-              onDeleteNote={deleteNote}
-            />
-          </div>
+          <LearnGoalView
+            goal={goal}
+            learnProgress={learnProgress}
+            handleIncrementLearnProgress={handleIncrementLearnProgress}
+            isUpdatingLearnProgress={isUpdatingLearnProgress}
+            notes={notes}
+            toggleNote={toggleNote}
+            updateNote={updateNote}
+            deleteNote={deleteNote}
+          />
         )}
         
         {/* Health-specific content */}
         {goal.category === 'health' && hasPermission && (
-          <div className="space-y-4">
-            <Tabs value={healthPeriod} onValueChange={(v) => setHealthPeriod(v as typeof healthPeriod)}>
-              <TabsList className="w-full">
-                <TabsTrigger value="today">Today</TabsTrigger>
-                <TabsTrigger value="week">Week</TabsTrigger>
-                <TabsTrigger value="month">Month</TabsTrigger>
-                <TabsTrigger value="year">Year</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value={healthPeriod} className="space-y-4 mt-4">
-                {/* Progress Summary */}
-                <Card className="border-none shadow-sm bg-green-50 dark:bg-green-950/30">
-                  <CardContent className="p-4 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-green-900 dark:text-green-100">
-                        Exercise Time
-                      </span>
-                      <span className="text-lg font-bold text-green-700 dark:text-green-300">
-                        {formatMinutes(totalMinutes)}
-                      </span>
-                    </div>
-                    {goal.minutesPerDay && (
-                      <div className="text-xs text-green-700/70 dark:text-green-300/70">
-                        Goal: {formatMinutes(
-                          healthPeriod === "today" ? goal.minutesPerDay :
-                          healthPeriod === "week" ? goal.minutesPerDay * 7 :
-                          healthPeriod === "month" ? goal.minutesPerDay * 30 :
-                          goal.minutesPerDay * 365
-                        )}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-                
-                {/* Insight */}
-                {healthInsight && (
-                  <Card className="border-none shadow-sm bg-green-50/50 dark:bg-green-950/20">
-                    <CardContent className="p-4 space-y-2">
-                      <div className="flex items-start gap-2">
-                        <Sparkles className="h-4 w-4 text-green-600 dark:text-green-400 mt-0.5 flex-shrink-0" />
-                        <p className="text-sm text-green-800 dark:text-green-200 leading-relaxed">
-                          {healthInsight}
-                        </p>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-                {isLoadingInsight && (
-                  <Card className="border-none shadow-sm bg-green-50/50 dark:bg-green-950/20">
-                    <CardContent className="p-4">
-                      <div className="flex items-center gap-2">
-                        <Loader2 className="h-4 w-4 text-green-600 dark:text-green-400 animate-spin" />
-                        <p className="text-sm text-green-800/60 dark:text-green-200/60">
-                          Generating insight...
-                        </p>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-                
-                {/* Exercise Log */}
-                <Card className="border-none shadow-sm">
-                  <CardContent className="p-4 space-y-3">
-                    <h3 className="text-sm font-semibold text-foreground">Exercise Log</h3>
-                    {isLoadingExercises ? (
-                      <div className="flex items-center justify-center py-8">
-                        <Loader2 className="h-6 w-6 animate-spin text-green-600 dark:text-green-400" />
-                      </div>
-                    ) : exerciseSessions.length === 0 ? (
-                      <p className="text-sm text-muted-foreground text-center py-4">
-                        No exercise sessions found for {healthPeriod === "today" ? "today" : healthPeriod === "week" ? "this week" : healthPeriod === "month" ? "this month" : "this year"}
-                      </p>
-                    ) : (
-                      <div className="space-y-3 max-h-64 overflow-y-auto">
-                        {exerciseSessions.map((session, index) => (
-                          <div
-                            key={`${session.startTime}-${index}`}
-                            className="bg-muted rounded-lg p-3 space-y-1"
-                          >
-                            <div className="flex items-start justify-between">
-                              <div className="flex-1 min-w-0">
-                                <p className="font-medium text-sm text-foreground">
-                                  {session.title || getExerciseTypeName(session.exerciseType, session.exerciseTypeValue)}
-                                </p>
-                                <p className="text-xs text-muted-foreground">
-                                  {new Date(session.startTime).toLocaleDateString()} • {new Date(session.startTime).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
-                                </p>
-                              </div>
-                              <div className="text-sm font-semibold text-green-600 dark:text-green-400">
-                                {formatMinutes(session.durationMinutes)}
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </TabsContent>
-            </Tabs>
-          </div>
+          <HealthGoalView
+            goal={goal}
+            totalMinutes={totalMinutes}
+            sessions={sessions}
+            healthPeriod={healthPeriod}
+            setHealthPeriod={setHealthPeriod}
+          />
         )}
       </div>
 
@@ -528,42 +302,32 @@ export default function GoalDetailPage() {
           </DialogBody>
         </DialogContent>
       </Dialog>
-      {goal && (
-        <GoalChatDialog
-          open={chatDialogOpen}
-          onOpenChange={setChatDialogOpen}
-          goal={goal}
-          additionalContext={{
-            progressData: goal.category === 'health' ? undefined : {
-              todayProgress: goal.todayProgress,
-            },
-            healthData: goal.category === 'health' ? {
-              totalMinutes,
-              goalMinutes: healthPeriod === "today" ? (goal.minutesPerDay || 30) :
-                           healthPeriod === "week" ? (goal.minutesPerDay || 30) * 7 :
-                           healthPeriod === "month" ? (goal.minutesPerDay || 30) * 30 :
-                           (goal.minutesPerDay || 30) * 365,
-              period: healthPeriod,
-              percentage: goal.minutesPerDay ? Math.min(100, Math.round((totalMinutes / ((healthPeriod === "today" ? goal.minutesPerDay :
-                           healthPeriod === "week" ? goal.minutesPerDay * 7 :
-                           healthPeriod === "month" ? goal.minutesPerDay * 30 :
-                           goal.minutesPerDay * 365)) * 100))) : 0,
-              periodLabel: healthPeriod === "today" ? "Today" :
-                          healthPeriod === "week" ? "This Week" :
-                          healthPeriod === "month" ? "This Month" : "This Year",
-            } : undefined,
-          }}
-        />
-      )}
+      
+      <GoalChatDialog
+        open={chatDialogOpen}
+        onOpenChange={setChatDialogOpen}
+        goal={goal}
+        additionalContext={{
+          progressData: goal.category === 'health' ? undefined : {
+            todayProgress: goal.todayProgress,
+          },
+          healthData: goal.category === 'health' ? {
+            totalMinutes,
+            goalMinutes: healthPeriod === "today" ? (goal.minutesPerDay || 30) :
+                         healthPeriod === "week" ? (goal.minutesPerDay || 30) * 7 :
+                         healthPeriod === "month" ? (goal.minutesPerDay || 30) * 30 :
+                         (goal.minutesPerDay || 30) * 365,
+            period: healthPeriod,
+            percentage: goal.minutesPerDay ? Math.min(100, Math.round((totalMinutes / ((healthPeriod === "today" ? goal.minutesPerDay :
+                         healthPeriod === "week" ? goal.minutesPerDay * 7 :
+                         healthPeriod === "month" ? goal.minutesPerDay * 30 :
+                         goal.minutesPerDay * 365)) * 100))) : 0,
+            periodLabel: healthPeriod === "today" ? "Today" :
+                        healthPeriod === "week" ? "This Week" :
+                        healthPeriod === "month" ? "This Month" : "This Year",
+          } : undefined,
+        }}
+      />
     </div>
   );
-}
-
-function formatMinutes(minutes: number): string {
-  const hours = Math.floor(minutes / 60);
-  const mins = minutes % 60;
-  if (hours > 0) {
-    return `${hours}h ${mins}m`;
-  }
-  return `${mins}m`;
 }
