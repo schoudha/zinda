@@ -566,18 +566,6 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
           </Button>
         )}
       </div>
-      {notificationDialogOpen && (
-        <Suspense fallback={null}>
-          <NotificationDialog
-            open={notificationDialogOpen}
-            onOpenChange={setNotificationDialogOpen}
-            goalId={currentGoal.id}
-            currentTime={currentGoal.notificationTime}
-            currentDays={currentGoal.notificationDays}
-            onSave={handleSaveNotification}
-          />
-        </Suspense>
-      )}
       {!isHealthGoal && !isLearnGoal && (
         <CardHeader className="pb-1.5 pt-4 px-4">
           <CardTitle className={`${periodColors[goal.period].split(' ')[2]} flex items-center gap-1.5`}>
@@ -775,29 +763,42 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
           Chat with Gemini
         </Button>
       </CardContent>
-      <GoalChatDialog
-        open={chatDialogOpen}
-        onOpenChange={setChatDialogOpen}
-        goal={currentGoal}
-        additionalContext={{
-          progressData: isHealthGoal ? undefined : {
-            todayProgress: progressValue,
-            completionStats: goal.target ? { todayCompletion, weeklyCompletedDays } : undefined,
-          },
-          healthData: isHealthGoal ? {
-            totalMinutes,
-            goalMinutes: healthPeriod === "today" ? dailyTarget :
-                         healthPeriod === "week" ? dailyTarget * 7 :
-                         healthPeriod === "month" ? dailyTarget * 30 :
-                         dailyTarget * 365,
-            period: healthPeriod,
-            percentage: healthProgress,
-            periodLabel: healthPeriod === "today" ? "Today" :
-                        healthPeriod === "week" ? "This Week" :
-                        healthPeriod === "month" ? "This Month" : "This Year",
-          } : undefined,
-        }}
-      />
     </Card>
+    {notificationDialogOpen && (
+      <Suspense fallback={null}>
+        <NotificationDialog
+          open={notificationDialogOpen}
+          onOpenChange={setNotificationDialogOpen}
+          goalId={currentGoal.id}
+          currentTime={currentGoal.notificationTime}
+          currentDays={currentGoal.notificationDays}
+          onSave={handleSaveNotification}
+        />
+      </Suspense>
+    )}
+    <GoalChatDialog
+      open={chatDialogOpen}
+      onOpenChange={setChatDialogOpen}
+      goal={currentGoal}
+      additionalContext={{
+        progressData: isHealthGoal ? undefined : {
+          todayProgress: progressValue,
+          completionStats: goal.target ? { todayCompletion, weeklyCompletedDays } : undefined,
+        },
+        healthData: isHealthGoal ? {
+          totalMinutes,
+          goalMinutes: healthPeriod === "today" ? dailyTarget :
+                       healthPeriod === "week" ? dailyTarget * 7 :
+                       healthPeriod === "month" ? dailyTarget * 30 :
+                       dailyTarget * 365,
+          period: healthPeriod,
+          percentage: healthProgress,
+          periodLabel: healthPeriod === "today" ? "Today" :
+                      healthPeriod === "week" ? "This Week" :
+                      healthPeriod === "month" ? "This Month" : "This Year",
+        } : undefined,
+      }}
+    />
+    </>
   );
 });
