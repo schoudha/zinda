@@ -159,14 +159,6 @@ export default function GoalDetailPage() {
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => setChatDialogOpen(true)}
-          className="hover:bg-muted"
-        >
-          <Sparkles className="h-5 w-5 text-muted-foreground" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
           onClick={() => setEditDialogOpen(true)}
           className="hover:bg-muted"
         >
@@ -245,6 +237,17 @@ export default function GoalDetailPage() {
         )}
       </div>
 
+      {/* Gemini Chat CTA - Large bottom button */}
+      <div className="bg-background border-t border-border p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] shrink-0">
+        <Button
+          onClick={() => setChatDialogOpen(true)}
+          className="w-full h-14 text-base font-semibold gap-3"
+          size="lg"
+        >
+          <Sparkles className="h-5 w-5" />
+          Chat with Gemini AI
+        </Button>
+      </div>
       
       {/* Edit Goal Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
