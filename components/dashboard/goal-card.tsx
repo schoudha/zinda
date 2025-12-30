@@ -14,16 +14,28 @@ const NotificationDialog = lazy(() =>
   import("@/components/goals/notification-dialog").then(mod => ({ default: mod.NotificationDialog }))
 );
 
-function RadialProgress({ value, size = 60, displayText }: { value: number; size?: number; displayText?: string }) {
+function RadialProgress({ 
+  value, 
+  size = 60, 
+  displayText,
+  redThreshold = 40,
+  yellowThreshold = 70
+}: { 
+  value: number; 
+  size?: number; 
+  displayText?: string;
+  redThreshold?: number;
+  yellowThreshold?: number;
+}) {
   const radius = 24;
   const circumference = 2 * Math.PI * radius;
   const offset = circumference - (value / 100) * circumference;
 
-  // Color coding: red <40%, yellow 40-70%, green >70%
+  // Color coding: red < redThreshold%, yellow redThreshold-yellowThreshold%, green >= yellowThreshold%
   const getColorClass = () => {
-    if (value < 40) {
+    if (value < redThreshold) {
       return "text-red-500 dark:text-red-400";
-    } else if (value < 70) {
+    } else if (value < yellowThreshold) {
       return "text-yellow-500 dark:text-yellow-400";
     } else {
       return "text-green-500 dark:text-green-400";
@@ -31,9 +43,9 @@ function RadialProgress({ value, size = 60, displayText }: { value: number; size
   };
 
   const getBlurColorClass = () => {
-    if (value < 40) {
+    if (value < redThreshold) {
       return "bg-red-50 dark:bg-red-900/20";
-    } else if (value < 70) {
+    } else if (value < yellowThreshold) {
       return "bg-yellow-50 dark:bg-yellow-900/20";
     } else {
       return "bg-green-50 dark:bg-green-900/20";
@@ -199,10 +211,14 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
      });
      
      const totalDays = daysInPeriod.length;
-     normalizedProgress = totalDays > 0 ? Math.round((daysMet / totalDays) * 100) : 0;
-     healthProgress = normalizedProgress;
+     // For health goals, use absolute progress (out of 7 days)
      if (isHealthGoal) {
+       normalizedProgress = Math.round((daysMet / 7) * 100);
+       healthProgress = normalizedProgress;
        progressDisplayText = `${daysMet} ${daysMet === 1 ? 'day' : 'days'}`;
+     } else {
+       normalizedProgress = totalDays > 0 ? Math.round((daysMet / totalDays) * 100) : 0;
+       healthProgress = normalizedProgress;
      }
      displayValue = `${daysMet}/${totalDays}`;
      displayLabel = "Days >70% of goal";
@@ -548,6 +564,8 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
                       value={healthProgress} 
                       size={120} 
                       displayText={progressDisplayText}
+                      redThreshold={healthPeriod === "week" ? (2 / 7) * 100 : 40}
+                      yellowThreshold={healthPeriod === "week" ? (5 / 7) * 100 : 70}
                     />
                   </div>
                 )}
