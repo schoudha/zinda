@@ -140,8 +140,35 @@ export function useHealthConnect(period: string = 'week') {
           resumeListener.then((handle: any) => handle.remove());
       };
     } else {
-      // On web, just set to 0 (no mock data)
-      setTotalMinutes(0);
+      // On web, provide mock data for development
+      const mockSessions = [
+        { startTime: Date.now() - 1000 * 60 * 60 * 2, durationMinutes: 45, title: 'Morning Run', exerciseType: 'running' },
+        { startTime: Date.now() - 1000 * 60 * 60 * 24 * 1, durationMinutes: 30, title: 'Yoga Flow', exerciseType: 'yoga' },
+        { startTime: Date.now() - 1000 * 60 * 60 * 24 * 2, durationMinutes: 60, title: 'Gym Workout', exerciseType: 'strength_training' },
+        { startTime: Date.now() - 1000 * 60 * 60 * 24 * 3, durationMinutes: 20, title: 'Quick HIIT', exerciseType: 'high_intensity_interval_training' },
+        { startTime: Date.now() - 1000 * 60 * 60 * 24 * 4, durationMinutes: 40, title: 'Evening Walk', exerciseType: 'walking' },
+      ];
+      
+      const filteredSessions = mockSessions.filter(s => {
+        const date = new Date(s.startTime);
+        const now = new Date();
+        if (period === 'today') return date.toDateString() === now.toDateString();
+        if (period === 'week') return date.getTime() > now.getTime() - 7 * 24 * 60 * 60 * 1000;
+        if (period === 'month') return date.getTime() > now.getTime() - 30 * 24 * 60 * 60 * 1000;
+        return true;
+      });
+      
+      const total = filteredSessions.reduce((acc, s) => acc + s.durationMinutes, 0);
+      setTotalMinutes(total);
+      
+      const stats: Record<string, number> = {};
+      filteredSessions.forEach(session => {
+        const date = new Date(session.startTime).toLocaleDateString('en-CA');
+        stats[date] = (stats[date] || 0) + session.durationMinutes;
+      });
+      setDailyStats(stats);
+      setHasPermission(true);
+      setIsAvailable(true);
     }
   }, [period]);
 

@@ -93,20 +93,41 @@ export default function GoalDetailPage() {
   
   // Load exercise sessions for health goals
   useEffect(() => {
-    if (goal?.category === 'health' && isNative && hasPermission) {
+    if (goal?.category === 'health' && hasPermission) {
       loadExerciseSessions();
     }
-  }, [goal?.category, healthPeriod, isNative, hasPermission]);
+  }, [goal?.category, healthPeriod, hasPermission]);
   
   // Load health insight
   useEffect(() => {
-    if (goal?.category === 'health' && isNative && hasPermission && totalMinutes !== undefined) {
+    if (goal?.category === 'health' && hasPermission && totalMinutes !== undefined) {
       loadHealthInsight();
     }
-  }, [goal?.category, healthPeriod, totalMinutes, goal?.minutesPerDay, isNative, hasPermission]);
+  }, [goal?.category, healthPeriod, totalMinutes, goal?.minutesPerDay, hasPermission]);
   
   const loadExerciseSessions = async () => {
-    if (!Capacitor.isNativePlatform()) return;
+    if (!Capacitor.isNativePlatform()) {
+      // Mock sessions for web
+      const mockSessions: ExerciseSession[] = [
+        { startTime: Date.now() - 1000 * 60 * 60 * 2, endTime: Date.now() - 1000 * 60 * 60 * 2 + 1000 * 60 * 45, durationMinutes: 45, title: 'Morning Run', exerciseType: 'running', exerciseTypeValue: 56, notes: '' },
+        { startTime: Date.now() - 1000 * 60 * 60 * 24 * 1, endTime: Date.now() - 1000 * 60 * 60 * 24 * 1 + 1000 * 60 * 30, durationMinutes: 30, title: 'Yoga Flow', exerciseType: 'yoga', exerciseTypeValue: 78, notes: '' },
+        { startTime: Date.now() - 1000 * 60 * 60 * 24 * 2, endTime: Date.now() - 1000 * 60 * 60 * 24 * 2 + 1000 * 60 * 60, durationMinutes: 60, title: 'Gym Workout', exerciseType: 'strength_training', exerciseTypeValue: 65, notes: '' },
+        { startTime: Date.now() - 1000 * 60 * 60 * 24 * 3, endTime: Date.now() - 1000 * 60 * 60 * 24 * 3 + 1000 * 60 * 20, durationMinutes: 20, title: 'Quick HIIT', exerciseType: 'high_intensity_interval_training', exerciseTypeValue: 33, notes: '' },
+        { startTime: Date.now() - 1000 * 60 * 60 * 24 * 4, endTime: Date.now() - 1000 * 60 * 60 * 24 * 4 + 1000 * 60 * 40, durationMinutes: 40, title: 'Evening Walk', exerciseType: 'walking', exerciseTypeValue: 75, notes: '' },
+      ];
+      
+      const filtered = mockSessions.filter(s => {
+        const date = new Date(s.startTime);
+        const now = new Date();
+        if (healthPeriod === 'today') return date.toDateString() === now.toDateString();
+        if (healthPeriod === 'week') return date.getTime() > now.getTime() - 7 * 24 * 60 * 60 * 1000;
+        if (healthPeriod === 'month') return date.getTime() > now.getTime() - 30 * 24 * 60 * 60 * 1000;
+        return true;
+      });
+      
+      setExerciseSessions(filtered);
+      return;
+    }
     
     setIsLoadingExercises(true);
     try {
@@ -357,7 +378,7 @@ export default function GoalDetailPage() {
         )}
         
         {/* Health-specific content */}
-        {goal.category === 'health' && isNative && hasPermission && (
+        {goal.category === 'health' && hasPermission && (
           <div className="space-y-4">
             <Tabs value={healthPeriod} onValueChange={(v) => setHealthPeriod(v as typeof healthPeriod)}>
               <TabsList className="w-full">
