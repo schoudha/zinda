@@ -138,7 +138,7 @@ export function HealthGoalView({
                   No exercise sessions found for {healthPeriod === "today" ? "today" : healthPeriod === "week" ? "this week" : healthPeriod === "month" ? "this month" : "this year"}
                 </p>
               ) : (
-                <div className="space-y-3 max-h-64 overflow-y-auto">
+                <div className="space-y-3">
                   {sessions.map((session, index) => (
                     <div
                       key={`${session.startTime}-${index}`}

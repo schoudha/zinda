@@ -147,7 +147,7 @@ export default function GoalDetailPage() {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-background max-w-md mx-auto shadow-2xl overflow-hidden relative pt-[env(safe-area-inset-top)]">
+    <div className="flex flex-col h-screen bg-background max-w-md mx-auto shadow-2xl relative pt-[env(safe-area-inset-top)]">
       {/* Header */}
       <div className="bg-background border-b border-border p-4 flex items-center gap-4 z-10 shadow-sm shrink-0">
         <Button variant="ghost" size="icon" onClick={() => router.back()} className="-ml-2 hover:bg-muted">
@@ -191,8 +191,8 @@ export default function GoalDetailPage() {
         onSave={handleSaveNotification}
       />
 
-      {/* Goal Context Card */}
-      <div className="p-4 bg-background z-10 shrink-0 space-y-4">
+      {/* Goal Context Card - Scrollable Content */}
+      <div className="flex-1 overflow-y-auto p-4 bg-background space-y-4 pb-6">
         <Card className={`border-none shadow-sm ${periodColors[goal.period]} transition-all`}>
           <CardContent className="p-4 space-y-2">
             <div className="flex items-center gap-2 mb-1">

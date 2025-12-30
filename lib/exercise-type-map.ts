@@ -120,8 +120,18 @@ export const EXERCISE_TYPE_MAP: Record<number, string> = {
  */
 export function getExerciseTypeName(exerciseType: string, exerciseTypeValue?: number): string {
   // First try to use the integer value if available
-  if (exerciseTypeValue !== undefined && EXERCISE_TYPE_MAP[exerciseTypeValue]) {
-    return EXERCISE_TYPE_MAP[exerciseTypeValue];
+  // Handle case where exerciseTypeValue might come as string from plugin
+  const value = exerciseTypeValue !== undefined ? Number(exerciseTypeValue) : undefined;
+  
+  if (value !== undefined && !isNaN(value) && EXERCISE_TYPE_MAP[value]) {
+    return EXERCISE_TYPE_MAP[value];
+  }
+
+  // Check if exerciseType string is actually a number (e.g. "56")
+  // This happens when the plugin sends the int value as the type string
+  const typeAsNumber = parseInt(exerciseType, 10);
+  if (!isNaN(typeAsNumber) && EXERCISE_TYPE_MAP[typeAsNumber]) {
+    return EXERCISE_TYPE_MAP[typeAsNumber];
   }
 
   // Fallback to parsing the string
