@@ -73,24 +73,47 @@ class UsageStatsPlugin : Plugin() {
             }
         }
 
-        val usageStatsList = usm.queryUsageStats(intervalType, startTime, endTime)
         val timePerPackage = mutableMapOf<String, Long>()
 
         Log.d(TAG, "Querying usage stats for period: $period (startTime: $startTime, endTime: $endTime, interval: $intervalType)")
         
-        if (usageStatsList != null) {
-            Log.d(TAG, "Retrieved ${usageStatsList.size} usage stats entries")
-            for (stats in usageStatsList) {
-                if (stats.totalTimeInForeground > 0) {
-                    val pkg = stats.packageName
-                    val current = timePerPackage[pkg] ?: 0L
-                    timePerPackage[pkg] = current + stats.totalTimeInForeground
-                    Log.d(TAG, "Processing stats: $pkg = ${stats.totalTimeInForeground}ms (accumulated: ${timePerPackage[pkg]}ms)")
+        // For "today" queries, use queryAndAggregateUsageStats which handles single-day ranges correctly
+        // For multi-day queries (week/month/year), use queryUsageStats and manually aggregate
+        if (period == "today") {
+            val usageStatsMap = usm.queryAndAggregateUsageStats(startTime, endTime)
+            Log.d(TAG, "Using queryAndAggregateUsageStats for today query")
+            
+            if (usageStatsMap != null && usageStatsMap.isNotEmpty()) {
+                Log.d(TAG, "Retrieved ${usageStatsMap.size} aggregated usage stats")
+                for ((pkg, stats) in usageStatsMap) {
+                    if (stats.totalTimeInForeground > 0) {
+                        val minutes = stats.totalTimeInForeground / (60 * 1000)
+                        Log.d(TAG, "Aggregated stats: $pkg = ${stats.totalTimeInForeground}ms (${minutes}m)")
+                        timePerPackage[pkg] = stats.totalTimeInForeground
+                    }
                 }
+                Log.d(TAG, "Processed ${timePerPackage.size} packages with usage > 0")
+            } else {
+                Log.w(TAG, "Usage stats map is null or empty")
             }
-            Log.d(TAG, "Aggregated ${timePerPackage.size} unique packages")
         } else {
-            Log.w(TAG, "Usage stats list is null")
+            // For multi-day queries, use queryUsageStats and manually aggregate daily buckets
+            val usageStatsList = usm.queryUsageStats(intervalType, startTime, endTime)
+            
+            if (usageStatsList != null) {
+                Log.d(TAG, "Retrieved ${usageStatsList.size} usage stats entries for multi-day query")
+                for (stats in usageStatsList) {
+                    if (stats.totalTimeInForeground > 0) {
+                        val pkg = stats.packageName
+                        val current = timePerPackage[pkg] ?: 0L
+                        timePerPackage[pkg] = current + stats.totalTimeInForeground
+                        Log.d(TAG, "Processing stats: $pkg = ${stats.totalTimeInForeground}ms (accumulated: ${timePerPackage[pkg]}ms)")
+                    }
+                }
+                Log.d(TAG, "Aggregated ${timePerPackage.size} unique packages")
+            } else {
+                Log.w(TAG, "Usage stats list is null")
+            }
         }
 
         val result = JSObject()
@@ -182,4 +205,5 @@ class UsageStatsPlugin : Plugin() {
         call.resolve()
     }
 }
+
 
