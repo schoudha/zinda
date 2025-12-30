@@ -16,6 +16,7 @@ import com.getcapacitor.PluginCall
 import com.getcapacitor.PluginMethod
 import com.getcapacitor.annotation.CapacitorPlugin
 import java.util.Calendar
+import java.util.TimeZone
 
 @CapacitorPlugin(name = "UsageStats")
 class UsageStatsPlugin : Plugin() {
@@ -33,28 +34,36 @@ class UsageStatsPlugin : Plugin() {
         val pm = context.packageManager
         val usm = context.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
 
-        val calendar = Calendar.getInstance()
-        val endTime = calendar.timeInMillis
+        // Use system default timezone explicitly to ensure consistent timezone handling
+        val timeZone = TimeZone.getDefault()
+        val endCalendar = Calendar.getInstance(timeZone)
+        val endTime = endCalendar.timeInMillis
         var startTime: Long
         var intervalType: Int
 
         when (period) {
             "week" -> {
+                val calendar = Calendar.getInstance(timeZone)
                 calendar.add(Calendar.DAY_OF_YEAR, -7)
                 startTime = calendar.timeInMillis
                 intervalType = UsageStatsManager.INTERVAL_DAILY
             }
             "month" -> {
+                val calendar = Calendar.getInstance(timeZone)
                 calendar.add(Calendar.DAY_OF_YEAR, -30)
                 startTime = calendar.timeInMillis
                 intervalType = UsageStatsManager.INTERVAL_DAILY
             }
             "year" -> {
+                val calendar = Calendar.getInstance(timeZone)
                 calendar.add(Calendar.DAY_OF_YEAR, -365)
                 startTime = calendar.timeInMillis
                 intervalType = UsageStatsManager.INTERVAL_DAILY
             }
             "today" -> {
+                // Get a fresh calendar instance for today's start to ensure correct timezone handling
+                // This ensures we get midnight (00:00:00.000) in the device's current timezone
+                val calendar = Calendar.getInstance(timeZone)
                 calendar.set(Calendar.HOUR_OF_DAY, 0)
                 calendar.set(Calendar.MINUTE, 0)
                 calendar.set(Calendar.SECOND, 0)
@@ -64,6 +73,8 @@ class UsageStatsPlugin : Plugin() {
                 intervalType = UsageStatsManager.INTERVAL_BEST
             }
             else -> {
+                // Default to today's start
+                val calendar = Calendar.getInstance(timeZone)
                 calendar.set(Calendar.HOUR_OF_DAY, 0)
                 calendar.set(Calendar.MINUTE, 0)
                 calendar.set(Calendar.SECOND, 0)
@@ -75,27 +86,54 @@ class UsageStatsPlugin : Plugin() {
 
         val timePerPackage = mutableMapOf<String, Long>()
 
-        Log.d(TAG, "Querying usage stats for period: $period (startTime: $startTime, endTime: $endTime, interval: $intervalType)")
+        // Log timezone info for debugging
+        Log.d(TAG, "Querying usage stats for period: $period")
+        Log.d(TAG, "Timezone: ${timeZone.id} (${timeZone.displayName})")
+        Log.d(TAG, "Time range: startTime=$startTime, endTime=$endTime, interval=$intervalType")
+        Log.d(TAG, "Time range (readable): ${java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS Z", java.util.Locale.getDefault()).format(java.util.Date(startTime))} to ${java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS Z", java.util.Locale.getDefault()).format(java.util.Date(endTime))}")
         
-        // For "today" queries, use queryAndAggregateUsageStats which handles single-day ranges correctly
+        // For "today" queries, use queryEvents for precise daily tracking
         // For multi-day queries (week/month/year), use queryUsageStats and manually aggregate
         if (period == "today") {
-            val usageStatsMap = usm.queryAndAggregateUsageStats(startTime, endTime)
-            Log.d(TAG, "Using queryAndAggregateUsageStats for today query")
+            Log.d(TAG, "Using queryEvents for precise daily tracking")
             
-            if (usageStatsMap != null && usageStatsMap.isNotEmpty()) {
-                Log.d(TAG, "Retrieved ${usageStatsMap.size} aggregated usage stats")
-                for ((pkg, stats) in usageStatsMap) {
-                    if (stats.totalTimeInForeground > 0) {
-                        val minutes = stats.totalTimeInForeground / (60 * 1000)
-                        Log.d(TAG, "Aggregated stats: $pkg = ${stats.totalTimeInForeground}ms (${minutes}m)")
-                        timePerPackage[pkg] = stats.totalTimeInForeground
+            // 1. Get the raw event stream for today
+            val events = usm.queryEvents(startTime, endTime)
+            val startMap = mutableMapOf<String, Long>()
+            
+            while (events.hasNextEvent()) {
+                val event = android.app.usage.UsageEvents.Event()
+                events.getNextEvent(event)
+                val pkg = event.packageName
+
+                // 2. Track when apps move to foreground
+                if (event.eventType == android.app.usage.UsageEvents.Event.MOVE_TO_FOREGROUND) {
+                    startMap[pkg] = event.timeStamp
+                } 
+                // 3. Calculate duration when they move to background
+                else if (event.eventType == android.app.usage.UsageEvents.Event.MOVE_TO_BACKGROUND) {
+                    val start = startMap[pkg]
+                    // Only count if we saw the start event inside our 'startTime' window
+                    if (start != null) {
+                        val duration = event.timeStamp - start
+                        if (duration > 0) {
+                            timePerPackage[pkg] = (timePerPackage[pkg] ?: 0L) + duration
+                        }
+                        // Reset for next session
+                        startMap.remove(pkg) 
                     }
                 }
-                Log.d(TAG, "Processed ${timePerPackage.size} packages with usage > 0")
-            } else {
-                Log.w(TAG, "Usage stats map is null or empty")
             }
+
+            // 4. Handle apps that are STILL open right now (no background event yet)
+            for ((pkg, start) in startMap) {
+                val duration = endTime - start
+                if (duration > 0) {
+                    timePerPackage[pkg] = (timePerPackage[pkg] ?: 0L) + duration
+                }
+            }
+            
+            Log.d(TAG, "Processed event stream for ${timePerPackage.size} packages")
         } else {
             // For multi-day queries, use queryUsageStats and manually aggregate daily buckets
             val usageStatsList = usm.queryUsageStats(intervalType, startTime, endTime)
