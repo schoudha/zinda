@@ -2,14 +2,13 @@
 
 import { useState, useEffect, memo, lazy, Suspense, useCallback, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { X, Bell, MessageCircle, Plus, Minus, Sparkles, Calendar, CalendarRange, CalendarCheck, Lock } from "lucide-react";
+import { X, Bell, MessageCircle, Plus, Minus, Calendar, CalendarRange, CalendarCheck, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { Goal } from "@/types";
 import { api } from "@/lib/api";
 import { useHealthConnect } from "@/hooks/useHealthConnect";
 import { useGoalProgress } from "@/hooks/useGoals";
-import { GoalChatDialog } from "@/components/goals/goal-chat-dialog";
 
 // Lazy load NotificationDialog - only needed when user clicks bell icon
 const NotificationDialog = lazy(() => 
@@ -115,7 +114,6 @@ interface GoalCardProps {
 export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = false, onProgressChange, onProgressUpdate, selectedPeriod = "today", history }: GoalCardProps) {
   const router = useRouter();
   const [notificationDialogOpen, setNotificationDialogOpen] = useState(false);
-  const [chatDialogOpen, setChatDialogOpen] = useState(false);
   const [currentGoal, setCurrentGoal] = useState<Goal>(goal);
   const [progressValue, setProgressValue] = useState<number>(goal.todayProgress ?? 0);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -441,11 +439,6 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
     router.push(`/goals/${goal.id}`);
   }, [router, goal.id]);
 
-  const handleChatClick = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
-    setChatDialogOpen(true);
-  }, []);
-
   const handleCardClick = useCallback(async (e: React.MouseEvent | React.TouchEvent) => {
     // Handle health goals, learn goals, or if it's not today view (where progress is read-only)
     if (isHealthGoal || isLearnGoal || selectedPeriod !== "today") {
@@ -753,16 +746,6 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
             )}
           </div>
         )}
-
-        {/* Chat CTA button */}
-        <Button
-          onClick={handleChatClick}
-          size="sm"
-          className="w-full h-8 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 dark:from-purple-600 dark:to-indigo-700 dark:hover:from-purple-700 dark:hover:to-indigo-800 text-white text-xs font-medium shadow-sm"
-        >
-          <Sparkles className="h-3 w-3 mr-1.5" />
-          Chat with Gemini
-        </Button>
       </CardContent>
     </Card>
     {notificationDialogOpen && (
@@ -777,29 +760,6 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
         />
       </Suspense>
     )}
-    <GoalChatDialog
-      open={chatDialogOpen}
-      onOpenChange={setChatDialogOpen}
-      goal={currentGoal}
-      additionalContext={{
-        progressData: isHealthGoal ? undefined : {
-          todayProgress: progressValue,
-          completionStats: goal.target ? { todayCompletion, weeklyCompletedDays } : undefined,
-        },
-        healthData: isHealthGoal ? {
-          totalMinutes,
-          goalMinutes: healthPeriod === "today" ? dailyTarget :
-                       healthPeriod === "week" ? dailyTarget * 7 :
-                       healthPeriod === "month" ? dailyTarget * 30 :
-                       dailyTarget * 365,
-          period: healthPeriod,
-          percentage: healthProgress,
-          periodLabel: healthPeriod === "today" ? "Today" :
-                      healthPeriod === "week" ? "This Week" :
-                      healthPeriod === "month" ? "This Month" : "This Year",
-        } : undefined,
-      }}
-    />
     </>
   );
 });
