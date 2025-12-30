@@ -65,8 +65,8 @@ function HomeContent() {
 
   const categories: { id: GoalCategory; icon: React.ElementType | React.FC<{ className?: string }>; color: string }[] = [
     { id: "health", icon: HealthIcon, color: "text-rose-500" },
-    { id: "faith", icon: PrayerIcon, color: "text-violet-500" },
     { id: "learn", icon: LearnIcon, color: "text-blue-500" },
+    { id: "faith", icon: PrayerIcon, color: "text-violet-500" },
     { id: "family", icon: FamilyIcon, color: "text-emerald-500" },
   ];
 
