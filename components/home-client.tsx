@@ -73,6 +73,49 @@ function HomeContent() {
     { id: "family", icon: FamilyIcon, color: "text-emerald-500" },
   ];
 
+  // Memoize goals filtering to prevent recalculation on every render
+  const filteredGoals = useMemo(() => {
+    if (selectedPeriod === "today") {
+      return goalsWithProgress; // Show all goals in today view
+    }
+    return goalsWithProgress.filter((goal) => {
+      if (goal.period === "year") return true;
+      if (goal.period === "month") return selectedPeriod === "month" || selectedPeriod === "week";
+      return goal.period === selectedPeriod;
+    });
+  }, [goalsWithProgress, selectedPeriod]);
+
+  // Group goals by category
+  const goalsByCategory = useMemo(() => {
+    const grouped: Record<string, Goal[]> = {
+      health: [],
+      faith: [],
+      learn: [],
+      family: []
+    };
+    
+    filteredGoals.forEach(goal => {
+      const cat = goal.category || 'health'; // Default to health
+      if (grouped[cat]) {
+        grouped[cat].push(goal);
+      } else {
+        // Handle unexpected categories or if category is null/undefined
+        if (grouped.health) grouped.health.push(goal);
+      }
+    });
+    return grouped;
+  }, [filteredGoals]);
+
+  // Memoize tab change handler
+  const handleTabChange = useCallback((tab: "goals" | "notepad" | "media" | "time") => {
+    setActiveTab(tab);
+  }, []);
+
+  // Memoize period change handler
+  const handlePeriodChange = useCallback((period: string) => {
+    setSelectedPeriod(period as "today" | GoalPeriod);
+  }, []);
+
   // Handle progress update callback
   const handleProgressUpdate = useCallback(async (goalId: string, newValue: number) => {
     if (selectedPeriod === "today") {
@@ -105,7 +148,7 @@ function HomeContent() {
   return (
     <main className="flex min-h-screen justify-center bg-background overflow-x-hidden">
       <div className="flex h-full w-full max-w-md flex-col bg-background shadow-2xl shadow-black/20 overflow-hidden min-h-screen relative border-x border-border">
-        <ScrollArea className="flex-1 pb-16">
+        <ScrollArea className="flex-1" style={{ paddingBottom: 'calc(4rem + env(safe-area-inset-bottom))' }}>
           <div className="flex flex-col gap-6 pb-6">
             {activeTab === "goals" ? (
               <>
