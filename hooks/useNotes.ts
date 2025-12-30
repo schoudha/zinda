@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Note } from "@/types";
+import { Note, Goal } from "@/types";
 import { api } from "@/lib/api";
 import { getFirstUrl, isYoutubeUrl } from "@/lib/url-utils";
 import { useEffect, useCallback } from "react";
@@ -97,6 +97,32 @@ export function useNotes() {
         (old || []).map((n) => (n.id === id ? { ...n, ...updates } : n))
       );
       return { previousNotes };
+    },
+    onSuccess: async (updatedNote, variables) => {
+      // If a note was checked and has a URL (read/watch item), increment learn goal progress
+      // api.notes.update returns Note directly
+      if (updatedNote.checked && updatedNote.url && variables.updates.checked === true) {
+        try {
+          // Get goals from query cache
+          const goals = queryClient.getQueryData<Goal[]>(["goals"]) || [];
+          const learnGoal = goals.find((g) => g.category === "learn");
+          
+          if (learnGoal) {
+            // Get current progress
+            const progress = queryClient.getQueryData<Record<string, number>>(["goal-progress", "today"]) || {};
+            const currentProgress = progress[learnGoal.id] || 0;
+            
+            // Increment progress by 1
+            await api.goals.progress.updateToday(learnGoal.id, currentProgress + 1);
+            
+            // Invalidate queries to refresh UI
+            queryClient.invalidateQueries({ queryKey: ["goal-progress"] });
+          }
+        } catch (error) {
+          // Silently fail - progress update is secondary to note update
+          console.error("Error updating learn goal progress:", error);
+        }
+      }
     },
     onError: (err, variables, context) => {
       queryClient.setQueryData(["notes"], context?.previousNotes);
