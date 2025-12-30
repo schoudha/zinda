@@ -214,29 +214,9 @@ class HealthConnectPlugin : Plugin() {
                     val clippedMinutes = maxOf(0, clippedDuration.toMinutes().toInt())
                     
                     // Log exercise type information for debugging
-                    val exerciseTypeName = record.exerciseType.toString()
-                    val exerciseTypeValue = try {
-                        // Health Connect ExerciseType enum has a 'value' property
-                        // Try to access it via reflection
-                        val clazz = record.exerciseType.javaClass
-                        val valueField = clazz.getDeclaredField("value")
-                        valueField.isAccessible = true
-                        val value = valueField.getInt(record.exerciseType)
-                        value
-                    } catch (e: NoSuchFieldException) {
-                        // If 'value' field doesn't exist, try ordinal
-                        try {
-                            val ordinal = record.exerciseType.ordinal
-                            android.util.Log.w("HealthConnect", "Using ordinal instead of value for exercise type: $exerciseTypeName (ordinal: $ordinal)")
-                            ordinal
-                        } catch (e2: Exception) {
-                            android.util.Log.e("HealthConnect", "Could not get exercise type value or ordinal: ${e2.message}")
-                            -1
-                        }
-                    } catch (e: Exception) {
-                        android.util.Log.e("HealthConnect", "Error accessing exercise type value: ${e.message}")
-                        -1
-                    }
+                    val exerciseTypeValue = record.exerciseType
+                    val exerciseTypeName = exerciseTypeValue.toString()
+                    
                     android.util.Log.d("HealthConnect", "Exercise session - Type: $exerciseTypeName, Value: $exerciseTypeValue, Title: ${record.title}, Start: ${record.startTime}, End: ${record.endTime}")
                     
                     val sessionObj = JSObject()
