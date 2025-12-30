@@ -14,7 +14,7 @@ const NotificationDialog = lazy(() =>
   import("@/components/goals/notification-dialog").then(mod => ({ default: mod.NotificationDialog }))
 );
 
-function RadialProgress({ value, size = 60 }: { value: number; size?: number }) {
+function RadialProgress({ value, size = 60, remainingMinutes }: { value: number; size?: number; remainingMinutes?: number }) {
   const radius = 24;
   const circumference = 2 * Math.PI * radius;
   const offset = circumference - (value / 100) * circumference;
@@ -68,9 +68,13 @@ function RadialProgress({ value, size = 60 }: { value: number; size?: number }) 
           cy="30"
         />
       </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center z-10">
-        <span className="text-sm font-extrabold text-gray-900 dark:text-white">{value}%</span>
-      </div>
+      {remainingMinutes !== undefined && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center z-10">
+          <span className="text-xs font-extrabold text-gray-900 dark:text-white leading-tight">
+            {formatMinutes(Math.max(0, remainingMinutes))}
+          </span>
+        </div>
+      )}
     </div>
   );
 }
@@ -524,7 +528,11 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
               </div>
             ) : (
               <div className="flex items-center gap-4">
-                <RadialProgress value={healthProgress} size={64} />
+                <RadialProgress 
+                  value={healthProgress} 
+                  size={64} 
+                  remainingMinutes={isHealthGoal && healthPeriod === "today" ? dailyTarget - totalMinutes : undefined} 
+                />
                 <div className="flex-1 space-y-1.5">
                   <div className="flex items-baseline justify-between gap-2">
                     <span className="text-xl font-extrabold text-gray-900 dark:text-white tracking-tight">

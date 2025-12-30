@@ -8,7 +8,7 @@ import { Lock } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { GoalCreationDialog } from "@/components/goals/goal-creation-dialog";
 
-function RadialProgress({ value, size = 60 }: { value: number; size?: number }) {
+function RadialProgress({ value, size = 60, remainingMinutes }: { value: number; size?: number; remainingMinutes?: number }) {
   const radius = 24;
   const circumference = 2 * Math.PI * radius;
   const offset = circumference - (value / 100) * circumference;
@@ -62,9 +62,13 @@ function RadialProgress({ value, size = 60 }: { value: number; size?: number }) 
           cy="30"
         />
       </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center z-10">
-        <span className="text-sm font-extrabold text-gray-900 dark:text-white">{value}%</span>
-      </div>
+      {remainingMinutes !== undefined && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center z-10">
+          <span className="text-xs font-extrabold text-gray-900 dark:text-white leading-tight">
+            {formatMinutes(Math.max(0, remainingMinutes))}
+          </span>
+        </div>
+      )}
     </div>
   );
 }
@@ -162,7 +166,7 @@ export const HealthCard = memo(function HealthCard({ period = "week" }: HealthCa
         className="flex flex-col gap-4 px-6 pb-6"
       >
         <div className="flex items-center gap-6">
-          <RadialProgress value={percentage} size={72} />
+          <RadialProgress value={percentage} size={72} remainingMinutes={goalMinutes - totalMinutes} />
           <div className="space-y-3 flex-1">
             {isNative && !hasPermission ? (
               <div className="py-2">
