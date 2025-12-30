@@ -5,11 +5,11 @@ import { api } from "@/lib/api";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Header } from "@/components/dashboard/header";
 import { DateTabs } from "@/components/dashboard/date-tabs";
-import { TimeTabs } from "@/components/dashboard/time-tabs";
 import { NotepadCard } from "@/components/dashboard/notepad";
-import { WellbeingCard } from "@/components/dashboard/wellbeing-card";
-import { HealthCard } from "@/components/dashboard/health-card";
-import { TimeDistributionCard } from "@/components/dashboard/time-distribution-card";
+import { SimpleHealthCard } from "@/components/dashboard/simple-health-card";
+import { ScreentimeCard } from "@/components/dashboard/screentime-card";
+import { LocationCard } from "@/components/dashboard/location-card";
+import { FinanceCard } from "@/components/dashboard/finance-card";
 import { ThoughtInput } from "@/components/dashboard/thought-input";
 import { BottomNav } from "@/components/dashboard/bottom-nav";
 import { GoalCard } from "@/components/dashboard/goal-card";
@@ -47,7 +47,6 @@ function HomeContent() {
   
   const [activeTab, setActiveTab] = useState<"goals" | "notepad" | "time">("goals");
   const [selectedPeriod, setSelectedPeriod] = useState<"today" | GoalPeriod>("today");
-  const [selectedTimePeriod, setSelectedTimePeriod] = useState<"today" | "week" | "month" | "year">("today");
   // Derived state combining goals and progress
   const goalsWithProgress = useMemo(() => {
     return goals.map(goal => ({
@@ -235,10 +234,10 @@ function HomeContent() {
               </>
             ) : activeTab === "time" ? (
               <div className="flex flex-col gap-6 px-6">
-                <TimeTabs value={selectedTimePeriod} onValueChange={setSelectedTimePeriod} />
-                <HealthCard period={selectedTimePeriod} />
-                <WellbeingCard period={selectedTimePeriod} />
-                <TimeDistributionCard />
+                <SimpleHealthCard period="today" />
+                <ScreentimeCard period="today" />
+                <LocationCard />
+                <FinanceCard />
               </div>
             ) : (
               <div className="flex flex-col gap-4 px-4 overflow-hidden">
