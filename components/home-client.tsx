@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, Suspense, useMemo, useCallback } from "react";
+import { api } from "@/lib/api";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Header } from "@/components/dashboard/header";
 import { DateTabs } from "@/components/dashboard/date-tabs";
@@ -20,7 +21,6 @@ import { useGoals, useGoalProgress } from "@/hooks/useGoals";
 import { useNotes } from "@/hooks/useNotes";
 import { GoalPeriod, Goal, GoalCategory } from "@/types";
 import { DashboardSkeleton, GoalCardSkeleton } from "@/components/ui/skeleton";
-import { api } from "@/lib/api";
 // Health icon (heart ❤️)
 const HealthIcon = ({ className }: { className?: string }) => (
   <span className={className} style={{ fontSize: 'inherit', lineHeight: 1 }}>❤️</span>
@@ -59,9 +59,40 @@ function HomeContent() {
 
   const [goalCreationDialogOpen, setGoalCreationDialogOpen] = useState(false);
   const [selectedCategoryForCreation, setSelectedCategoryForCreation] = useState<GoalCategory>("health");
+  const [isAutoCreatingLearnGoal, setIsAutoCreatingLearnGoal] = useState(false);
   
   const searchParams = useSearchParams();
   const router = useRouter();
+  
+  // Auto-create learn goal if media notes exist but no learn goal
+  useEffect(() => {
+    const mediaNotes = notes.filter(note => note.url);
+    const hasLearnGoal = goals.some(goal => goal.category === "learn");
+    
+    if (mediaNotes.length > 0 && !hasLearnGoal && !goalsLoading && !isAutoCreatingLearnGoal) {
+      setIsAutoCreatingLearnGoal(true);
+      const goalId = Date.now().toString();
+      const goalData = {
+        id: goalId,
+        text: "Learn",
+        period: "week" as GoalPeriod,
+        category: "learn" as GoalCategory,
+        tips: [],
+        createdAt: new Date(),
+      };
+      
+      api.goals.create(goalData)
+        .then(() => {
+          refreshGoals();
+        })
+        .catch((error) => {
+          console.error("Error auto-creating learn goal:", error);
+        })
+        .finally(() => {
+          setIsAutoCreatingLearnGoal(false);
+        });
+    }
+  }, [notes, goals, goalsLoading, isAutoCreatingLearnGoal, refreshGoals]);
 
   const categories: { id: GoalCategory; icon: React.ElementType | React.FC<{ className?: string }>; color: string }[] = [
     { id: "health", icon: HealthIcon, color: "text-rose-500" },

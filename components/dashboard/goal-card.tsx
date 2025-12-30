@@ -514,7 +514,7 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
       tabIndex={(isHealthGoal || isLearnGoal || selectedPeriod !== "today") ? 0 : undefined}
     >
       <div className="absolute top-1.5 right-1.5 flex gap-0.5 z-10">
-        {!isHealthGoal && (
+        {!isHealthGoal && !isLearnGoal && (
           <Button
             variant="ghost"
             size="icon"
@@ -547,7 +547,7 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
           />
         </Suspense>
       )}
-      {!isHealthGoal && (
+      {!isHealthGoal && !isLearnGoal && (
         <CardHeader className="pb-1.5 pt-4 px-4">
           <CardTitle className={`${periodColors[goal.period].split(' ')[2]} flex items-center gap-1.5`}>
             <div className={`h-1 w-1 rounded-full ${goal.period === 'week' ? 'bg-blue-500' : goal.period === 'month' ? 'bg-purple-500' : 'bg-orange-500'} animate-pulse`} />
@@ -604,9 +604,6 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
                     yellowThreshold={70}
                   />
                 </div>
-                <p className="text-center text-xs text-gray-600 dark:text-gray-400 mt-2">
-                  Items completed
-                </p>
               </>
             ) : (
               <>
@@ -633,22 +630,6 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
                 </div>
               </>
             )}
-          </div>
-        ) : isLearnGoal && selectedPeriod === "today" ? (
-          <div className="flex flex-col gap-2">
-            <h3 className="text-sm font-bold text-gray-900 dark:text-white leading-tight tracking-tight text-center mb-2">
-              {goal.text}
-            </h3>
-            <div className="flex items-center justify-center">
-              <div className="text-center">
-                <div className="text-2xl font-extrabold text-gray-900 dark:text-white">
-                  {learnCompletionCount.completed} / {learnCompletionCount.total}
-                </div>
-                <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                  Items completed
-                </p>
-              </div>
-            </div>
           </div>
         ) : goal.target ? (
           <div className="flex flex-col gap-2">
