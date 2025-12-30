@@ -26,9 +26,9 @@ const HealthIcon = ({ className }: { className?: string }) => (
   <span className={className} style={{ fontSize: 'inherit', lineHeight: 1 }}>❤️</span>
 );
 
-// Prayer icon (person kneeling 🧎)
+// Prayer icon (folded hands 🙏)
 const PrayerIcon = ({ className }: { className?: string }) => (
-  <span className={className} style={{ fontSize: 'inherit', lineHeight: 1 }}>🧎</span>
+  <span className={className} style={{ fontSize: 'inherit', lineHeight: 1 }}>🙏</span>
 );
 
 // Learn icon (book 📚)
