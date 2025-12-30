@@ -125,57 +125,141 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
   let displayLabel = "";
   let goalLabel = "";
 
-  const getDateStr = (daysAgo: number) => {
-    const d = new Date();
-    d.setDate(d.getDate() - daysAgo);
-    return d.toLocaleDateString('en-CA');
+  // Helper to get normalized start date for period
+  const getPeriodStart = (period: string): Date => {
+    const now = new Date();
+    if (period === "week") {
+      // Start from most recent Sunday (getDay() returns 0 for Sunday, 1 for Monday, etc.)
+      const dayOfWeek = now.getDay();
+      const start = new Date(now);
+      // Subtract dayOfWeek to get back to Sunday (if today is Sunday, subtract 0; if Monday, subtract 1, etc.)
+      start.setDate(now.getDate() - dayOfWeek);
+      start.setHours(0, 0, 0, 0);
+      // Verify we're on Sunday (sanity check - this should always be true after the calculation above)
+      if (start.getDay() !== 0) {
+        // If somehow we're not on Sunday, adjust to the previous Sunday
+        start.setDate(start.getDate() - start.getDay());
+        start.setHours(0, 0, 0, 0);
+      }
+      return start;
+    } else if (period === "month") {
+      // Start from 1st of current month
+      const start = new Date(now.getFullYear(), now.getMonth(), 1);
+      start.setHours(0, 0, 0, 0);
+      return start;
+    } else if (period === "year") {
+      // Start from January 1st of current year
+      const start = new Date(now.getFullYear(), 0, 1);
+      start.setHours(0, 0, 0, 0);
+      return start;
+    }
+    return now;
   };
 
+  const getDateStr = (date: Date) => {
+    return date.toLocaleDateString('en-CA');
+  };
+
+  const dateRange = (start: Date, end: Date): string[] => {
+    const dates: string[] = [];
+    const current = new Date(start);
+    while (current <= end) {
+      dates.push(getDateStr(current));
+      current.setDate(current.getDate() + 1);
+    }
+    return dates;
+  };
+
+  // Calculate normalized progress for period
+  let normalizedProgress = 0;
   if (healthPeriod === "today") {
      const currentVal = isHealthGoal ? totalMinutes : progressValue;
      healthProgress = Math.min(100, Math.round((currentVal / dailyTarget) * 100));
+     normalizedProgress = healthProgress;
      displayValue = isHealthGoal ? formatMinutes(totalMinutes) : (goal.target ? `${currentVal}/${goal.target}` : `${currentVal}%`);
      displayLabel = "Today's progress";
      goalLabel = isHealthGoal ? `Goal: ${formatMinutes(dailyTarget)}` : (goal.target ? `Goal: ${goal.target}` : "");
   } else if (healthPeriod === "week") {
+     const periodStart = getPeriodStart("week");
+     const now = new Date();
+     const daysInPeriod = dateRange(periodStart, now);
+     
      let daysMet = 0;
-     for (let i = 0; i < 7; i++) {
-       const date = getDateStr(i);
+     daysInPeriod.forEach(date => {
        if ((stats[date] || 0) >= threshold) daysMet++;
-     }
-     healthProgress = Math.round((daysMet / 7) * 100);
-     displayValue = `${daysMet}/7`;
+     });
+     
+     const totalDays = daysInPeriod.length;
+     normalizedProgress = totalDays > 0 ? Math.round((daysMet / totalDays) * 100) : 0;
+     healthProgress = normalizedProgress;
+     displayValue = `${daysMet}/${totalDays}`;
      displayLabel = "Days >70% of goal";
      goalLabel = `Target: 70% daily (>${isHealthGoal ? Math.round(threshold) + 'm' : Math.round(threshold)})`;
   } else if (healthPeriod === "month") {
-     let weeksMet = 0;
-     for (let w = 0; w < 4; w++) {
-       let daysMetInWeek = 0;
-       for (let d = 0; d < 7; d++) {
-          const date = getDateStr((3 - w) * 7 + (6 - d));
-          if ((stats[date] || 0) >= threshold) daysMetInWeek++;
-       }
-       if (daysMetInWeek >= 5) weeksMet++;
+     const periodStart = getPeriodStart("month");
+     const now = new Date();
+     const daysInPeriod = dateRange(periodStart, now);
+     
+     // Group days into weeks (7-day blocks)
+     const weeks: string[][] = [];
+     for (let i = 0; i < daysInPeriod.length; i += 7) {
+       weeks.push(daysInPeriod.slice(i, i + 7));
      }
-     healthProgress = Math.round((weeksMet / 4) * 100);
-     displayValue = `${weeksMet}/4`;
+     
+     let weeksMet = 0;
+     weeks.forEach(weekDays => {
+       let daysMetInWeek = 0;
+       weekDays.forEach(date => {
+         if ((stats[date] || 0) >= threshold) daysMetInWeek++;
+       });
+       // Need at least 5 days in a week to count (or all days if week is incomplete)
+       const requiredDays = weekDays.length < 7 ? Math.ceil(weekDays.length * 5 / 7) : 5;
+       if (daysMetInWeek >= requiredDays) weeksMet++;
+     });
+     
+     const totalWeeks = weeks.length;
+     normalizedProgress = totalWeeks > 0 ? Math.round((weeksMet / totalWeeks) * 100) : 0;
+     healthProgress = normalizedProgress;
+     displayValue = `${weeksMet}/${totalWeeks}`;
      displayLabel = "Weeks 5/7 days met";
      goalLabel = `Target: 5/7 days (>${isHealthGoal ? Math.round(threshold) + 'm' : Math.round(threshold)})`;
   } else if (healthPeriod === "year") {
-     let monthsMet = 0;
-     for (let m = 0; m < 12; m++) {
-        let daysMetInMonth = 0;
-        for (let d = 0; d < 30; d++) {
-           const date = getDateStr((11 - m) * 30 + (29 - d));
-           if ((stats[date] || 0) >= threshold) daysMetInMonth++;
-        }
-        if (daysMetInMonth >= 20) monthsMet++;
+     const periodStart = getPeriodStart("year");
+     const now = new Date();
+     const daysInPeriod = dateRange(periodStart, now);
+     
+     // Group days into months (approximately 30-day blocks)
+     const months: string[][] = [];
+     const currentMonthStart = new Date(periodStart);
+     while (currentMonthStart <= now) {
+       const monthEnd = new Date(currentMonthStart.getFullYear(), currentMonthStart.getMonth() + 1, 0);
+       const monthEndDate = monthEnd > now ? now : monthEnd;
+       const monthDays = dateRange(new Date(currentMonthStart), monthEndDate);
+       if (monthDays.length > 0) months.push(monthDays);
+       
+       currentMonthStart.setMonth(currentMonthStart.getMonth() + 1);
+       currentMonthStart.setDate(1);
      }
-     healthProgress = Math.round((monthsMet / 12) * 100);
-     displayValue = `${monthsMet}/12`;
+     
+     let monthsMet = 0;
+     months.forEach(monthDays => {
+       let daysMetInMonth = 0;
+       monthDays.forEach(date => {
+         if ((stats[date] || 0) >= threshold) daysMetInMonth++;
+       });
+       // Need at least 20 days in a month (or proportional if month is incomplete)
+       const requiredDays = monthDays.length < 30 ? Math.ceil(monthDays.length * 20 / 30) : 20;
+       if (daysMetInMonth >= requiredDays) monthsMet++;
+     });
+     
+     const totalMonths = months.length;
+     normalizedProgress = totalMonths > 0 ? Math.round((monthsMet / totalMonths) * 100) : 0;
+     healthProgress = normalizedProgress;
+     displayValue = `${monthsMet}/${totalMonths}`;
      displayLabel = "Months 20/30 days met";
      goalLabel = `Target: 20/30 days (>${isHealthGoal ? Math.round(threshold) + 'm' : Math.round(threshold)})`;
   }
+
 
   // Sync goal prop with local state when it changes
   useEffect(() => {
@@ -230,6 +314,26 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
     month: "from-purple-50 to-pink-50 text-purple-600/80 dark:from-purple-950/20 dark:to-pink-950/20 dark:text-purple-400",
     year: "from-orange-50 to-amber-50 text-orange-600/80 dark:from-orange-950/20 dark:to-amber-950/20 dark:text-orange-400",
   };
+
+  // Get color hue based on progress (only for weekly, monthly, yearly views)
+  const getProgressColor = (period: string, progress: number): string => {
+    if (period === "today") return periodColors[goal.period];
+    
+    if (progress >= 70) {
+      // Green: On track (>= 70%)
+      return "from-green-50 to-emerald-50 text-green-600/80 dark:from-green-950/20 dark:to-emerald-950/20 dark:text-green-400";
+    } else if (progress >= 50) {
+      // Yellow: More than 50% but not quite there (50-70%)
+      return "from-yellow-50 to-amber-50 text-yellow-600/80 dark:from-yellow-950/20 dark:to-amber-950/20 dark:text-yellow-400";
+    } else {
+      // Red: Far behind (< 50%)
+      return "from-red-50 to-rose-50 text-red-600/80 dark:from-red-950/20 dark:to-rose-950/20 dark:text-red-400";
+    }
+  };
+
+  const cardColorClass = selectedPeriod !== "today" 
+    ? getProgressColor(healthPeriod, normalizedProgress)
+    : periodColors[goal.period];
 
   const handleDelete = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
@@ -349,7 +453,7 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
 
   return (
     <Card 
-      className={`border-none bg-gradient-to-br ${periodColors[goal.period]} shadow-lg shadow-blue-900/5 dark:shadow-black/20 rounded-2xl ring-1 ring-black/5 dark:ring-white/5 overflow-hidden transition-all duration-300 hover:shadow-blue-900/10 dark:hover:shadow-black/30 relative ${(isHealthGoal || selectedPeriod !== "today") ? 'cursor-pointer active:scale-95' : ''}`}
+      className={`border-none bg-gradient-to-br ${cardColorClass} shadow-lg shadow-blue-900/5 dark:shadow-black/20 rounded-2xl ring-1 ring-black/5 dark:ring-white/5 overflow-hidden transition-all duration-300 hover:shadow-blue-900/10 dark:hover:shadow-black/30 relative ${(isHealthGoal || selectedPeriod !== "today") ? 'cursor-pointer active:scale-95' : ''}`}
       onClick={(isHealthGoal || selectedPeriod !== "today") ? handleCardClick : undefined}
       onKeyDown={(isHealthGoal || selectedPeriod !== "today") ? handleKeyDown : undefined}
       role={(isHealthGoal || selectedPeriod !== "today") ? "button" : undefined}
