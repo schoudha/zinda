@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, Bell, Edit2, Sparkles, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -18,7 +18,9 @@ import { HealthConnect, ExerciseSession } from "@/lib/capacitor/health-connect";
 import { Capacitor } from "@capacitor/core";
 import { getExerciseTypeName } from "@/lib/exercise-type-map";
 import { useNotes } from "@/hooks/useNotes";
+import { useGoalProgress } from "@/hooks/useGoals";
 import { MediaCard } from "@/components/dashboard/media-card";
+import { BookOpen, FileText, Plus } from "lucide-react";
 
 export default function GoalDetailPage() {
   const paramsRaw = useParams();
@@ -39,12 +41,17 @@ export default function GoalDetailPage() {
   const [editText, setEditText] = useState("");
   const [editMinutesPerDay, setEditMinutesPerDay] = useState<string>("");
   const [isSavingEdit, setIsSavingEdit] = useState(false);
+  const [learnProgress, setLearnProgress] = useState<number>(0);
+  const [isUpdatingLearnProgress, setIsUpdatingLearnProgress] = useState(false);
   
   // Health data
   const { totalMinutes, hasPermission, isNative } = useHealthConnect(healthPeriod);
   
   // Notes for learn goals
   const { notes, toggleNote, updateNote, deleteNote } = useNotes();
+  
+  // Get progress for learn goals
+  const { progress, refreshProgress } = useGoalProgress();
 
   // Resolve params (handle both Promise and direct object cases)
   useEffect(() => {
@@ -177,6 +184,30 @@ export default function GoalDetailPage() {
     const updatedGoal = await api.goals.updateNotifications(goal.id, time ?? undefined, days ?? undefined);
     setGoal(updatedGoal);
   };
+  
+  // Update learn progress when progress data changes
+  useEffect(() => {
+    if (goal?.category === 'learn' && id) {
+      setLearnProgress(progress[id] || 0);
+    }
+  }, [goal?.category, id, progress]);
+  
+  // Handle manual increment for learn goals
+  const handleIncrementLearnProgress = useCallback(async (points: number) => {
+    if (!goal || goal.category !== 'learn' || isUpdatingLearnProgress) return;
+    
+    setIsUpdatingLearnProgress(true);
+    try {
+      const currentProgress = progress[goal.id] || 0;
+      const newProgress = currentProgress + points;
+      await api.goals.progress.updateToday(goal.id, newProgress);
+      await refreshProgress();
+    } catch (error) {
+      console.error("Error updating learn progress:", error);
+    } finally {
+      setIsUpdatingLearnProgress(false);
+    }
+  }, [goal, progress, isUpdatingLearnProgress, refreshProgress]);
 
   if (isLoading) {
     return (
@@ -284,6 +315,38 @@ export default function GoalDetailPage() {
         {/* Learn-specific content */}
         {goal.category === 'learn' && (
           <div className="space-y-4">
+            {/* Manual Progress Tracking */}
+            <Card className="border-none shadow-sm bg-blue-50 dark:bg-blue-950/30">
+              <CardContent className="p-4 space-y-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                    Today's Progress
+                  </span>
+                  <span className="text-lg font-bold text-blue-700 dark:text-blue-300">
+                    {learnProgress} points
+                  </span>
+                </div>
+                <div className="flex gap-3">
+                  <Button
+                    onClick={() => handleIncrementLearnProgress(1)}
+                    disabled={isUpdatingLearnProgress}
+                    className="flex-1 h-12 bg-blue-600 hover:bg-blue-700 text-white"
+                  >
+                    <FileText className="h-4 w-4 mr-2" />
+                    Article (+1)
+                  </Button>
+                  <Button
+                    onClick={() => handleIncrementLearnProgress(10)}
+                    disabled={isUpdatingLearnProgress}
+                    className="flex-1 h-12 bg-blue-700 hover:bg-blue-800 text-white"
+                  >
+                    <BookOpen className="h-4 w-4 mr-2" />
+                    Book (+10)
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+            
             <MediaCard 
               notes={notes} 
               onToggleNote={toggleNote}

@@ -8,7 +8,7 @@ import { useRouter } from "next/navigation";
 import { Goal } from "@/types";
 import { api } from "@/lib/api";
 import { useHealthConnect } from "@/hooks/useHealthConnect";
-import { useNotes } from "@/hooks/useNotes";
+import { useGoalProgress } from "@/hooks/useGoals";
 import { GoalChatDialog } from "@/components/goals/goal-chat-dialog";
 
 // Lazy load NotificationDialog - only needed when user clicks bell icon
@@ -132,32 +132,11 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
   const healthPeriod = selectedPeriod === "today" ? "today" : selectedPeriod === "week" ? "week" : selectedPeriod === "month" ? "month" : "year";
   const { totalMinutes, dailyStats, hasPermission, isNative, requestPermission } = useHealthConnect(isHealthGoal ? healthPeriod : "week");
   
-  // Notes for learn goals
-  const { notes } = useNotes();
+  // Get progress data for learn goals
+  const { progress, history: progressHistory } = useGoalProgress();
   
-  // Calculate completion count for learn goals (media notes with URLs)
-  const learnCompletionCount = useMemo(() => {
-    if (!isLearnGoal) return { completed: 0, total: 0 };
-    const mediaNotes = notes.filter(note => note.url);
-    const completed = mediaNotes.filter(note => note.checked).length;
-    return { completed, total: mediaNotes.length };
-  }, [isLearnGoal, notes]);
-  
-  // Use either health data or local history
-  const stats = isHealthGoal ? dailyStats : (history || {});
-  
-  // Calculate goal stats
-  const minutesPerDay = goal.minutesPerDay || 21; // Default 21 min/day
-  const dailyTarget = isHealthGoal ? minutesPerDay : (goal.target || 100);
-  const threshold = isHealthGoal ? (0.7 * dailyTarget) : (goal.target ? (0.7 * goal.target) : 70);
-
-  let healthProgress = 0;
-  let displayValue = "";
-  let displayLabel = "";
-  let goalLabel = "";
-
   // Helper to get normalized start date for period
-  const getPeriodStart = (period: string): Date => {
+  const getPeriodStart = useCallback((period: string): Date => {
     const now = new Date();
     if (period === "week") {
       // Start from most recent Sunday (getDay() returns 0 for Sunday, 1 for Monday, etc.)
@@ -185,7 +164,59 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
       return start;
     }
     return now;
-  };
+  }, []);
+  
+  // Calculate completion count for learn goals (using manual progress tracking)
+  const learnProgress = useMemo(() => {
+    if (!isLearnGoal) return { periodPoints: 0, target: 0, percentage: 0 };
+    
+    // Get targets for each period
+    const targets = {
+      today: 0, // No target for today
+      week: 10,
+      month: 40,
+      year: 100,
+    };
+    
+    const target = targets[healthPeriod as keyof typeof targets] || 0;
+    
+    // Calculate total points in the period from goal_progress history
+    let periodPoints = 0;
+    if (selectedPeriod === "today") {
+      // For today, use today's progress
+      periodPoints = progress[goal.id] || 0;
+    } else {
+      // For week/month/year, sum all progress values in the period
+      const periodStart = getPeriodStart(healthPeriod);
+      const now = new Date();
+      const goalHistory = progressHistory[goal.id] || {};
+      
+      // Sum progress for all days in the period
+      Object.keys(goalHistory).forEach(dateStr => {
+        const date = new Date(dateStr + 'T00:00:00');
+        if (date >= periodStart && date <= now) {
+          periodPoints += (goalHistory as Record<string, number>)[dateStr] || 0;
+        }
+      });
+    }
+    
+    const percentage = target > 0 ? Math.min(100, Math.round((periodPoints / target) * 100)) : 0;
+    
+    return { periodPoints, target, percentage };
+  }, [isLearnGoal, goal.id, selectedPeriod, healthPeriod, progress, progressHistory, getPeriodStart]);
+  
+  // Use either health data or local history
+  const stats = isHealthGoal ? dailyStats : (history || {});
+  
+  // Calculate goal stats
+  const minutesPerDay = goal.minutesPerDay || 21; // Default 21 min/day
+  const dailyTarget = isHealthGoal ? minutesPerDay : (goal.target || 100);
+  const threshold = isHealthGoal ? (0.7 * dailyTarget) : (goal.target ? (0.7 * goal.target) : 70);
+
+  let healthProgress = 0;
+  let displayValue = "";
+  let displayLabel = "";
+  let goalLabel = "";
 
   const getDateStr = (date: Date) => {
     return date.toLocaleDateString('en-CA');
@@ -597,9 +628,12 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
                 </h3>
                 <div className="flex items-center justify-center">
                   <RadialProgress 
-                    value={learnCompletionCount.total > 0 ? Math.round((learnCompletionCount.completed / learnCompletionCount.total) * 100) : 0} 
+                    value={learnProgress.percentage} 
                     size={120} 
-                    displayText={learnCompletionCount.total > 0 ? `${learnCompletionCount.completed}/${learnCompletionCount.total}` : "0/0"}
+                    displayText={selectedPeriod === "today" 
+                      ? learnProgress.periodPoints.toString()
+                      : `${learnProgress.periodPoints}/${learnProgress.target}`
+                    }
                     redThreshold={40}
                     yellowThreshold={70}
                   />
