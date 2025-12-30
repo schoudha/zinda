@@ -35,6 +35,7 @@ export async function GET() {
       notification_days: string | null;
       target: number | null;
       category: string | null;
+      minutes_per_day: number | null;
     }) => ({
       id: goal.id,
       text: goal.text,
@@ -46,6 +47,7 @@ export async function GET() {
       notificationDays: goal.notification_days as 'everyday' | 'weekday' | 'weekend' | undefined,
       target: goal.target || undefined,
       category: goal.category as 'health' | 'faith' | 'learn' | 'family' | undefined,
+      minutesPerDay: goal.minutes_per_day || undefined,
     }));
 
     return NextResponse.json({ goals });
@@ -66,7 +68,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { id, text, period, tips, createdAt, category } = body;
+    const { id, text, period, tips, createdAt, category, minutesPerDay } = body;
 
     if (!id || !text || !period) {
       return NextResponse.json(
@@ -101,6 +103,7 @@ export async function POST(request: NextRequest) {
         tips: tips || [],
         target: target || null,
         category: category || null,
+        minutes_per_day: minutesPerDay && category === 'health' ? minutesPerDay : null,
         created_at: createdAt || new Date().toISOString(),
       })
       .select()
@@ -125,6 +128,7 @@ export async function POST(request: NextRequest) {
       notificationDays: data.notification_days as 'everyday' | 'weekday' | 'weekend' | undefined,
       target: data.target || undefined,
       category: data.category as 'health' | 'faith' | 'learn' | 'family' | undefined,
+      minutesPerDay: data.minutes_per_day || undefined,
     };
 
     return NextResponse.json({ goal }, { status: 201 });
@@ -145,7 +149,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { id, text, period, tips } = body;
+    const { id, text, period, tips, minutesPerDay } = body;
 
     if (!id) {
       return NextResponse.json(
@@ -200,6 +204,16 @@ export async function PATCH(request: NextRequest) {
       }
       updateData.notification_days = body.notificationDays;
     }
+    if (minutesPerDay !== undefined) {
+      // Only allow minutesPerDay for health goals
+      if (minutesPerDay !== null && (!Number.isInteger(minutesPerDay) || minutesPerDay < 1)) {
+        return NextResponse.json(
+          { error: 'minutesPerDay must be a positive integer' },
+          { status: 400 }
+        );
+      }
+      updateData.minutes_per_day = minutesPerDay;
+    }
 
     const { data, error } = await adminClient
       .from('goals')
@@ -226,6 +240,7 @@ export async function PATCH(request: NextRequest) {
       notificationTime: data.notification_time as 'morning' | 'evening' | 'night' | undefined,
       notificationDays: data.notification_days as 'everyday' | 'weekday' | 'weekend' | undefined,
       target: data.target || undefined,
+      minutesPerDay: data.minutes_per_day || undefined,
     };
 
     return NextResponse.json({ goal });

@@ -39,6 +39,7 @@ interface GoalCreationDialogProps {
 export function GoalCreationDialog({ open, onOpenChange, category, onGoalCreated }: GoalCreationDialogProps) {
   const [message, setMessage] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<GoalCategory>(category);
+  const [minutesPerDay, setMinutesPerDay] = useState<string>("30");
   const [isLoading, setIsLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -47,6 +48,7 @@ export function GoalCreationDialog({ open, onOpenChange, category, onGoalCreated
     if (open) {
       setSelectedCategory(category);
       setMessage("");
+      setMinutesPerDay("30");
       // Focus the input when dialog opens
       setTimeout(() => {
         inputRef.current?.focus();
@@ -131,14 +133,24 @@ export function GoalCreationDialog({ open, onOpenChange, category, onGoalCreated
 
       // Create the goal with selected category
       const goalId = Date.now().toString();
-      await api.goals.create({
+      const goalData: any = {
         id: goalId,
         text: goalText,
         period: period,
         category: selectedCategory,
         tips: tips,
         createdAt: new Date(),
-      });
+      };
+      
+      // Add minutesPerDay for health goals
+      if (selectedCategory === "health") {
+        const minutes = parseInt(minutesPerDay, 10);
+        if (!isNaN(minutes) && minutes > 0) {
+          goalData.minutesPerDay = minutes;
+        }
+      }
+      
+      await api.goals.create(goalData);
 
       setMessage("");
       onOpenChange(false);
@@ -201,6 +213,24 @@ export function GoalCreationDialog({ open, onOpenChange, category, onGoalCreated
               );
             })}
           </div>
+          
+          {selectedCategory === "health" && (
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">
+                Target: Minutes per day
+              </label>
+              <Input
+                type="number"
+                min="1"
+                max="1440"
+                value={minutesPerDay}
+                onChange={(e) => setMinutesPerDay(e.target.value)}
+                className="w-full h-12 px-4 border border-input bg-background text-base"
+                placeholder="30"
+                disabled={isLoading}
+              />
+            </div>
+          )}
           
           <Button
             onClick={handleSubmit}

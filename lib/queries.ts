@@ -22,6 +22,8 @@ export async function fetchGoals(): Promise<Goal[]> {
     category: goal.category as 'health' | 'faith' | 'learn' | 'family' | undefined,
     notificationTime: goal.notification_time as 'morning' | 'evening' | 'night' | undefined,
     notificationDays: goal.notification_days as 'everyday' | 'weekday' | 'weekend' | undefined,
+    target: goal.target || undefined,
+    minutesPerDay: goal.minutes_per_day || undefined,
   }));
 }
 

@@ -1,10 +1,11 @@
 "use client";
 
-import { memo, useState } from "react";
+import { memo, useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useHealthConnect } from "@/hooks/useHealthConnect";
-import { Lock, MessageCircle } from "lucide-react";
+import { useGoals } from "@/hooks/useGoals";
+import { Lock, MessageCircle, Sparkles } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { ExerciseListDialog } from "./exercise-list-dialog";
 
@@ -63,13 +64,26 @@ interface HealthCardProps {
 export const HealthCard = memo(function HealthCard({ period = "week" }: HealthCardProps) {
   const router = useRouter();
   const { totalMinutes, hasPermission, isNative, requestPermission } = useHealthConnect(period);
+  const { goals } = useGoals();
   const [showExerciseList, setShowExerciseList] = useState(false);
+  const [insight, setInsight] = useState<string | null>(null);
+  const [isLoadingInsight, setIsLoadingInsight] = useState(false);
   
-  // Calculate goal minutes based on period (150 minutes/week as base)
-  const goalMinutes = period === "today" ? 21 : // ~21 min/day (150/7)
-                      period === "week" ? 150 :
-                      period === "month" ? 600 : // ~150 * 4 weeks
-                      7800; // ~150 * 52 weeks
+  // Find health goal
+  const healthGoal = goals.find(g => g.category === "health");
+  const minutesPerDay = healthGoal?.minutesPerDay;
+  
+  // Calculate goal minutes based on period
+  // If user has set minutesPerDay, use that; otherwise use defaults
+  const goalMinutes = minutesPerDay 
+    ? (period === "today" ? minutesPerDay :
+       period === "week" ? minutesPerDay * 7 :
+       period === "month" ? minutesPerDay * 30 :
+       minutesPerDay * 365)
+    : (period === "today" ? 21 : // ~21 min/day (150/7)
+       period === "week" ? 150 :
+       period === "month" ? 600 : // ~150 * 4 weeks
+       7800); // ~150 * 52 weeks
   
   const percentage = Math.min(100, Math.round((totalMinutes / goalMinutes) * 100));
   
@@ -120,6 +134,45 @@ export const HealthCard = memo(function HealthCard({ period = "week" }: HealthCa
   };
 
   const isClickable = isNative;
+
+  // Fetch insight when we have data
+  useEffect(() => {
+    if (!hasPermission || !isNative) {
+      setInsight(null);
+      return;
+    }
+
+    const fetchInsight = async () => {
+      setIsLoadingInsight(true);
+      try {
+        const response = await fetch('/api/health/insight', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            totalMinutes,
+            goalMinutes,
+            period,
+            minutesPerDay: minutesPerDay || undefined,
+          }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setInsight(data.insight);
+        }
+      } catch (error) {
+        console.error('Failed to fetch insight:', error);
+      } finally {
+        setIsLoadingInsight(false);
+      }
+    };
+
+    // Debounce insight fetching
+    const timeoutId = setTimeout(fetchInsight, 500);
+    return () => clearTimeout(timeoutId);
+  }, [totalMinutes, goalMinutes, period, minutesPerDay, hasPermission, isNative]);
 
   return (
     <>
@@ -174,6 +227,26 @@ export const HealthCard = memo(function HealthCard({ period = "week" }: HealthCa
                 <p className="text-sm text-gray-600 dark:text-gray-400">
                   Total exercise time {period === "today" ? "today" : period === "week" ? "this week" : period === "month" ? "this month" : "this year"} from Health Connect
                 </p>
+                {insight && (
+                  <div className="mt-2 p-3 rounded-lg bg-green-50/50 dark:bg-green-900/10 border border-green-200/50 dark:border-green-800/30">
+                    <div className="flex items-start gap-2">
+                      <Sparkles className="h-4 w-4 text-green-600 dark:text-green-400 mt-0.5 flex-shrink-0" />
+                      <p className="text-xs text-green-800 dark:text-green-200 leading-relaxed">
+                        {insight}
+                      </p>
+                    </div>
+                  </div>
+                )}
+                {isLoadingInsight && (
+                  <div className="mt-2 p-3 rounded-lg bg-green-50/50 dark:bg-green-900/10 border border-green-200/50 dark:border-green-800/30">
+                    <div className="flex items-center gap-2">
+                      <div className="h-4 w-4 border-2 border-green-600/30 border-t-green-600 dark:border-green-400/30 dark:border-t-green-400 rounded-full animate-spin" />
+                      <p className="text-xs text-green-800/60 dark:text-green-200/60">
+                        Generating insight...
+                      </p>
+                    </div>
+                  </div>
+                )}
               </>
             )}
           </div>

@@ -40,6 +40,7 @@ export async function GET(
       notificationDays: data.notification_days as 'everyday' | 'weekday' | 'weekend' | undefined,
       target: data.target || undefined,
       category: data.category as 'health' | 'faith' | 'learn' | 'family' | undefined,
+      minutesPerDay: data.minutes_per_day || undefined,
     };
 
     return NextResponse.json({ goal });

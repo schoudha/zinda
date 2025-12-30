@@ -26,6 +26,7 @@ export interface Goal {
   category?: GoalCategory;
   todayProgress?: number; // Progress value for today (0-100 or custom scale)
   target?: number; // Integer target for completion-based goals (e.g., "Pray namaz 3 times" -> 3)
+  minutesPerDay?: number; // Minutes per day target for health goals
 }
 
 export interface Message {
