@@ -17,6 +17,8 @@ import { useHealthConnect } from "@/hooks/useHealthConnect";
 import { HealthConnect, ExerciseSession } from "@/lib/capacitor/health-connect";
 import { Capacitor } from "@capacitor/core";
 import { getExerciseTypeName } from "@/lib/exercise-type-map";
+import { useNotes } from "@/hooks/useNotes";
+import { MediaCard } from "@/components/dashboard/media-card";
 
 export default function GoalDetailPage() {
   const paramsRaw = useParams();
@@ -40,6 +42,9 @@ export default function GoalDetailPage() {
   
   // Health data
   const { totalMinutes, hasPermission, isNative } = useHealthConnect(healthPeriod);
+  
+  // Notes for learn goals
+  const { notes, toggleNote, updateNote, deleteNote } = useNotes();
 
   // Resolve params (handle both Promise and direct object cases)
   useEffect(() => {
@@ -274,6 +279,18 @@ export default function GoalDetailPage() {
               </p>
             </CardContent>
           </Card>
+        )}
+        
+        {/* Learn-specific content */}
+        {goal.category === 'learn' && (
+          <div className="space-y-4">
+            <MediaCard 
+              notes={notes} 
+              onToggleNote={toggleNote}
+              onUpdateNote={updateNote}
+              onDeleteNote={deleteNote}
+            />
+          </div>
         )}
         
         {/* Health-specific content */}

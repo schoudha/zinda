@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, memo, lazy, Suspense, useCallback } from "react";
+import { useState, useEffect, memo, lazy, Suspense, useCallback, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { X, Bell, MessageCircle, Plus, Minus, Sparkles, Calendar, CalendarRange, CalendarCheck, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { Goal } from "@/types";
 import { api } from "@/lib/api";
 import { useHealthConnect } from "@/hooks/useHealthConnect";
+import { useNotes } from "@/hooks/useNotes";
 import { GoalChatDialog } from "@/components/goals/goal-chat-dialog";
 
 // Lazy load NotificationDialog - only needed when user clicks bell icon
@@ -127,8 +128,20 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
 
   // Health Connect integration for health goals
   const isHealthGoal = goal.category === "health";
+  const isLearnGoal = goal.category === "learn";
   const healthPeriod = selectedPeriod === "today" ? "today" : selectedPeriod === "week" ? "week" : selectedPeriod === "month" ? "month" : "year";
   const { totalMinutes, dailyStats, hasPermission, isNative, requestPermission } = useHealthConnect(isHealthGoal ? healthPeriod : "week");
+  
+  // Notes for learn goals
+  const { notes } = useNotes();
+  
+  // Calculate completion count for learn goals (media notes with URLs)
+  const learnCompletionCount = useMemo(() => {
+    if (!isLearnGoal) return { completed: 0, total: 0 };
+    const mediaNotes = notes.filter(note => note.url);
+    const completed = mediaNotes.filter(note => note.checked).length;
+    return { completed, total: mediaNotes.length };
+  }, [isLearnGoal, notes]);
   
   // Use either health data or local history
   const stats = isHealthGoal ? dailyStats : (history || {});
@@ -403,8 +416,8 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
   }, []);
 
   const handleCardClick = useCallback(async (e: React.MouseEvent | React.TouchEvent) => {
-    // Only handle health goals or if it's not today view (where progress is read-only)
-    if (isHealthGoal || selectedPeriod !== "today") {
+    // Handle health goals, learn goals, or if it's not today view (where progress is read-only)
+    if (isHealthGoal || isLearnGoal || selectedPeriod !== "today") {
       e.preventDefault();
       e.stopPropagation();
       
@@ -416,16 +429,16 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
       // Navigate to goal detail page
       router.push(`/goals/${goal.id}`);
     }
-  }, [isHealthGoal, selectedPeriod, isNative, hasPermission, requestPermission, router, goal.id]);
+  }, [isHealthGoal, isLearnGoal, selectedPeriod, isNative, hasPermission, requestPermission, router, goal.id]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (isHealthGoal || selectedPeriod !== "today") {
+    if (isHealthGoal || isLearnGoal || selectedPeriod !== "today") {
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
         handleCardClick(e as any);
       }
     }
-  }, [isHealthGoal, selectedPeriod, handleCardClick]);
+  }, [isHealthGoal, isLearnGoal, selectedPeriod, handleCardClick]);
 
   const handleProgressUpdate = useCallback(async (newValue: number) => {
     if (isUpdating || newValue < 0 || newValue > 100) return;
@@ -494,11 +507,11 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
 
   return (
     <Card 
-      className={`border-none bg-gradient-to-br ${cardColorClass} shadow-lg shadow-blue-900/5 dark:shadow-black/20 rounded-2xl ring-1 ring-black/5 dark:ring-white/5 overflow-hidden transition-all duration-300 hover:shadow-blue-900/10 dark:hover:shadow-black/30 relative ${(isHealthGoal || selectedPeriod !== "today") ? 'cursor-pointer active:scale-95' : ''}`}
-      onClick={(isHealthGoal || selectedPeriod !== "today") ? handleCardClick : undefined}
-      onKeyDown={(isHealthGoal || selectedPeriod !== "today") ? handleKeyDown : undefined}
-      role={(isHealthGoal || selectedPeriod !== "today") ? "button" : undefined}
-      tabIndex={(isHealthGoal || selectedPeriod !== "today") ? 0 : undefined}
+      className={`border-none bg-gradient-to-br ${cardColorClass} shadow-lg shadow-blue-900/5 dark:shadow-black/20 rounded-2xl ring-1 ring-black/5 dark:ring-white/5 overflow-hidden transition-all duration-300 hover:shadow-blue-900/10 dark:hover:shadow-black/30 relative ${(isHealthGoal || isLearnGoal || selectedPeriod !== "today") ? 'cursor-pointer active:scale-95' : ''}`}
+      onClick={(isHealthGoal || isLearnGoal || selectedPeriod !== "today") ? handleCardClick : undefined}
+      onKeyDown={(isHealthGoal || isLearnGoal || selectedPeriod !== "today") ? handleKeyDown : undefined}
+      role={(isHealthGoal || isLearnGoal || selectedPeriod !== "today") ? "button" : undefined}
+      tabIndex={(isHealthGoal || isLearnGoal || selectedPeriod !== "today") ? 0 : undefined}
     >
       <div className="absolute top-1.5 right-1.5 flex gap-0.5 z-10">
         {!isHealthGoal && (
@@ -545,15 +558,15 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
           </CardTitle>
         </CardHeader>
       )}
-      <CardContent className={`${(isHealthGoal || selectedPeriod !== "today") ? 'px-4 py-4' : 'space-y-3 px-4 pb-4'}`}>
-        {(!isHealthGoal && selectedPeriod === "today") && (
+      <CardContent className={`${(isHealthGoal || isLearnGoal || selectedPeriod !== "today") ? 'px-4 py-4' : 'space-y-3 px-4 pb-4'}`}>
+        {(!isHealthGoal && !isLearnGoal && selectedPeriod === "today") && (
           <h3 className="text-sm font-bold text-gray-900 dark:text-white leading-tight tracking-tight">
             {goal.text}
           </h3>
         )}
 
-        {/* Unified progress view for all goals in non-today views, and health goals always */}
-        {(isHealthGoal || selectedPeriod !== "today") ? (
+        {/* Unified progress view for all goals in non-today views, and health/learn goals always */}
+        {(isHealthGoal || isLearnGoal || selectedPeriod !== "today") ? (
           <div className="flex flex-col gap-6">
             {isHealthGoal ? (
               <>
@@ -576,6 +589,24 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
                     />
                   </div>
                 )}
+              </>
+            ) : isLearnGoal ? (
+              <>
+                <h3 className="text-sm font-bold text-gray-900 dark:text-white leading-tight tracking-tight text-center">
+                  {goal.text}
+                </h3>
+                <div className="flex items-center justify-center">
+                  <RadialProgress 
+                    value={learnCompletionCount.total > 0 ? Math.round((learnCompletionCount.completed / learnCompletionCount.total) * 100) : 0} 
+                    size={120} 
+                    displayText={learnCompletionCount.total > 0 ? `${learnCompletionCount.completed}/${learnCompletionCount.total}` : "0/0"}
+                    redThreshold={40}
+                    yellowThreshold={70}
+                  />
+                </div>
+                <p className="text-center text-xs text-gray-600 dark:text-gray-400 mt-2">
+                  Items completed
+                </p>
               </>
             ) : (
               <>
@@ -602,6 +633,22 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
                 </div>
               </>
             )}
+          </div>
+        ) : isLearnGoal && selectedPeriod === "today" ? (
+          <div className="flex flex-col gap-2">
+            <h3 className="text-sm font-bold text-gray-900 dark:text-white leading-tight tracking-tight text-center mb-2">
+              {goal.text}
+            </h3>
+            <div className="flex items-center justify-center">
+              <div className="text-center">
+                <div className="text-2xl font-extrabold text-gray-900 dark:text-white">
+                  {learnCompletionCount.completed} / {learnCompletionCount.total}
+                </div>
+                <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                  Items completed
+                </p>
+              </div>
+            </div>
           </div>
         ) : goal.target ? (
           <div className="flex flex-col gap-2">
@@ -684,8 +731,8 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
           </div>
         )}
 
-        {/* Don't show tips/insights for health goals or non-today views */}
-        {(!isHealthGoal && selectedPeriod === "today") && (smartTip || goal.tips.length > 0) && (
+        {/* Don't show tips/insights for health/learn goals or non-today views */}
+        {(!isHealthGoal && !isLearnGoal && selectedPeriod === "today") && (smartTip || goal.tips.length > 0) && (
           <div className="pt-1.5 border-t border-black/5 dark:border-white/5">
             {smartTip ? (
               <p className="text-[10px] text-gray-600 dark:text-gray-400 leading-relaxed italic animate-in fade-in duration-500">
