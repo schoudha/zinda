@@ -8,6 +8,7 @@ import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.os.Process
 import android.provider.Settings
+import android.util.Log
 import com.getcapacitor.JSArray
 import com.getcapacitor.JSObject
 import com.getcapacitor.Plugin
@@ -18,6 +19,11 @@ import java.util.Calendar
 
 @CapacitorPlugin(name = "UsageStats")
 class UsageStatsPlugin : Plugin() {
+    
+    companion object {
+        private const val TAG = "UsageStatsPlugin"
+        private const val TEN_MINUTES_MS = 10 * 60 * 1000L // 10 minutes in milliseconds
+    }
 
     @PluginMethod
     fun getUsage(call: PluginCall) {
@@ -63,7 +69,10 @@ class UsageStatsPlugin : Plugin() {
         val usageStatsList = usm.queryUsageStats(UsageStatsManager.INTERVAL_DAILY, startTime, endTime)
         val timePerPackage = mutableMapOf<String, Long>()
 
+        Log.d(TAG, "Querying usage stats for period: $period (startTime: $startTime, endTime: $endTime)")
+        
         if (usageStatsList != null) {
+            Log.d(TAG, "Retrieved ${usageStatsList.size} usage stats entries")
             for (stats in usageStatsList) {
                 if (stats.totalTimeInForeground > 0) {
                     val pkg = stats.packageName
@@ -71,6 +80,9 @@ class UsageStatsPlugin : Plugin() {
                     timePerPackage[pkg] = current + stats.totalTimeInForeground
                 }
             }
+            Log.d(TAG, "Aggregated ${timePerPackage.size} unique packages")
+        } else {
+            Log.w(TAG, "Usage stats list is null")
         }
 
         val result = JSObject()
@@ -106,6 +118,19 @@ class UsageStatsPlugin : Plugin() {
                     // ignore
                 }
 
+                // Log apps with usage above 10 minutes
+                if (time > TEN_MINUTES_MS) {
+                    val minutes = time / (60 * 1000)
+                    val hours = minutes / 60
+                    val remainingMinutes = minutes % 60
+                    val timeString = if (hours > 0) {
+                        "${hours}h ${remainingMinutes}m"
+                    } else {
+                        "${minutes}m"
+                    }
+                    Log.d(TAG, "App usage > 10min: $packageName = $timeString (${time}ms) [System: $isSystem, UpdatedSystem: $isUpdatedSystem]")
+                }
+
                 val appObj = JSObject()
                 appObj.put("packageName", packageName)
                 appObj.put("time", time)
@@ -118,6 +143,9 @@ class UsageStatsPlugin : Plugin() {
             }
         }
 
+        Log.d(TAG, "Total screen time: ${totalScreenTime}ms (${totalScreenTime / (60 * 1000)} minutes)")
+        Log.d(TAG, "Total apps returned: ${apps.length()}")
+        
         result.put("totalTime", totalScreenTime)
         result.put("apps", apps)
         call.resolve(result)
