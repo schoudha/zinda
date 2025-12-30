@@ -14,7 +14,7 @@ const NotificationDialog = lazy(() =>
   import("@/components/goals/notification-dialog").then(mod => ({ default: mod.NotificationDialog }))
 );
 
-function RadialProgress({ value, size = 60, remainingMinutes }: { value: number; size?: number; remainingMinutes?: number }) {
+function RadialProgress({ value, size = 60, displayText }: { value: number; size?: number; displayText?: string }) {
   const radius = 24;
   const circumference = 2 * Math.PI * radius;
   const offset = circumference - (value / 100) * circumference;
@@ -68,10 +68,10 @@ function RadialProgress({ value, size = 60, remainingMinutes }: { value: number;
           cy="30"
         />
       </svg>
-      {remainingMinutes !== undefined && (
+      {displayText && (
         <div className="absolute inset-0 flex flex-col items-center justify-center z-10">
-          <span className="text-xs font-extrabold text-gray-900 dark:text-white leading-tight">
-            {formatMinutes(Math.max(0, remainingMinutes))}
+          <span className={`${size >= 100 ? 'text-lg' : size >= 70 ? 'text-sm' : 'text-xs'} font-extrabold text-gray-900 dark:text-white leading-tight text-center px-1`}>
+            {displayText}
           </span>
         </div>
       )}
@@ -176,10 +176,15 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
 
   // Calculate normalized progress for period
   let normalizedProgress = 0;
+  let progressDisplayText = ""; // For health goals: "15min", "2 days", "3 weeks", "2 months"
+  
   if (healthPeriod === "today") {
      const currentVal = isHealthGoal ? totalMinutes : progressValue;
      healthProgress = Math.min(100, Math.round((currentVal / dailyTarget) * 100));
      normalizedProgress = healthProgress;
+     if (isHealthGoal) {
+       progressDisplayText = formatMinutes(Math.round(totalMinutes));
+     }
      displayValue = isHealthGoal ? formatMinutes(totalMinutes) : (goal.target ? `${currentVal}/${goal.target}` : `${currentVal}%`);
      displayLabel = "Today's progress";
      goalLabel = isHealthGoal ? `Goal: ${formatMinutes(dailyTarget)}` : (goal.target ? `Goal: ${goal.target}` : "");
@@ -196,6 +201,9 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
      const totalDays = daysInPeriod.length;
      normalizedProgress = totalDays > 0 ? Math.round((daysMet / totalDays) * 100) : 0;
      healthProgress = normalizedProgress;
+     if (isHealthGoal) {
+       progressDisplayText = `${daysMet} ${daysMet === 1 ? 'day' : 'days'}`;
+     }
      displayValue = `${daysMet}/${totalDays}`;
      displayLabel = "Days >70% of goal";
      goalLabel = `Target: 70% daily (>${isHealthGoal ? Math.round(threshold) + 'm' : Math.round(threshold)})`;
@@ -224,6 +232,9 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
      const totalWeeks = weeks.length;
      normalizedProgress = totalWeeks > 0 ? Math.round((weeksMet / totalWeeks) * 100) : 0;
      healthProgress = normalizedProgress;
+     if (isHealthGoal) {
+       progressDisplayText = `${weeksMet} ${weeksMet === 1 ? 'week' : 'weeks'}`;
+     }
      displayValue = `${weeksMet}/${totalWeeks}`;
      displayLabel = "Weeks 5/7 days met";
      goalLabel = `Target: 5/7 days (>${isHealthGoal ? Math.round(threshold) + 'm' : Math.round(threshold)})`;
@@ -259,6 +270,9 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
      const totalMonths = months.length;
      normalizedProgress = totalMonths > 0 ? Math.round((monthsMet / totalMonths) * 100) : 0;
      healthProgress = normalizedProgress;
+     if (isHealthGoal) {
+       progressDisplayText = `${monthsMet} ${monthsMet === 1 ? 'month' : 'months'}`;
+     }
      displayValue = `${monthsMet}/${totalMonths}`;
      displayLabel = "Months 20/30 days met";
      goalLabel = `Target: 20/30 days (>${isHealthGoal ? Math.round(threshold) + 'm' : Math.round(threshold)})`;
@@ -517,38 +531,51 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
 
         {/* Unified progress view for all goals in non-today views, and health goals always */}
         {(isHealthGoal || selectedPeriod !== "today") ? (
-          <div className="flex flex-col gap-4">
-            <h3 className="text-sm font-bold text-gray-900 dark:text-white leading-tight tracking-tight">
-              {goal.text}
-            </h3>
-            {isHealthGoal && isNative && !hasPermission ? (
-              <div className="flex items-center justify-center gap-2 text-xs text-gray-600 dark:text-gray-400 py-4">
-                <Lock className="h-4 w-4" />
-                <span>Tap to connect Health Data</span>
-              </div>
-            ) : (
-              <div className="flex items-center gap-4">
-                <RadialProgress 
-                  value={healthProgress} 
-                  size={64} 
-                  remainingMinutes={isHealthGoal && healthPeriod === "today" ? dailyTarget - totalMinutes : undefined} 
-                />
-                <div className="flex-1 space-y-1.5">
-                  <div className="flex items-baseline justify-between gap-2">
-                    <span className="text-xl font-extrabold text-gray-900 dark:text-white tracking-tight">
-                      {displayValue}
-                    </span>
-                    {goalLabel && (
-                      <span className="text-[10px] font-medium text-gray-500 dark:text-gray-400 bg-white/50 dark:bg-white/5 px-2 py-0.5 rounded-full backdrop-blur-sm whitespace-nowrap">
-                        {goalLabel}
-                      </span>
-                    )}
+          <div className="flex flex-col gap-6">
+            {isHealthGoal ? (
+              <>
+                <h3 className="text-sm font-bold text-gray-900 dark:text-white leading-tight tracking-tight text-center">
+                  {goal.text}
+                </h3>
+                {isNative && !hasPermission ? (
+                  <div className="flex items-center justify-center gap-2 text-xs text-gray-600 dark:text-gray-400 py-4">
+                    <Lock className="h-4 w-4" />
+                    <span>Tap to connect Health Data</span>
                   </div>
-                  <p className="text-[10px] text-gray-600 dark:text-gray-400">
-                    {displayLabel}
-                  </p>
+                ) : (
+                  <div className="flex items-center justify-center">
+                    <RadialProgress 
+                      value={healthProgress} 
+                      size={120} 
+                      displayText={progressDisplayText}
+                    />
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
+                <h3 className="text-sm font-bold text-gray-900 dark:text-white leading-tight tracking-tight">
+                  {goal.text}
+                </h3>
+                <div className="flex items-center gap-4">
+                  <RadialProgress value={healthProgress} size={64} />
+                  <div className="flex-1 space-y-1.5">
+                    <div className="flex items-baseline justify-between gap-2">
+                      <span className="text-xl font-extrabold text-gray-900 dark:text-white tracking-tight">
+                        {displayValue}
+                      </span>
+                      {goalLabel && (
+                        <span className="text-[10px] font-medium text-gray-500 dark:text-gray-400 bg-white/50 dark:bg-white/5 px-2 py-0.5 rounded-full backdrop-blur-sm whitespace-nowrap">
+                          {goalLabel}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[10px] text-gray-600 dark:text-gray-400">
+                      {displayLabel}
+                    </p>
+                  </div>
                 </div>
-              </div>
+              </>
             )}
           </div>
         ) : goal.target ? (
