@@ -32,6 +32,13 @@ export const api = {
       });
       return data.goal;
     },
+    update: async (id: string, updates: Partial<Goal>) => {
+      const data = await fetchApi<{ goal: Goal }>("/api/goals", {
+        method: "PATCH",
+        body: JSON.stringify({ id, ...updates }),
+      });
+      return data.goal;
+    },
     delete: async (id: string) => {
       return fetchApi<{ success: boolean }>(`/api/goals?id=${id}`, {
         method: "DELETE",

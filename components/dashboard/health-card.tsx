@@ -8,6 +8,7 @@ import { useGoals } from "@/hooks/useGoals";
 import { Lock, MessageCircle, Sparkles } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { ExerciseListDialog } from "./exercise-list-dialog";
+import { GoalCreationDialog } from "@/components/goals/goal-creation-dialog";
 
 function RadialProgress({ value, size = 60 }: { value: number; size?: number }) {
   const radius = 24;
@@ -64,8 +65,9 @@ interface HealthCardProps {
 export const HealthCard = memo(function HealthCard({ period = "week" }: HealthCardProps) {
   const router = useRouter();
   const { totalMinutes, hasPermission, isNative, requestPermission } = useHealthConnect(period);
-  const { goals } = useGoals();
+  const { goals, refreshGoals } = useGoals();
   const [showExerciseList, setShowExerciseList] = useState(false);
+  const [showGoalCreation, setShowGoalCreation] = useState(false);
   const [insight, setInsight] = useState<string | null>(null);
   const [isLoadingInsight, setIsLoadingInsight] = useState(false);
   
@@ -94,20 +96,17 @@ export const HealthCard = memo(function HealthCard({ period = "week" }: HealthCa
                       "This Year";
 
   const handleCardClick = (e: React.MouseEvent | React.TouchEvent) => {
-    // If user has permission, open exercise list dialog
-    if (isNative && hasPermission) {
-      e.preventDefault();
-      e.stopPropagation();
-      setShowExerciseList(true);
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // If no health goal exists, open goal creation dialog
+    if (!healthGoal) {
+      setShowGoalCreation(true);
       return;
     }
     
-    // Only handle clicks when we need permission and are on native
-    if (isNative && !hasPermission && requestPermission) {
-      e.preventDefault();
-      e.stopPropagation();
-      requestPermission();
-    }
+    // If health goal exists, navigate to goal detail page
+    router.push(`/goals/${healthGoal.id}`);
   };
 
   const handlePermissionClick = (e: React.MouseEvent) => {
@@ -117,7 +116,11 @@ export const HealthCard = memo(function HealthCard({ period = "week" }: HealthCa
 
   const handleChatClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    router.push(`/health/chat?period=${period}`);
+    if (healthGoal) {
+      router.push(`/goals/${healthGoal.id}`);
+    } else {
+      setShowGoalCreation(true);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -133,7 +136,7 @@ export const HealthCard = memo(function HealthCard({ period = "week" }: HealthCa
     }
   };
 
-  const isClickable = isNative;
+  const isClickable = true; // Always clickable to navigate to goal detail or create goal
 
   // Fetch insight when we have data
   useEffect(() => {
@@ -268,6 +271,15 @@ export const HealthCard = memo(function HealthCard({ period = "week" }: HealthCa
       open={showExerciseList} 
       onOpenChange={setShowExerciseList}
       period={period}
+    />
+    <GoalCreationDialog
+      open={showGoalCreation}
+      onOpenChange={setShowGoalCreation}
+      category="health"
+      onGoalCreated={() => {
+        refreshGoals();
+        setShowGoalCreation(false);
+      }}
     />
     </>
   );

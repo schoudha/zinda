@@ -56,15 +56,17 @@ Context:
 - Progress: ${percentage}% of goal
 - Daily target: ${minutesPerDay || 'not set'} minutes per day
 
-Task: Provide a SHORT, encouraging, and actionable 1-2 sentence insight about their exercise progress ${periodLabel}.
-- If they're on track or ahead, celebrate their consistency and progress
-- If they're behind, provide gentle motivation and a practical tip
+Task: Provide an encouraging, actionable 3-sentence insight about their exercise progress ${periodLabel}.
+- First sentence: Acknowledge their current progress with specific numbers
+- Second sentence: Provide context or comparison (e.g., how this compares to their goal, trends, or what this means)
+- Third sentence: Offer encouragement or a practical tip to maintain or improve
 - Reference the time period naturally (e.g., "today", "this week", "this month", "this year")
-- Keep it under 50 words
 - Be warm, supportive, and specific to their actual numbers
+- Total length should be approximately 3 sentences (around 60-90 words)
 
-Example for good progress: "Great work! You've hit ${formatMinutes(totalMinutes)} ${periodLabel}, showing real consistency. Keep this momentum going!"
-Example for behind: "You're at ${formatMinutes(totalMinutes)} ${periodLabel}. Try adding a 10-minute walk to your routine to get closer to your goal."
+Example for good progress: "You've achieved ${formatMinutes(totalMinutes)} of exercise ${periodLabel}, which puts you at ${percentage}% of your goal. This consistent effort shows real dedication to your health journey. Keep up this momentum - you're building a sustainable routine that will benefit you long-term!"
+
+Example for behind: "You're currently at ${formatMinutes(totalMinutes)} ${periodLabel}, which is ${Math.round(goalMinutes - totalMinutes)} minutes away from your goal. Every bit of movement counts, so don't be discouraged. Consider breaking your daily target into smaller chunks - even a 10-minute walk can make a meaningful difference!"
 
 Provide only the insight text, no additional commentary.
 `;
