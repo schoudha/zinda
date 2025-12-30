@@ -91,9 +91,10 @@ interface GoalCardProps {
   onProgressChange?: (newValue: number) => Promise<void>; // Callback to handle progress update
   onProgressUpdate?: () => void; // Legacy callback when progress is updated (kept for compatibility)
   selectedPeriod?: "today" | "week" | "month" | "year"; // Current period view
+  history?: Record<string, number>; // Historical progress: date -> progressValue
 }
 
-export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = false, onProgressChange, onProgressUpdate, selectedPeriod = "today" }: GoalCardProps) {
+export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = false, onProgressChange, onProgressUpdate, selectedPeriod = "today", history }: GoalCardProps) {
   const router = useRouter();
   const [notificationDialogOpen, setNotificationDialogOpen] = useState(false);
   const [currentGoal, setCurrentGoal] = useState<Goal>(goal);
@@ -111,67 +112,69 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
   const healthPeriod = selectedPeriod === "today" ? "today" : selectedPeriod === "week" ? "week" : selectedPeriod === "month" ? "month" : "year";
   const { totalMinutes, dailyStats, hasPermission, isNative, requestPermission } = useHealthConnect(isHealthGoal ? healthPeriod : "week");
   
-  // Calculate health goal stats
+  // Use either health data or local history
+  const stats = isHealthGoal ? dailyStats : (history || {});
+  
+  // Calculate goal stats
   const minutesPerDay = goal.minutesPerDay || 21; // Default 21 min/day
-  const dailyTarget = minutesPerDay;
-  const threshold = 0.7 * dailyTarget;
+  const dailyTarget = isHealthGoal ? minutesPerDay : (goal.target || 100);
+  const threshold = isHealthGoal ? (0.7 * dailyTarget) : (goal.target ? (0.7 * goal.target) : 70);
 
   let healthProgress = 0;
   let displayValue = "";
   let displayLabel = "";
   let goalLabel = "";
 
-  if (isHealthGoal) {
-    const getDateStr = (daysAgo: number) => {
-      const d = new Date();
-      d.setDate(d.getDate() - daysAgo);
-      return d.toLocaleDateString('en-CA');
-    };
+  const getDateStr = (daysAgo: number) => {
+    const d = new Date();
+    d.setDate(d.getDate() - daysAgo);
+    return d.toLocaleDateString('en-CA');
+  };
 
-    if (healthPeriod === "today") {
-       healthProgress = Math.min(100, Math.round((totalMinutes / dailyTarget) * 100));
-       displayValue = formatMinutes(totalMinutes);
-       displayLabel = "Exercise time today";
-       goalLabel = `Goal: ${formatMinutes(dailyTarget)}`;
-    } else if (healthPeriod === "week") {
-       let daysMet = 0;
-       for (let i = 0; i < 7; i++) {
-         const date = getDateStr(i);
-         if ((dailyStats[date] || 0) >= threshold) daysMet++;
+  if (healthPeriod === "today") {
+     const currentVal = isHealthGoal ? totalMinutes : progressValue;
+     healthProgress = Math.min(100, Math.round((currentVal / dailyTarget) * 100));
+     displayValue = isHealthGoal ? formatMinutes(totalMinutes) : (goal.target ? `${currentVal}/${goal.target}` : `${currentVal}%`);
+     displayLabel = "Today's progress";
+     goalLabel = isHealthGoal ? `Goal: ${formatMinutes(dailyTarget)}` : (goal.target ? `Goal: ${goal.target}` : "");
+  } else if (healthPeriod === "week") {
+     let daysMet = 0;
+     for (let i = 0; i < 7; i++) {
+       const date = getDateStr(i);
+       if ((stats[date] || 0) >= threshold) daysMet++;
+     }
+     healthProgress = Math.round((daysMet / 7) * 100);
+     displayValue = `${daysMet}/7`;
+     displayLabel = "Days >70% of goal";
+     goalLabel = `Target: 70% daily (>${isHealthGoal ? Math.round(threshold) + 'm' : Math.round(threshold)})`;
+  } else if (healthPeriod === "month") {
+     let weeksMet = 0;
+     for (let w = 0; w < 4; w++) {
+       let daysMetInWeek = 0;
+       for (let d = 0; d < 7; d++) {
+          const date = getDateStr((3 - w) * 7 + (6 - d));
+          if ((stats[date] || 0) >= threshold) daysMetInWeek++;
        }
-       healthProgress = Math.round((daysMet / 7) * 100);
-       displayValue = `${daysMet}/7`;
-       displayLabel = "Days >70% of goal";
-       goalLabel = "Target: 70% daily";
-    } else if (healthPeriod === "month") {
-       let weeksMet = 0;
-       for (let w = 0; w < 4; w++) {
-         let daysMetInWeek = 0;
-         for (let d = 0; d < 7; d++) {
-            const date = getDateStr(w * 7 + d);
-            if ((dailyStats[date] || 0) >= threshold) daysMetInWeek++;
-         }
-         if (daysMetInWeek >= 5) weeksMet++;
-       }
-       healthProgress = Math.round((weeksMet / 4) * 100);
-       displayValue = `${weeksMet}/4`;
-       displayLabel = "Weeks 5/7 days met";
-       goalLabel = "Target: 5/7 days";
-    } else if (healthPeriod === "year") {
-       let monthsMet = 0;
-       for (let m = 0; m < 12; m++) {
-          let daysMetInMonth = 0;
-          for (let d = 0; d < 30; d++) {
-             const date = getDateStr(m * 30 + d);
-             if ((dailyStats[date] || 0) >= threshold) daysMetInMonth++;
-          }
-          if (daysMetInMonth >= 20) monthsMet++;
-       }
-       healthProgress = Math.round((monthsMet / 12) * 100);
-       displayValue = `${monthsMet}/12`;
-       displayLabel = "Months 20/30 days met";
-       goalLabel = "Target: 20/30 days";
-    }
+       if (daysMetInWeek >= 5) weeksMet++;
+     }
+     healthProgress = Math.round((weeksMet / 4) * 100);
+     displayValue = `${weeksMet}/4`;
+     displayLabel = "Weeks 5/7 days met";
+     goalLabel = `Target: 5/7 days (>${isHealthGoal ? Math.round(threshold) + 'm' : Math.round(threshold)})`;
+  } else if (healthPeriod === "year") {
+     let monthsMet = 0;
+     for (let m = 0; m < 12; m++) {
+        let daysMetInMonth = 0;
+        for (let d = 0; d < 30; d++) {
+           const date = getDateStr((11 - m) * 30 + (29 - d));
+           if ((stats[date] || 0) >= threshold) daysMetInMonth++;
+        }
+        if (daysMetInMonth >= 20) monthsMet++;
+     }
+     healthProgress = Math.round((monthsMet / 12) * 100);
+     displayValue = `${monthsMet}/12`;
+     displayLabel = "Months 20/30 days met";
+     goalLabel = `Target: 20/30 days (>${isHealthGoal ? Math.round(threshold) + 'm' : Math.round(threshold)})`;
   }
 
   // Sync goal prop with local state when it changes
@@ -255,29 +258,29 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
   }, [router, goal.id]);
 
   const handleCardClick = useCallback(async (e: React.MouseEvent | React.TouchEvent) => {
-    // Only make health goals clickable
-    if (!isHealthGoal) return;
-    
-    e.preventDefault();
-    e.stopPropagation();
-    
-    // If native and no permission, request permission first
-    if (isNative && !hasPermission) {
-      await requestPermission();
-      return;
+    // Only handle health goals or if it's not today view (where progress is read-only)
+    if (isHealthGoal || selectedPeriod !== "today") {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      if (isHealthGoal && isNative && !hasPermission) {
+        await requestPermission();
+        return;
+      }
+      
+      // Navigate to goal detail page
+      router.push(`/goals/${goal.id}`);
     }
-    
-    // Navigate to goal detail page
-    router.push(`/goals/${goal.id}`);
-  }, [isHealthGoal, isNative, hasPermission, requestPermission, router, goal.id]);
+  }, [isHealthGoal, selectedPeriod, isNative, hasPermission, requestPermission, router, goal.id]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (!isHealthGoal) return;
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      handleCardClick(e as any);
+    if (isHealthGoal || selectedPeriod !== "today") {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        handleCardClick(e as any);
+      }
     }
-  }, [isHealthGoal, handleCardClick]);
+  }, [isHealthGoal, selectedPeriod, handleCardClick]);
 
   const handleProgressUpdate = useCallback(async (newValue: number) => {
     if (isUpdating || newValue < 0 || newValue > 100) return;
@@ -346,11 +349,11 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
 
   return (
     <Card 
-      className={`border-none bg-gradient-to-br ${periodColors[goal.period]} shadow-lg shadow-blue-900/5 dark:shadow-black/20 rounded-2xl ring-1 ring-black/5 dark:ring-white/5 overflow-hidden transition-all duration-300 hover:shadow-blue-900/10 dark:hover:shadow-black/30 relative ${isHealthGoal ? 'cursor-pointer active:scale-95' : ''}`}
-      onClick={isHealthGoal ? handleCardClick : undefined}
-      onKeyDown={isHealthGoal ? handleKeyDown : undefined}
-      role={isHealthGoal ? "button" : undefined}
-      tabIndex={isHealthGoal ? 0 : undefined}
+      className={`border-none bg-gradient-to-br ${periodColors[goal.period]} shadow-lg shadow-blue-900/5 dark:shadow-black/20 rounded-2xl ring-1 ring-black/5 dark:ring-white/5 overflow-hidden transition-all duration-300 hover:shadow-blue-900/10 dark:hover:shadow-black/30 relative ${(isHealthGoal || selectedPeriod !== "today") ? 'cursor-pointer active:scale-95' : ''}`}
+      onClick={(isHealthGoal || selectedPeriod !== "today") ? handleCardClick : undefined}
+      onKeyDown={(isHealthGoal || selectedPeriod !== "today") ? handleKeyDown : undefined}
+      role={(isHealthGoal || selectedPeriod !== "today") ? "button" : undefined}
+      tabIndex={(isHealthGoal || selectedPeriod !== "today") ? 0 : undefined}
     >
       <div className="absolute top-1.5 right-1.5 flex gap-0.5 z-10">
         {!isHealthGoal && (
@@ -397,20 +400,20 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
           </CardTitle>
         </CardHeader>
       )}
-      <CardContent className={`${isHealthGoal ? 'px-4 py-4' : 'space-y-3 px-4 pb-4'}`}>
-        {!isHealthGoal && (
+      <CardContent className={`${(isHealthGoal || selectedPeriod !== "today") ? 'px-4 py-4' : 'space-y-3 px-4 pb-4'}`}>
+        {(!isHealthGoal && selectedPeriod === "today") && (
           <h3 className="text-sm font-bold text-gray-900 dark:text-white leading-tight tracking-tight">
             {goal.text}
           </h3>
         )}
 
-        {/* Health goal progress with HealthConnect data */}
-        {isHealthGoal ? (
+        {/* Unified progress view for all goals in non-today views, and health goals always */}
+        {(isHealthGoal || selectedPeriod !== "today") ? (
           <div className="flex flex-col gap-4">
             <h3 className="text-sm font-bold text-gray-900 dark:text-white leading-tight tracking-tight">
               {goal.text}
             </h3>
-            {isNative && !hasPermission ? (
+            {isHealthGoal && isNative && !hasPermission ? (
               <div className="flex items-center justify-center gap-2 text-xs text-gray-600 dark:text-gray-400 py-4">
                 <Lock className="h-4 w-4" />
                 <span>Tap to connect Health Data</span>
@@ -477,12 +480,9 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
               })}
             </div>
             
-            {/* Count & Weekly Progress Label */}
+            {/* Count Label */}
             <div className="flex items-center justify-between text-[10px] font-medium text-gray-600 dark:text-gray-400">
               <span>Today: {todayCompletion} / {goal.target}</span>
-              {selectedPeriod === "week" && (
-                <span>{weeklyCompletedDays}/7</span>
-              )}
             </div>
           </div>
         ) : showProgress && !isHealthGoal && (
@@ -520,8 +520,8 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
           </div>
         )}
 
-        {/* Don't show tips/insights for health goals */}
-        {!isHealthGoal && (smartTip || goal.tips.length > 0) && (
+        {/* Don't show tips/insights for health goals or non-today views */}
+        {(!isHealthGoal && selectedPeriod === "today") && (smartTip || goal.tips.length > 0) && (
           <div className="pt-1.5 border-t border-black/5 dark:border-white/5">
             {smartTip ? (
               <p className="text-[10px] text-gray-600 dark:text-gray-400 leading-relaxed italic animate-in fade-in duration-500">
@@ -539,8 +539,8 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
           </div>
         )}
 
-        {/* Don't show "Ask Gemini" button for health goals */}
-        {!isHealthGoal && (
+        {/* Don't show "Ask Gemini" button for health goals or non-today views */}
+        {(!isHealthGoal && selectedPeriod === "today") && (
           <Button
             onClick={handleDiscussClick}
             size="sm"

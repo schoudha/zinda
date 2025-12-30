@@ -99,6 +99,10 @@ export const api = {
         const data = await fetchApi<{ progress: Record<string, number> }>("/api/goals/progress");
         return data.progress;
       },
+      getHistory: async () => {
+        const data = await fetchApi<{ progress: Array<{ goalId: string; progressValue: number; date: string }> }>("/api/goals/progress?period=history");
+        return data.progress;
+      },
       updateToday: async (goalId: string, progressValue: number) => {
         return fetchApi<{ success: boolean; progress: { goalId: string; date: string; progressValue: number } }>("/api/goals/progress", {
           method: "PATCH",

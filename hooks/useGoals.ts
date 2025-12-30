@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Goal } from "@/types";
 import { api } from "@/lib/api";
@@ -39,11 +40,27 @@ export function useGoals() {
 export function useGoalProgress() {
   const queryClient = useQueryClient();
 
-  const { data: progress = {}, isLoading, refetch } = useQuery({
+  const { data: progress = {}, isLoading: todayLoading } = useQuery({
     queryKey: ["goal-progress", "today"],
     queryFn: api.goals.progress.getToday,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
   });
+
+  const { data: history = [], isLoading: historyLoading } = useQuery({
+    queryKey: ["goal-progress", "history"],
+    queryFn: api.goals.progress.getHistory,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Group history by goalId and date for easy lookup
+  const groupedHistory = useMemo(() => {
+    const grouped: Record<string, Record<string, number>> = {};
+    history.forEach(item => {
+      if (!grouped[item.goalId]) grouped[item.goalId] = {};
+      grouped[item.goalId][item.date] = item.progressValue;
+    });
+    return grouped;
+  }, [history]);
 
   const updateMutation = useMutation({
     mutationFn: ({ goalId, progressValue }: { goalId: string; progressValue: number }) =>
@@ -69,8 +86,11 @@ export function useGoalProgress() {
 
   return {
     progress,
-    isLoading,
-    refreshProgress: refetch,
+    history: groupedHistory,
+    isLoading: todayLoading || historyLoading,
+    refreshProgress: () => {
+      queryClient.invalidateQueries({ queryKey: ["goal-progress"] });
+    },
     updateProgress: updateMutation.mutateAsync,
   };
 }

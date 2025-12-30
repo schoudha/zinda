@@ -2,19 +2,30 @@ import { NextRequest, NextResponse } from 'next/server';
 import { adminClient } from '@/lib/supabase/server';
 import { isAuthenticated } from '@/lib/auth';
 
-// GET - Fetch today's progress for all goals
+// GET - Fetch progress for goals
 export async function GET(request: NextRequest) {
   try {
     if (!await isAuthenticated()) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+    const { searchParams } = new URL(request.url);
+    const period = searchParams.get('period') || 'today';
 
-    const { data, error } = await adminClient
+    let query = adminClient
       .from('goal_progress')
-      .select('goal_id, progress_value')
-      .eq('date', today);
+      .select('goal_id, progress_value, date');
+
+    if (period === 'history') {
+      const oneYearAgo = new Date();
+      oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+      query = query.gte('date', oneYearAgo.toISOString().split('T')[0]);
+    } else {
+      const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+      query = query.eq('date', today);
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       console.error('Error fetching progress:', error);
@@ -24,7 +35,18 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Convert to a map for easy lookup
+    if (period === 'history') {
+      // Return list of all progress records
+      return NextResponse.json({ 
+        progress: data.map(item => ({
+          goalId: item.goal_id,
+          progressValue: Number(item.progress_value) || 0,
+          date: item.date
+        }))
+      });
+    }
+
+    // Convert to a map for easy lookup (today's progress)
     const progressMap: Record<string, number> = {};
     (data || []).forEach((item: { goal_id: string; progress_value: number }) => {
       progressMap[item.goal_id] = Number(item.progress_value) || 0;

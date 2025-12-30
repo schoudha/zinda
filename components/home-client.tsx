@@ -44,21 +44,18 @@ const FamilyIcon = ({ className }: { className?: string }) => (
 function HomeContent() {
   const { notes, addNote, toggleNote, updateNote, deleteNote } = useNotes();
   const { goals, isLoading: goalsLoading, refreshGoals, deleteGoal } = useGoals();
-  const { progress, isLoading: progressLoading, updateProgress } = useGoalProgress();
+  const { progress, history: progressHistory, isLoading: progressLoading, updateProgress } = useGoalProgress();
   
   const [activeTab, setActiveTab] = useState<"goals" | "notepad" | "media" | "time">("goals");
   const [selectedPeriod, setSelectedPeriod] = useState<"today" | GoalPeriod>("today");
   const [selectedTimePeriod, setSelectedTimePeriod] = useState<"today" | "week" | "month" | "year">("today");
   // Derived state combining goals and progress
   const goalsWithProgress = useMemo(() => {
-    if (selectedPeriod === "today") {
-      return goals.map(goal => ({
-        ...goal,
-        todayProgress: progress[goal.id] ?? 0
-      }));
-    }
-    return goals;
-  }, [goals, progress, selectedPeriod]);
+    return goals.map(goal => ({
+      ...goal,
+      todayProgress: progress[goal.id] ?? 0
+    }));
+  }, [goals, progress]);
 
   const [goalCreationDialogOpen, setGoalCreationDialogOpen] = useState(false);
   const [selectedCategoryForCreation, setSelectedCategoryForCreation] = useState<GoalCategory>("health");
@@ -73,17 +70,8 @@ function HomeContent() {
     { id: "family", icon: FamilyIcon, color: "text-emerald-500" },
   ];
 
-  // Memoize goals filtering to prevent recalculation on every render
-  const filteredGoals = useMemo(() => {
-    if (selectedPeriod === "today") {
-      return goalsWithProgress; // Show all goals in today view
-    }
-    return goalsWithProgress.filter((goal) => {
-      if (goal.period === "year") return true;
-      if (goal.period === "month") return selectedPeriod === "month" || selectedPeriod === "week";
-      return goal.period === selectedPeriod;
-    });
-  }, [goalsWithProgress, selectedPeriod]);
+  // Show all goals in all views
+  const filteredGoals = goalsWithProgress;
 
   // Group goals by category
   const goalsByCategory = useMemo(() => {
@@ -178,9 +166,10 @@ function HomeContent() {
                                 key={goal.id} 
                                 goal={goal} 
                                 onDelete={deleteGoal}
-                                showProgress={selectedPeriod === "today"}
+                                showProgress={true}
                                 onProgressChange={(val) => handleProgressUpdate(goal.id, val)}
                                 selectedPeriod={selectedPeriod}
+                                history={progressHistory[goal.id]}
                               />
                             ))
                           ) : (
