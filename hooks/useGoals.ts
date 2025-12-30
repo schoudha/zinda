@@ -35,3 +35,42 @@ export function useGoals() {
     deleteGoal: deleteMutation.mutateAsync,
   };
 }
+
+export function useGoalProgress() {
+  const queryClient = useQueryClient();
+
+  const { data: progress = {}, isLoading, refetch } = useQuery({
+    queryKey: ["goal-progress", "today"],
+    queryFn: api.goals.progress.getToday,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ goalId, progressValue }: { goalId: string; progressValue: number }) =>
+      api.goals.progress.updateToday(goalId, progressValue),
+    onMutate: async ({ goalId, progressValue }) => {
+      await queryClient.cancelQueries({ queryKey: ["goal-progress", "today"] });
+      const previousProgress = queryClient.getQueryData<Record<string, number>>(["goal-progress", "today"]);
+      
+      queryClient.setQueryData<Record<string, number>>(["goal-progress", "today"], (old) => ({
+        ...(old || {}),
+        [goalId]: progressValue,
+      }));
+      
+      return { previousProgress };
+    },
+    onError: (err, variables, context) => {
+      queryClient.setQueryData(["goal-progress", "today"], context?.previousProgress);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["goal-progress", "today"] });
+    },
+  });
+
+  return {
+    progress,
+    isLoading,
+    refreshProgress: refetch,
+    updateProgress: updateMutation.mutateAsync,
+  };
+}

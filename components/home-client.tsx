@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense, useMemo, useCallback, useRef } from "react";
+import { useState, useEffect, Suspense, useMemo, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Header } from "@/components/dashboard/header";
 import { DateTabs } from "@/components/dashboard/date-tabs";
@@ -16,7 +16,7 @@ import { GoalCard } from "@/components/dashboard/goal-card";
 import { GoalCreationDialog } from "@/components/goals/goal-creation-dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { PasswordGate } from "@/components/auth/password-gate";
-import { useGoals } from "@/hooks/useGoals";
+import { useGoals, useGoalProgress } from "@/hooks/useGoals";
 import { useNotes } from "@/hooks/useNotes";
 import { GoalPeriod, Goal, GoalCategory } from "@/types";
 import { DashboardSkeleton, GoalCardSkeleton } from "@/components/ui/skeleton";
@@ -44,11 +44,22 @@ const FamilyIcon = ({ className }: { className?: string }) => (
 function HomeContent() {
   const { notes, addNote, toggleNote, updateNote, deleteNote } = useNotes();
   const { goals, isLoading: goalsLoading, refreshGoals, deleteGoal } = useGoals();
+  const { progress, isLoading: progressLoading, updateProgress } = useGoalProgress();
   
   const [activeTab, setActiveTab] = useState<"goals" | "notepad" | "media" | "time">("goals");
   const [selectedPeriod, setSelectedPeriod] = useState<"today" | GoalPeriod>("today");
   const [selectedTimePeriod, setSelectedTimePeriod] = useState<"today" | "week" | "month" | "year">("today");
-  const [goalsWithProgress, setGoalsWithProgress] = useState<Goal[]>(goals);
+  // Derived state combining goals and progress
+  const goalsWithProgress = useMemo(() => {
+    if (selectedPeriod === "today") {
+      return goals.map(goal => ({
+        ...goal,
+        todayProgress: progress[goal.id] ?? 0
+      }));
+    }
+    return goals;
+  }, [goals, progress, selectedPeriod]);
+
   const [goalCreationDialogOpen, setGoalCreationDialogOpen] = useState(false);
   const [selectedCategoryForCreation, setSelectedCategoryForCreation] = useState<GoalCategory>("health");
   
@@ -62,86 +73,16 @@ function HomeContent() {
     { id: "family", icon: FamilyIcon, color: "text-emerald-500" },
   ];
 
-  // Fetch today's progress when in "today" view
-  useEffect(() => {
-    if (selectedPeriod === "today") {
-      const fetchProgress = async () => {
-        try {
-          const progress = await api.goals.progress.getToday();
-          const updatedGoals = goals.map(goal => ({
-            ...goal,
-            todayProgress: progress[goal.id] ?? 0
-          }));
-          setGoalsWithProgress(updatedGoals);
-        } catch (error) {
-          console.error('Error fetching progress:', error);
-          setGoalsWithProgress(goals);
-        }
-      };
-      fetchProgress();
-    } else {
-      setGoalsWithProgress(goals);
-    }
-  }, [selectedPeriod, goals]);
-
-  // Memoize goals filtering to prevent recalculation on every render
-  const filteredGoals = useMemo(() => {
-    if (selectedPeriod === "today") {
-      return goalsWithProgress; // Show all goals in today view
-    }
-    return goalsWithProgress.filter((goal) => {
-      if (goal.period === "year") return true;
-      if (goal.period === "month") return selectedPeriod === "month" || selectedPeriod === "week";
-      return goal.period === selectedPeriod;
-    });
-  }, [goalsWithProgress, selectedPeriod]);
-
-  // Group goals by category
-  const goalsByCategory = useMemo(() => {
-    const grouped: Record<string, Goal[]> = {
-      health: [],
-      faith: [],
-      learn: [],
-      family: []
-    };
-    
-    filteredGoals.forEach(goal => {
-      const cat = goal.category || 'health'; // Default to health
-      if (grouped[cat]) {
-        grouped[cat].push(goal);
-      } else {
-        // Handle unexpected categories or if category is null/undefined
-        if (grouped.health) grouped.health.push(goal);
-      }
-    });
-    return grouped;
-  }, [filteredGoals]);
-
-  // Memoize tab change handler
-  const handleTabChange = useCallback((tab: "goals" | "notepad" | "media" | "time") => {
-    setActiveTab(tab);
-  }, []);
-
-  // Memoize period change handler
-  const handlePeriodChange = useCallback((period: string) => {
-    setSelectedPeriod(period as "today" | GoalPeriod);
-  }, []);
-
   // Handle progress update callback
-  const handleProgressUpdate = useCallback(async () => {
+  const handleProgressUpdate = useCallback(async (goalId: string, newValue: number) => {
     if (selectedPeriod === "today") {
       try {
-        const progress = await api.goals.progress.getToday();
-        const updatedGoals = goalsWithProgress.map(goal => ({
-          ...goal,
-          todayProgress: progress[goal.id] ?? goal.todayProgress ?? 0
-        }));
-        setGoalsWithProgress(updatedGoals);
+        await updateProgress({ goalId, progressValue: newValue });
       } catch (error) {
         console.error('Error refreshing progress:', error);
       }
     }
-  }, [selectedPeriod, goalsWithProgress]);
+  }, [selectedPeriod, updateProgress]);
 
   // Handle shared content from share target
   useEffect(() => {
@@ -195,7 +136,7 @@ function HomeContent() {
                                 goal={goal} 
                                 onDelete={deleteGoal}
                                 showProgress={selectedPeriod === "today"}
-                                onProgressUpdate={handleProgressUpdate}
+                                onProgressChange={(val) => handleProgressUpdate(goal.id, val)}
                                 selectedPeriod={selectedPeriod}
                               />
                             ))

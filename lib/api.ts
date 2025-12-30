@@ -57,24 +57,7 @@ export const api = {
           mode: "categorize"
         }),
       });
-      // The endpoint will handle the parsing/formatting if we structure it right, or we parse it here.
-      // For now, let's keep the backend simple and just ask for the structured response there or parse it.
-      // But actually, the existing endpoint returns just { response: string }.
-      // We might need to modify the endpoint or how we call it.
-      // Let's modify the endpoint to be smarter or do it in the input bar.
-      
-      // Since we can't easily change the endpoint return type without checking, let's assume we'll just parse the string or update the endpoint.
-      // Actually, better plan: Update the input-bar logic to ask for categorization.
       return data.response;
-    },
-    categorize: async (goalText: string) => {
-       const data = await fetchApi<{ response: string }>("/api/chat", {
-        method: "POST",
-        body: JSON.stringify({
-          message: `Categorize the following goal into exactly one of these 4 categories: 'health', 'faith', 'learn', 'family'. Return ONLY the category name in lowercase. Goal: "${goalText}"`,
-        }),
-      });
-      return data.response.trim().toLowerCase().replace(/['".]/g, '');
     },
     generateSmartTip: async (goalText: string, progress: number = 0, target?: number, completion?: number) => {
       let progressContext = "";

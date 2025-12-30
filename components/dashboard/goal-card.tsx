@@ -17,11 +17,12 @@ interface GoalCardProps {
   goal: Goal;
   onDelete?: (goalId: string) => void;
   showProgress?: boolean; // Whether to show today's progress
-  onProgressUpdate?: () => void; // Callback when progress is updated
+  onProgressChange?: (newValue: number) => Promise<void>; // Callback to handle progress update
+  onProgressUpdate?: () => void; // Legacy callback when progress is updated (kept for compatibility)
   selectedPeriod?: "today" | "week" | "month" | "year"; // Current period view
 }
 
-export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = false, onProgressUpdate, selectedPeriod = "today" }: GoalCardProps) {
+export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = false, onProgressChange, onProgressUpdate, selectedPeriod = "today" }: GoalCardProps) {
   const router = useRouter();
   const [notificationDialogOpen, setNotificationDialogOpen] = useState(false);
   const [currentGoal, setCurrentGoal] = useState<Goal>(goal);
@@ -117,7 +118,11 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
     
     setIsUpdating(true);
     try {
-      await api.goals.progress.updateToday(goal.id, newValue);
+      if (onProgressChange) {
+        await onProgressChange(newValue);
+      } else {
+        await api.goals.progress.updateToday(goal.id, newValue);
+      }
       setProgressValue(newValue);
       setCurrentGoal({ ...currentGoal, todayProgress: newValue });
       onProgressUpdate?.();
@@ -126,7 +131,7 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
     } finally {
       setIsUpdating(false);
     }
-  }, [goal.id, isUpdating, currentGoal, onProgressUpdate]);
+  }, [goal.id, isUpdating, currentGoal, onProgressChange, onProgressUpdate]);
 
   const handleIncrement = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
