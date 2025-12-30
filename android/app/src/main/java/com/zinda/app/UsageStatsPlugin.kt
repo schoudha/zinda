@@ -36,19 +36,23 @@ class UsageStatsPlugin : Plugin() {
         val calendar = Calendar.getInstance()
         val endTime = calendar.timeInMillis
         var startTime: Long
+        var intervalType: Int
 
         when (period) {
             "week" -> {
                 calendar.add(Calendar.DAY_OF_YEAR, -7)
                 startTime = calendar.timeInMillis
+                intervalType = UsageStatsManager.INTERVAL_DAILY
             }
             "month" -> {
                 calendar.add(Calendar.DAY_OF_YEAR, -30)
                 startTime = calendar.timeInMillis
+                intervalType = UsageStatsManager.INTERVAL_DAILY
             }
             "year" -> {
                 calendar.add(Calendar.DAY_OF_YEAR, -365)
                 startTime = calendar.timeInMillis
+                intervalType = UsageStatsManager.INTERVAL_DAILY
             }
             "today" -> {
                 calendar.set(Calendar.HOUR_OF_DAY, 0)
@@ -56,6 +60,8 @@ class UsageStatsPlugin : Plugin() {
                 calendar.set(Calendar.SECOND, 0)
                 calendar.set(Calendar.MILLISECOND, 0)
                 startTime = calendar.timeInMillis
+                // Use INTERVAL_BEST for single day queries to get accurate partial-day data
+                intervalType = UsageStatsManager.INTERVAL_BEST
             }
             else -> {
                 calendar.set(Calendar.HOUR_OF_DAY, 0)
@@ -63,13 +69,14 @@ class UsageStatsPlugin : Plugin() {
                 calendar.set(Calendar.SECOND, 0)
                 calendar.set(Calendar.MILLISECOND, 0)
                 startTime = calendar.timeInMillis
+                intervalType = UsageStatsManager.INTERVAL_BEST
             }
         }
 
-        val usageStatsList = usm.queryUsageStats(UsageStatsManager.INTERVAL_DAILY, startTime, endTime)
+        val usageStatsList = usm.queryUsageStats(intervalType, startTime, endTime)
         val timePerPackage = mutableMapOf<String, Long>()
 
-        Log.d(TAG, "Querying usage stats for period: $period (startTime: $startTime, endTime: $endTime)")
+        Log.d(TAG, "Querying usage stats for period: $period (startTime: $startTime, endTime: $endTime, interval: $intervalType)")
         
         if (usageStatsList != null) {
             Log.d(TAG, "Retrieved ${usageStatsList.size} usage stats entries")
@@ -78,6 +85,7 @@ class UsageStatsPlugin : Plugin() {
                     val pkg = stats.packageName
                     val current = timePerPackage[pkg] ?: 0L
                     timePerPackage[pkg] = current + stats.totalTimeInForeground
+                    Log.d(TAG, "Processing stats: $pkg = ${stats.totalTimeInForeground}ms (accumulated: ${timePerPackage[pkg]}ms)")
                 }
             }
             Log.d(TAG, "Aggregated ${timePerPackage.size} unique packages")
