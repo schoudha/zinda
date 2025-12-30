@@ -33,7 +33,10 @@ export function Dialog({ open, onOpenChange, children }: DialogProps) {
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div
         className="fixed inset-0 bg-black/50"
-        onClick={() => onOpenChange(false)}
+        onClick={(e) => {
+          e.stopPropagation();
+          onOpenChange(false);
+        }}
       />
       {children}
     </div>
@@ -47,6 +50,7 @@ export function DialogContent({ children, className }: DialogContentProps) {
         "relative z-50 w-full max-w-2xl max-h-[90vh] bg-white rounded-lg shadow-lg flex flex-col",
         className
       )}
+      onClick={(e) => e.stopPropagation()}
     >
       {children}
     </div>
@@ -74,7 +78,10 @@ export function DialogTitle({ children, className }: { children: React.ReactNode
 export function DialogClose({ onClose }: { onClose: () => void }) {
   return (
     <button
-      onClick={onClose}
+      onClick={(e) => {
+        e.stopPropagation();
+        onClose();
+      }}
       className="rounded-sm opacity-70 hover:opacity-100 transition-opacity p-1"
     >
       <X className="h-4 w-4" />
