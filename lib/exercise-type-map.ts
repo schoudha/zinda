@@ -116,7 +116,12 @@ export const EXERCISE_TYPE_MAP: Record<number, string> = {
 };
 
 /**
- * Maps exercise type string (e.g., "EXERCISE_TYPE_RUNNING") to readable name
+ * Maps exercise type string to readable name
+ * Handles:
+ * - Integer values (via exerciseTypeValue parameter)
+ * - Number strings (e.g., "56")
+ * - Readable names (e.g., "Running") - returns as-is
+ * - Constant format (e.g., "EXERCISE_TYPE_RUNNING") - converts to "Running"
  */
 export function getExerciseTypeName(exerciseType: string, exerciseTypeValue?: number): string {
   // First try to use the integer value if available
@@ -134,13 +139,18 @@ export function getExerciseTypeName(exerciseType: string, exerciseTypeValue?: nu
     return EXERCISE_TYPE_MAP[typeAsNumber];
   }
 
-  // Fallback to parsing the string
-  // Convert "EXERCISE_TYPE_RUNNING" to "Running"
-  return exerciseType
-    .replace("EXERCISE_TYPE_", "")
-    .split("_")
-    .map((word) => word.charAt(0) + word.slice(1).toLowerCase())
-    .join(" ");
+  // If it's already a readable name (like "Running"), return as-is
+  // Otherwise, try to parse constant format like "EXERCISE_TYPE_RUNNING"
+  if (exerciseType.includes("EXERCISE_TYPE_")) {
+    return exerciseType
+      .replace("EXERCISE_TYPE_", "")
+      .split("_")
+      .map((word) => word.charAt(0) + word.slice(1).toLowerCase())
+      .join(" ");
+  }
+
+  // Return as-is if it's already a readable name
+  return exerciseType;
 }
 
 /**

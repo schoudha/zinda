@@ -29,6 +29,111 @@ class HealthConnectPlugin : Plugin() {
     private val mainActivity: MainActivity?
         get() = activity as? MainActivity
 
+    /**
+     * Converts Health Connect exercise type integer to readable name
+     */
+    private fun getExerciseName(type: Int): String {
+        return when (type) {
+            ExerciseSessionRecord.EXERCISE_TYPE_RUNNING -> "Running"
+            ExerciseSessionRecord.EXERCISE_TYPE_WALKING -> "Walking"
+            ExerciseSessionRecord.EXERCISE_TYPE_BIKING -> "Biking"
+            ExerciseSessionRecord.EXERCISE_TYPE_GYMNASTICS -> "Gymnastics"
+            ExerciseSessionRecord.EXERCISE_TYPE_HIKING -> "Hiking"
+            ExerciseSessionRecord.EXERCISE_TYPE_YOGA -> "Yoga"
+            ExerciseSessionRecord.EXERCISE_TYPE_WEIGHTLIFTING -> "Weightlifting"
+            ExerciseSessionRecord.EXERCISE_TYPE_OTHER_WORKOUT -> "Other Workout"
+            ExerciseSessionRecord.EXERCISE_TYPE_AMERICAN_FOOTBALL -> "American Football"
+            ExerciseSessionRecord.EXERCISE_TYPE_ARCHERY -> "Archery"
+            ExerciseSessionRecord.EXERCISE_TYPE_AUSTRALIAN_FOOTBALL -> "Australian Football"
+            ExerciseSessionRecord.EXERCISE_TYPE_BADMINTON -> "Badminton"
+            ExerciseSessionRecord.EXERCISE_TYPE_BASEBALL -> "Baseball"
+            ExerciseSessionRecord.EXERCISE_TYPE_BASKETBALL -> "Basketball"
+            ExerciseSessionRecord.EXERCISE_TYPE_BIATHLON -> "Biathlon"
+            ExerciseSessionRecord.EXERCISE_TYPE_BOXING -> "Boxing"
+            ExerciseSessionRecord.EXERCISE_TYPE_CALISTHENICS -> "Calisthenics"
+            ExerciseSessionRecord.EXERCISE_TYPE_CRICKET -> "Cricket"
+            ExerciseSessionRecord.EXERCISE_TYPE_CROSSFIT -> "Crossfit"
+            ExerciseSessionRecord.EXERCISE_TYPE_CURLING -> "Curling"
+            ExerciseSessionRecord.EXERCISE_TYPE_DANCING -> "Dancing"
+            ExerciseSessionRecord.EXERCISE_TYPE_DIVING -> "Diving"
+            ExerciseSessionRecord.EXERCISE_TYPE_ELLIPTICAL -> "Elliptical"
+            ExerciseSessionRecord.EXERCISE_TYPE_ERGOMETER -> "Ergometer"
+            ExerciseSessionRecord.EXERCISE_TYPE_FENCING -> "Fencing"
+            ExerciseSessionRecord.EXERCISE_TYPE_FRISBEE_DISC -> "Frisbee Disc"
+            ExerciseSessionRecord.EXERCISE_TYPE_GARDENING -> "Gardening"
+            ExerciseSessionRecord.EXERCISE_TYPE_GOLF -> "Golf"
+            ExerciseSessionRecord.EXERCISE_TYPE_GUIDED_BREATHING -> "Guided Breathing"
+            ExerciseSessionRecord.EXERCISE_TYPE_HANDBALL -> "Handball"
+            ExerciseSessionRecord.EXERCISE_TYPE_HIGH_INTENSITY_INTERVAL_TRAINING -> "High Intensity Interval Training"
+            ExerciseSessionRecord.EXERCISE_TYPE_HOCKEY -> "Hockey"
+            ExerciseSessionRecord.EXERCISE_TYPE_HORSEBACK_RIDING -> "Horseback Riding"
+            ExerciseSessionRecord.EXERCISE_TYPE_HOUSEWORK -> "Housework"
+            ExerciseSessionRecord.EXERCISE_TYPE_ICE_SKATING -> "Ice Skating"
+            ExerciseSessionRecord.EXERCISE_TYPE_INLINE_SKATING -> "Inline Skating"
+            ExerciseSessionRecord.EXERCISE_TYPE_JUMPING_ROPE -> "Jumping Rope"
+            ExerciseSessionRecord.EXERCISE_TYPE_KAYAKING -> "Kayaking"
+            ExerciseSessionRecord.EXERCISE_TYPE_KETTLEBELL_TRAINING -> "Kettlebell Training"
+            ExerciseSessionRecord.EXERCISE_TYPE_KICKBOXING -> "Kickboxing"
+            ExerciseSessionRecord.EXERCISE_TYPE_KITESURFING -> "Kitesurfing"
+            ExerciseSessionRecord.EXERCISE_TYPE_MARTIAL_ARTS -> "Martial Arts"
+            ExerciseSessionRecord.EXERCISE_TYPE_MEDITATION -> "Meditation"
+            ExerciseSessionRecord.EXERCISE_TYPE_MIXED_CARDIO -> "Mixed Cardio"
+            ExerciseSessionRecord.EXERCISE_TYPE_OPEN_WATER_SWIM -> "Open Water Swim"
+            ExerciseSessionRecord.EXERCISE_TYPE_PADDLEBOARDING -> "Paddleboarding"
+            ExerciseSessionRecord.EXERCISE_TYPE_PARAGLIDING -> "Paragliding"
+            ExerciseSessionRecord.EXERCISE_TYPE_PILATES -> "Pilates"
+            ExerciseSessionRecord.EXERCISE_TYPE_RACQUETBALL -> "Racquetball"
+            ExerciseSessionRecord.EXERCISE_TYPE_ROCK_CLIMBING -> "Rock Climbing"
+            ExerciseSessionRecord.EXERCISE_TYPE_ROWING -> "Rowing"
+            ExerciseSessionRecord.EXERCISE_TYPE_ROWING_MACHINE -> "Rowing Machine"
+            ExerciseSessionRecord.EXERCISE_TYPE_RUGBY -> "Rugby"
+            ExerciseSessionRecord.EXERCISE_TYPE_RUNNING_JOGGING -> "Running (Jogging)"
+            ExerciseSessionRecord.EXERCISE_TYPE_RUNNING_SAND -> "Running (Sand)"
+            ExerciseSessionRecord.EXERCISE_TYPE_RUNNING_TREADMILL -> "Running (Treadmill)"
+            ExerciseSessionRecord.EXERCISE_TYPE_SAILING -> "Sailing"
+            ExerciseSessionRecord.EXERCISE_TYPE_SCUBA_DIVING -> "Scuba Diving"
+            ExerciseSessionRecord.EXERCISE_TYPE_SKATEBOARDING -> "Skateboarding"
+            ExerciseSessionRecord.EXERCISE_TYPE_SKATING -> "Skating"
+            ExerciseSessionRecord.EXERCISE_TYPE_CROSS_COUNTRY_SKIING -> "Cross Country Skiing"
+            ExerciseSessionRecord.EXERCISE_TYPE_DOWNHILL_SKIING -> "Downhill Skiing"
+            ExerciseSessionRecord.EXERCISE_TYPE_SLEDDING -> "Sledding"
+            ExerciseSessionRecord.EXERCISE_TYPE_SLEEPING -> "Sleeping"
+            ExerciseSessionRecord.EXERCISE_TYPE_LIGHT_SLEEP -> "Light Sleep"
+            ExerciseSessionRecord.EXERCISE_TYPE_DEEP_SLEEP -> "Deep Sleep"
+            ExerciseSessionRecord.EXERCISE_TYPE_REM_SLEEP -> "REM Sleep"
+            ExerciseSessionRecord.EXERCISE_TYPE_AWAKE_DURING_SLEEP_PERIOD -> "Awake (During Sleep Period)"
+            ExerciseSessionRecord.EXERCISE_TYPE_SNOWBOARDING -> "Snowboarding"
+            ExerciseSessionRecord.EXERCISE_TYPE_SNOWMOBILE -> "Snowmobile"
+            ExerciseSessionRecord.EXERCISE_TYPE_SNOWSHOEING -> "Snowshoeing"
+            ExerciseSessionRecord.EXERCISE_TYPE_SOFTBALL -> "Softball"
+            ExerciseSessionRecord.EXERCISE_TYPE_SQUASH -> "Squash"
+            ExerciseSessionRecord.EXERCISE_TYPE_STAIR_CLIMBING -> "Stair Climbing"
+            ExerciseSessionRecord.EXERCISE_TYPE_STAIR_CLIMBING_MACHINE -> "Stair Climbing (Machine)"
+            ExerciseSessionRecord.EXERCISE_TYPE_STANDUP_PADDLEBOARDING -> "Standup Paddleboarding"
+            ExerciseSessionRecord.EXERCISE_TYPE_STRENGTH_TRAINING -> "Strength Training"
+            ExerciseSessionRecord.EXERCISE_TYPE_SURFING -> "Surfing"
+            ExerciseSessionRecord.EXERCISE_TYPE_SWIMMING -> "Swimming"
+            ExerciseSessionRecord.EXERCISE_TYPE_SWIMMING_OPEN_WATER -> "Swimming (Open Water)"
+            ExerciseSessionRecord.EXERCISE_TYPE_SWIMMING_POOL -> "Swimming (Pool)"
+            ExerciseSessionRecord.EXERCISE_TYPE_TABLE_TENNIS -> "Table Tennis"
+            ExerciseSessionRecord.EXERCISE_TYPE_TENNIS -> "Tennis"
+            ExerciseSessionRecord.EXERCISE_TYPE_TREADMILL -> "Treadmill (Walking/Running)"
+            ExerciseSessionRecord.EXERCISE_TYPE_VOLLEYBALL -> "Volleyball"
+            ExerciseSessionRecord.EXERCISE_TYPE_VOLLEYBALL_BEACH -> "Volleyball (Beach)"
+            ExerciseSessionRecord.EXERCISE_TYPE_VOLLEYBALL_INDOOR -> "Volleyball (Indoor)"
+            ExerciseSessionRecord.EXERCISE_TYPE_WAKEBOARDING -> "Wakeboarding"
+            ExerciseSessionRecord.EXERCISE_TYPE_WALKING_FITNESS -> "Walking (Fitness)"
+            ExerciseSessionRecord.EXERCISE_TYPE_WALKING_NORDIC -> "Walking (Nordic)"
+            ExerciseSessionRecord.EXERCISE_TYPE_WALKING_TREADMILL -> "Walking (Treadmill)"
+            ExerciseSessionRecord.EXERCISE_TYPE_WATER_POLO -> "Water Polo"
+            ExerciseSessionRecord.EXERCISE_TYPE_WHEELCHAIR -> "Wheelchair"
+            ExerciseSessionRecord.EXERCISE_TYPE_WINDSURFING -> "Windsurfing"
+            ExerciseSessionRecord.EXERCISE_TYPE_ZUMBA -> "Zumba"
+            ExerciseSessionRecord.EXERCISE_TYPE_OTHER -> "Other"
+            else -> "Unknown ($type)"
+        }
+    }
+
     // Comprehensive set of all Health Connect permissions
     private fun getAllHealthConnectPermissions(): Set<String> {
         return setOf(
@@ -215,9 +320,9 @@ class HealthConnectPlugin : Plugin() {
                     val clippedDuration = Duration.between(clippedStart, clippedEnd)
                     val clippedMinutes = maxOf(0, clippedDuration.toMinutes().toInt())
                     
-                    // Log exercise type information for debugging
+                    // Convert exercise type integer to readable name
                     val exerciseTypeValue = record.exerciseType
-                    val exerciseTypeName = exerciseTypeValue.toString()
+                    val exerciseTypeName = getExerciseName(exerciseTypeValue)
                     
                     android.util.Log.d("HealthConnect", "Exercise session - Type: $exerciseTypeName, Value: $exerciseTypeValue, Title: ${record.title}, Start: ${record.startTime}, End: ${record.endTime}")
                     
