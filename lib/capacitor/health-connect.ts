@@ -3,6 +3,7 @@ import { registerPlugin } from '@capacitor/core';
 export interface ExerciseSession {
   title: string;
   exerciseType: string;
+  exerciseTypeValue?: number;
   startTime: number;
   endTime: number;
   durationMinutes: number;

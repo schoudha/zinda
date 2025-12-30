@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogClo
 import { HealthConnect, ExerciseSession } from "@/lib/capacitor/health-connect";
 import { Capacitor } from "@capacitor/core";
 import { Loader2 } from "lucide-react";
+import { getExerciseTypeName } from "@/lib/exercise-type-map";
 
 interface ExerciseListDialogProps {
   open: boolean;
@@ -43,13 +44,8 @@ function formatTime(timestamp: number): string {
   return date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
 }
 
-function formatExerciseType(exerciseType: string): string {
-  // Convert "EXERCISE_TYPE_RUNNING" to "Running"
-  return exerciseType
-    .replace("EXERCISE_TYPE_", "")
-    .split("_")
-    .map((word) => word.charAt(0) + word.slice(1).toLowerCase())
-    .join(" ");
+function formatExerciseType(exerciseType: string, exerciseTypeValue?: number): string {
+  return getExerciseTypeName(exerciseType, exerciseTypeValue);
 }
 
 export function ExerciseListDialog({ open, onOpenChange, period }: ExerciseListDialogProps) {
@@ -75,6 +71,10 @@ export function ExerciseListDialog({ open, onOpenChange, period }: ExerciseListD
     setError(null);
     try {
       const { sessions: exerciseSessions } = await HealthConnect.getExerciseSessions({ period });
+      // Log exercise type values for debugging
+      exerciseSessions.forEach((session) => {
+        console.log(`Exercise Session - Type: ${session.exerciseType}, Value: ${session.exerciseTypeValue}, Title: ${session.title}`);
+      });
       // Sort by start time, most recent first
       const sorted = exerciseSessions.sort((a, b) => b.startTime - a.startTime);
       setSessions(sorted);
@@ -147,8 +147,13 @@ export function ExerciseListDialog({ open, onOpenChange, period }: ExerciseListD
                           <div className="flex items-start justify-between">
                             <div className="flex-1 min-w-0">
                               <div className="font-semibold text-gray-900 dark:text-white mb-1">
-                                {session.title || formatExerciseType(session.exerciseType)}
+                                {session.title || formatExerciseType(session.exerciseType, session.exerciseTypeValue)}
                               </div>
+                              {session.exerciseTypeValue !== undefined && (
+                                <div className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                                  Type: {session.exerciseType} (Value: {session.exerciseTypeValue})
+                                </div>
+                              )}
                               <div className="text-sm text-gray-600 dark:text-gray-400">
                                 {formatTime(session.startTime)} - {formatTime(session.endTime)}
                               </div>
