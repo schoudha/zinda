@@ -23,9 +23,8 @@ import { MediaCard } from "@/components/dashboard/media-card";
 import { BookOpen, FileText, Plus } from "lucide-react";
 
 export default function GoalDetailPage() {
-  const paramsRaw = useParams();
+  const params = useParams();
   const router = useRouter();
-  const [id, setId] = useState<string | null>(null);
   
   const [goal, setGoal] = useState<Goal | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -44,6 +43,8 @@ export default function GoalDetailPage() {
   const [learnProgress, setLearnProgress] = useState<number>(0);
   const [isUpdatingLearnProgress, setIsUpdatingLearnProgress] = useState(false);
   
+  const id = params.id as string;
+  
   // Health data
   const { totalMinutes, hasPermission, isNative } = useHealthConnect(healthPeriod);
   
@@ -52,19 +53,6 @@ export default function GoalDetailPage() {
   
   // Get progress for learn goals
   const { progress, refreshProgress } = useGoalProgress();
-
-  // Resolve params (handle both Promise and direct object cases)
-  useEffect(() => {
-    const resolveParams = async () => {
-      if (paramsRaw instanceof Promise || (paramsRaw && typeof (paramsRaw as any).then === 'function')) {
-        const resolved = await (paramsRaw as unknown as Promise<{ id: string }>);
-        setId(resolved.id);
-      } else {
-        setId((paramsRaw as { id: string }).id);
-      }
-    };
-    resolveParams();
-  }, [paramsRaw]);
 
   useEffect(() => {
     if (!id) return;
@@ -208,7 +196,7 @@ export default function GoalDetailPage() {
   
   // Update learn progress when progress data changes
   useEffect(() => {
-    if (goal?.category === 'learn' && id) {
+    if (goal?.category === 'learn') {
       setLearnProgress(progress[id] || 0);
     }
   }, [goal?.category, id, progress]);

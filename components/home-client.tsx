@@ -7,7 +7,6 @@ import { Header } from "@/components/dashboard/header";
 import { DateTabs } from "@/components/dashboard/date-tabs";
 import { TimeTabs } from "@/components/dashboard/time-tabs";
 import { NotepadCard } from "@/components/dashboard/notepad";
-import { MediaCard } from "@/components/dashboard/media-card";
 import { WellbeingCard } from "@/components/dashboard/wellbeing-card";
 import { HealthCard } from "@/components/dashboard/health-card";
 import { TimeDistributionCard } from "@/components/dashboard/time-distribution-card";
@@ -46,7 +45,7 @@ function HomeContent() {
   const { goals, isLoading: goalsLoading, refreshGoals, deleteGoal } = useGoals();
   const { progress, history: progressHistory, isLoading: progressLoading, updateProgress } = useGoalProgress();
   
-  const [activeTab, setActiveTab] = useState<"goals" | "notepad" | "media" | "time">("goals");
+  const [activeTab, setActiveTab] = useState<"goals" | "notepad" | "time">("goals");
   const [selectedPeriod, setSelectedPeriod] = useState<"today" | GoalPeriod>("today");
   const [selectedTimePeriod, setSelectedTimePeriod] = useState<"today" | "week" | "month" | "year">("today");
   // Derived state combining goals and progress
@@ -126,7 +125,7 @@ function HomeContent() {
   }, [filteredGoals]);
 
   // Memoize tab change handler
-  const handleTabChange = useCallback((tab: "goals" | "notepad" | "media" | "time") => {
+  const handleTabChange = useCallback((tab: "goals" | "notepad" | "time") => {
     setActiveTab(tab);
   }, []);
 
@@ -240,15 +239,6 @@ function HomeContent() {
                 <HealthCard period={selectedTimePeriod} />
                 <WellbeingCard period={selectedTimePeriod} />
                 <TimeDistributionCard />
-              </div>
-            ) : activeTab === "media" ? (
-              <div className="flex flex-col gap-4 px-4 overflow-hidden">
-                <MediaCard 
-                  notes={notes} 
-                  onToggleNote={toggleNote}
-                  onUpdateNote={updateNote}
-                  onDeleteNote={deleteNote}
-                />
               </div>
             ) : (
               <div className="flex flex-col gap-4 px-4 overflow-hidden">
