@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminClient } from '@/lib/supabase/server';
 import { isAuthenticated } from '@/lib/auth';
+import { getExerciseTypeName } from '@/lib/exercise-type-map';
+import { isYoutubeUrl } from '@/lib/url-utils';
 
 export async function POST(
   request: NextRequest,
@@ -12,7 +14,7 @@ export async function POST(
     }
 
     const { id: goalId } = await params;
-    const { message, progressData, healthData } = await request.json();
+    const { message, progressData, healthData, healthSessions, learnNotes } = await request.json();
 
     if (!goalId || !message) {
       return NextResponse.json(
@@ -102,6 +104,61 @@ Current Progress:
 - Today's completions: ${progressData.completionStats.todayCompletion || 0}${goal.target ? ` out of ${goal.target}` : ''}
 - Weekly completed days: ${progressData.completionStats.weeklyCompletedDays || 0} out of 7`;
         }
+      }
+    }
+    
+    // Add exercise sessions for health goals
+    if (goal.category === 'health' && healthSessions && Array.isArray(healthSessions) && healthSessions.length > 0) {
+      contextString += `\n\nExercise Sessions (${healthSessions.length} session${healthSessions.length !== 1 ? 's' : ''}):`;
+      healthSessions.forEach((session: any, index: number) => {
+        const exerciseName = session.title || getExerciseTypeName(session.exerciseType, session.exerciseTypeValue);
+        const date = new Date(session.startTime);
+        const dateStr = date.toLocaleDateString();
+        const timeStr = date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+        const durationHours = Math.floor(session.durationMinutes / 60);
+        const durationMins = session.durationMinutes % 60;
+        const durationStr = durationHours > 0 ? `${durationHours}h ${durationMins}m` : `${durationMins}m`;
+        
+        contextString += `\n${index + 1}. ${exerciseName}`;
+        contextString += `\n   - Date: ${dateStr} at ${timeStr}`;
+        contextString += `\n   - Duration: ${durationStr}`;
+        if (session.notes) {
+          contextString += `\n   - Notes: ${session.notes}`;
+        }
+      });
+    }
+    
+    // Add learn notes (articles and videos) for learn goals
+    if (goal.category === 'learn' && learnNotes && Array.isArray(learnNotes) && learnNotes.length > 0) {
+      const articles = learnNotes.filter((note: any) => note.url && !isYoutubeUrl(note.url));
+      const videos = learnNotes.filter((note: any) => note.url && isYoutubeUrl(note.url));
+      
+      if (articles.length > 0) {
+        contextString += `\n\nArticles to Read (${articles.length}):`;
+        articles.forEach((note: any, index: number) => {
+          contextString += `\n${index + 1}. ${note.urlTitle || note.text || note.url}`;
+          if (note.url) {
+            contextString += `\n   - URL: ${note.url}`;
+          }
+          if (note.summary) {
+            contextString += `\n   - Summary: ${note.summary.substring(0, 200)}${note.summary.length > 200 ? '...' : ''}`;
+          }
+          contextString += `\n   - Status: ${note.checked ? 'Completed' : 'Not completed'}`;
+        });
+      }
+      
+      if (videos.length > 0) {
+        contextString += `\n\nVideos to Watch (${videos.length}):`;
+        videos.forEach((note: any, index: number) => {
+          contextString += `\n${index + 1}. ${note.urlTitle || note.text || note.url}`;
+          if (note.url) {
+            contextString += `\n   - URL: ${note.url}`;
+          }
+          if (note.summary) {
+            contextString += `\n   - Summary: ${note.summary.substring(0, 200)}${note.summary.length > 200 ? '...' : ''}`;
+          }
+          contextString += `\n   - Status: ${note.checked ? 'Completed' : 'Not completed'}`;
+        });
       }
     }
     

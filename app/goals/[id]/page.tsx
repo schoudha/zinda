@@ -15,6 +15,7 @@ import { getRandomQuranQuote, type QuranQuote } from "@/lib/quran-quotes";
 import { useHealthConnect } from "@/hooks/useHealthConnect";
 import { useNotes } from "@/hooks/useNotes";
 import { useGoalProgress } from "@/hooks/useGoals";
+import { isYoutubeUrl } from "@/lib/url-utils";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { HealthGoalView } from "@/components/goals/health-goal-view";
 import { LearnGoalView } from "@/components/goals/learn-goal-view";
@@ -329,6 +330,25 @@ export default function GoalDetailPage() {
                         healthPeriod === "week" ? "This Week" :
                         healthPeriod === "month" ? "This Month" : "This Year",
           } : undefined,
+          healthSessions: goal.category === 'health' && hasPermission ? sessions.map(session => ({
+            title: session.title,
+            exerciseType: session.exerciseType,
+            exerciseTypeValue: session.exerciseTypeValue,
+            startTime: session.startTime,
+            endTime: session.endTime,
+            durationMinutes: session.durationMinutes,
+            notes: session.notes,
+          })) : undefined,
+          learnNotes: goal.category === 'learn' ? notes
+            .filter(note => note.url)
+            .map(note => ({
+              id: note.id,
+              text: note.text,
+              url: note.url,
+              urlTitle: note.urlTitle,
+              summary: note.summary,
+              checked: note.checked,
+            })) : undefined,
         }}
       />
     </div>

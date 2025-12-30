@@ -62,4 +62,21 @@ export interface ProgressData {
 export interface ChatContext {
   progressData?: ProgressData;
   healthData?: HealthData;
+  healthSessions?: Array<{
+    title: string;
+    exerciseType: string;
+    exerciseTypeValue?: number;
+    startTime: number;
+    endTime: number;
+    durationMinutes: number;
+    notes: string;
+  }>;
+  learnNotes?: Array<{
+    id: string;
+    text: string;
+    url?: string;
+    urlTitle?: string;
+    summary?: string;
+    checked: boolean;
+  }>;
 }
