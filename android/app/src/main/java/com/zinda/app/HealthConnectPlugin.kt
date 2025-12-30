@@ -120,6 +120,7 @@ class HealthConnectPlugin : Plugin() {
                     "today" -> now.withHour(0).withMinute(0).withSecond(0).withNano(0)
                     "week" -> now.minusDays(7).withHour(0).withMinute(0).withSecond(0).withNano(0)
                     "month" -> now.minusDays(30).withHour(0).withMinute(0).withSecond(0).withNano(0)
+                    "year" -> now.minusDays(365).withHour(0).withMinute(0).withSecond(0).withNano(0)
                     else -> now.minusDays(7).withHour(0).withMinute(0).withSecond(0).withNano(0)
                 }
 
@@ -184,6 +185,7 @@ class HealthConnectPlugin : Plugin() {
                     "today" -> now.withHour(0).withMinute(0).withSecond(0).withNano(0)
                     "week" -> now.minusDays(7).withHour(0).withMinute(0).withSecond(0).withNano(0)
                     "month" -> now.minusDays(30).withHour(0).withMinute(0).withSecond(0).withNano(0)
+                    "year" -> now.minusDays(365).withHour(0).withMinute(0).withSecond(0).withNano(0)
                     else -> now.minusDays(7).withHour(0).withMinute(0).withSecond(0).withNano(0)
                 }
 

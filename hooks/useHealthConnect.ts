@@ -5,6 +5,7 @@ import { HealthConnect } from '@/lib/capacitor/health-connect';
 
 export function useHealthConnect(period: string = 'week') {
   const [totalMinutes, setTotalMinutes] = useState<number>(0);
+  const [dailyStats, setDailyStats] = useState<Record<string, number>>({});
   const [hasPermission, setHasPermission] = useState<boolean>(false);
   const [isNative, setIsNative] = useState<boolean>(false);
   const [isAvailable, setIsAvailable] = useState<boolean>(false);
@@ -65,11 +66,25 @@ export function useHealthConnect(period: string = 'week') {
     }
     
     try {
-      const { totalMinutes: minutes } = await HealthConnect.getExerciseMinutes({ period });
-      setTotalMinutes(minutes || 0);
+      const [minutesResult, sessionsResult] = await Promise.all([
+        HealthConnect.getExerciseMinutes({ period }),
+        HealthConnect.getExerciseSessions({ period })
+      ]);
+      
+      setTotalMinutes(minutesResult.totalMinutes || 0);
+
+      // Process sessions into daily stats
+      const stats: Record<string, number> = {};
+      sessionsResult.sessions.forEach(session => {
+        // Use local date string YYYY-MM-DD
+        const date = new Date(session.startTime).toLocaleDateString('en-CA');
+        stats[date] = (stats[date] || 0) + session.durationMinutes;
+      });
+      setDailyStats(stats);
     } catch (e) {
-      console.error('Failed to load exercise minutes', e);
+      console.error('Failed to load exercise data', e);
       setTotalMinutes(0);
+      setDailyStats({});
     }
   };
 
@@ -135,6 +150,7 @@ export function useHealthConnect(period: string = 'week') {
     isAvailable,
     hasPermission,
     totalMinutes,
+    dailyStats,
     requestPermission,
     refresh: loadExerciseMinutes
   };

@@ -109,22 +109,70 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
   // Health Connect integration for health goals
   const isHealthGoal = goal.category === "health";
   const healthPeriod = selectedPeriod === "today" ? "today" : selectedPeriod === "week" ? "week" : selectedPeriod === "month" ? "month" : "year";
-  const { totalMinutes, hasPermission, isNative, requestPermission } = useHealthConnect(isHealthGoal ? healthPeriod : "week");
+  const { totalMinutes, dailyStats, hasPermission, isNative, requestPermission } = useHealthConnect(isHealthGoal ? healthPeriod : "week");
   
-  // Calculate health goal progress
-  const healthProgress = isHealthGoal ? (() => {
-    const minutesPerDay = goal.minutesPerDay;
-    const goalMinutes = minutesPerDay 
-      ? (healthPeriod === "today" ? minutesPerDay :
-         healthPeriod === "week" ? minutesPerDay * 7 :
-         healthPeriod === "month" ? minutesPerDay * 30 :
-         minutesPerDay * 365)
-      : (healthPeriod === "today" ? 21 :
-         healthPeriod === "week" ? 150 :
-         healthPeriod === "month" ? 600 :
-         7800);
-    return Math.min(100, Math.round((totalMinutes / goalMinutes) * 100));
-  })() : 0;
+  // Calculate health goal stats
+  const minutesPerDay = goal.minutesPerDay || 21; // Default 21 min/day
+  const dailyTarget = minutesPerDay;
+  const threshold = 0.7 * dailyTarget;
+
+  let healthProgress = 0;
+  let displayValue = "";
+  let displayLabel = "";
+  let goalLabel = "";
+
+  if (isHealthGoal) {
+    const getDateStr = (daysAgo: number) => {
+      const d = new Date();
+      d.setDate(d.getDate() - daysAgo);
+      return d.toLocaleDateString('en-CA');
+    };
+
+    if (healthPeriod === "today") {
+       healthProgress = Math.min(100, Math.round((totalMinutes / dailyTarget) * 100));
+       displayValue = formatMinutes(totalMinutes);
+       displayLabel = "Exercise time today";
+       goalLabel = `Goal: ${formatMinutes(dailyTarget)}`;
+    } else if (healthPeriod === "week") {
+       let daysMet = 0;
+       for (let i = 0; i < 7; i++) {
+         const date = getDateStr(i);
+         if ((dailyStats[date] || 0) >= threshold) daysMet++;
+       }
+       healthProgress = Math.round((daysMet / 7) * 100);
+       displayValue = `${daysMet}/7`;
+       displayLabel = "Days >70% of goal";
+       goalLabel = "Target: 70% daily";
+    } else if (healthPeriod === "month") {
+       let weeksMet = 0;
+       for (let w = 0; w < 4; w++) {
+         let daysMetInWeek = 0;
+         for (let d = 0; d < 7; d++) {
+            const date = getDateStr(w * 7 + d);
+            if ((dailyStats[date] || 0) >= threshold) daysMetInWeek++;
+         }
+         if (daysMetInWeek >= 5) weeksMet++;
+       }
+       healthProgress = Math.round((weeksMet / 4) * 100);
+       displayValue = `${weeksMet}/4`;
+       displayLabel = "Weeks 5/7 days met";
+       goalLabel = "Target: 5/7 days";
+    } else if (healthPeriod === "year") {
+       let monthsMet = 0;
+       for (let m = 0; m < 12; m++) {
+          let daysMetInMonth = 0;
+          for (let d = 0; d < 30; d++) {
+             const date = getDateStr(m * 30 + d);
+             if ((dailyStats[date] || 0) >= threshold) daysMetInMonth++;
+          }
+          if (daysMetInMonth >= 20) monthsMet++;
+       }
+       healthProgress = Math.round((monthsMet / 12) * 100);
+       displayValue = `${monthsMet}/12`;
+       displayLabel = "Months 20/30 days met";
+       goalLabel = "Target: 20/30 days";
+    }
+  }
 
   // Sync goal prop with local state when it changes
   useEffect(() => {
@@ -338,52 +386,54 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
           />
         </Suspense>
       )}
-      <CardHeader className="pb-1.5 pt-4 px-4">
-        <CardTitle className={`${periodColors[goal.period].split(' ')[2]} flex items-center gap-1.5`}>
-          <div className={`h-1 w-1 rounded-full ${goal.period === 'week' ? 'bg-blue-500' : goal.period === 'month' ? 'bg-purple-500' : 'bg-orange-500'} animate-pulse`} />
-          {(() => {
-            const IconComponent = periodIcons[goal.period];
-            return <IconComponent className="h-3.5 w-3.5" />;
-          })()}
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-3 px-4 pb-4">
-        <h3 className="text-sm font-bold text-gray-900 dark:text-white leading-tight tracking-tight">
-          {goal.text}
-        </h3>
+      {!isHealthGoal && (
+        <CardHeader className="pb-1.5 pt-4 px-4">
+          <CardTitle className={`${periodColors[goal.period].split(' ')[2]} flex items-center gap-1.5`}>
+            <div className={`h-1 w-1 rounded-full ${goal.period === 'week' ? 'bg-blue-500' : goal.period === 'month' ? 'bg-purple-500' : 'bg-orange-500'} animate-pulse`} />
+            {(() => {
+              const IconComponent = periodIcons[goal.period];
+              return <IconComponent className="h-3.5 w-3.5" />;
+            })()}
+          </CardTitle>
+        </CardHeader>
+      )}
+      <CardContent className={`${isHealthGoal ? 'px-4 py-4' : 'space-y-3 px-4 pb-4'}`}>
+        {!isHealthGoal && (
+          <h3 className="text-sm font-bold text-gray-900 dark:text-white leading-tight tracking-tight">
+            {goal.text}
+          </h3>
+        )}
 
         {/* Health goal progress with HealthConnect data */}
         {isHealthGoal ? (
-          <div className="flex items-center gap-4 py-2">
+          <div className="flex flex-col gap-4">
+            <h3 className="text-sm font-bold text-gray-900 dark:text-white leading-tight tracking-tight">
+              {goal.text}
+            </h3>
             {isNative && !hasPermission ? (
-              <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400 w-full justify-center py-2">
-                <Lock className="h-3.5 w-3.5" />
+              <div className="flex items-center justify-center gap-2 text-xs text-gray-600 dark:text-gray-400 py-4">
+                <Lock className="h-4 w-4" />
                 <span>Tap to connect Health Data</span>
               </div>
             ) : (
-              <>
-                <RadialProgress value={healthProgress} size={56} />
-                <div className="flex-1 space-y-1">
-                  <div className="flex items-baseline justify-between">
-                    <span className="text-lg font-extrabold text-gray-900 dark:text-white tracking-tight">
-                      {formatMinutes(totalMinutes)}
+              <div className="flex items-center gap-4">
+                <RadialProgress value={healthProgress} size={64} />
+                <div className="flex-1 space-y-1.5">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <span className="text-xl font-extrabold text-gray-900 dark:text-white tracking-tight">
+                      {displayValue}
                     </span>
-                    {goal.minutesPerDay && (
-                      <span className="text-[10px] font-medium text-gray-500 dark:text-gray-400 bg-white/50 dark:bg-white/5 px-2 py-0.5 rounded-full backdrop-blur-sm">
-                        Goal: {formatMinutes(
-                          healthPeriod === "today" ? goal.minutesPerDay :
-                          healthPeriod === "week" ? goal.minutesPerDay * 7 :
-                          healthPeriod === "month" ? goal.minutesPerDay * 30 :
-                          goal.minutesPerDay * 365
-                        )}
+                    {goalLabel && (
+                      <span className="text-[10px] font-medium text-gray-500 dark:text-gray-400 bg-white/50 dark:bg-white/5 px-2 py-0.5 rounded-full backdrop-blur-sm whitespace-nowrap">
+                        {goalLabel}
                       </span>
                     )}
                   </div>
                   <p className="text-[10px] text-gray-600 dark:text-gray-400">
-                    Exercise time {healthPeriod === "today" ? "today" : healthPeriod === "week" ? "this week" : healthPeriod === "month" ? "this month" : "this year"}
+                    {displayLabel}
                   </p>
                 </div>
-              </>
+              </div>
             )}
           </div>
         ) : goal.target ? (
