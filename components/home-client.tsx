@@ -148,7 +148,7 @@ function HomeContent() {
   return (
     <main className="flex min-h-screen justify-center bg-background overflow-x-hidden">
       <div className="flex h-full w-full max-w-md flex-col bg-background shadow-2xl shadow-black/20 overflow-hidden min-h-screen relative border-x border-border">
-        <ScrollArea className="flex-1" style={{ paddingBottom: 'calc(4rem + env(safe-area-inset-bottom))' }}>
+        <ScrollArea className="flex-1" style={{ paddingBottom: 'calc(4rem + env(safe-area-inset-bottom))', paddingTop: 'env(safe-area-inset-top)' }}>
           <div className="flex flex-col gap-6 pb-6">
             {activeTab === "goals" ? (
               <>
