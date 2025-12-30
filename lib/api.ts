@@ -133,6 +133,10 @@ export const api = {
       const data = await fetchApi<{ notes: Note[] }>("/api/notes");
       return data.notes;
     },
+    get: async (id: string) => {
+      const data = await fetchApi<{ notes: Note[] }>(`/api/notes?id=${id}`);
+      return data.notes[0] || null;
+    },
     create: async (note: Partial<Note>) => {
       const data = await fetchApi<{ note: Note }>("/api/notes", {
         method: "POST",

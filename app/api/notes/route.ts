@@ -9,10 +9,20 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { data, error } = await adminClient
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+
+    let query = adminClient
       .from('notes')
-      .select('*')
-      .order('created_at', { ascending: false });
+      .select('*');
+
+    if (id) {
+      query = query.eq('id', id);
+    } else {
+      query = query.order('created_at', { ascending: false });
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       console.error('Error fetching notes:', error);
