@@ -1,17 +1,17 @@
 "use client";
 
-import { useState, useEffect, useRef, use } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Send, Bell, Edit2, Sparkles, Loader2 } from "lucide-react";
+import { ArrowLeft, Bell, Edit2, Sparkles, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogClose } from "@/components/ui/dialog";
-import { Goal, Message } from "@/types";
-import { markdownToHtml } from "@/lib/utils";
+import { Goal } from "@/types";
 import { api } from "@/lib/api";
 import { NotificationDialog } from "@/components/goals/notification-dialog";
+import { GoalChatDialog } from "@/components/goals/goal-chat-dialog";
 import { getRandomQuranQuote, type QuranQuote } from "@/lib/quran-quotes";
 import { useHealthConnect } from "@/hooks/useHealthConnect";
 import { HealthConnect, ExerciseSession } from "@/lib/capacitor/health-connect";
@@ -24,11 +24,9 @@ export default function GoalDetailPage() {
   const [id, setId] = useState<string | null>(null);
   
   const [goal, setGoal] = useState<Goal | null>(null);
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(true);
-  const [isSending, setIsSending] = useState(false);
   const [notificationDialogOpen, setNotificationDialogOpen] = useState(false);
+  const [chatDialogOpen, setChatDialogOpen] = useState(false);
   const [quote, setQuote] = useState<QuranQuote | null>(null);
   const [healthPeriod, setHealthPeriod] = useState<"today" | "week" | "month" | "year">("today");
   const [exerciseSessions, setExerciseSessions] = useState<ExerciseSession[]>([]);
@@ -39,7 +37,6 @@ export default function GoalDetailPage() {
   const [editText, setEditText] = useState("");
   const [editMinutesPerDay, setEditMinutesPerDay] = useState<string>("");
   const [isSavingEdit, setIsSavingEdit] = useState(false);
-  const scrollRef = useRef<HTMLDivElement>(null);
   
   // Health data
   const { totalMinutes, hasPermission, isNative } = useHealthConnect(healthPeriod);
@@ -62,18 +59,11 @@ export default function GoalDetailPage() {
 
     const loadData = async () => {
       try {
-        const [goalData, messagesData] = await Promise.all([
-          api.goals.get(id),
-          api.goals.chat.history(id)
-        ]);
+        const goalData = await api.goals.get(id);
         
         setGoal(goalData);
         setEditText(goalData.text);
         setEditMinutesPerDay(goalData.minutesPerDay?.toString() || "30");
-        setMessages(messagesData.map((m) => ({
-          ...m,
-          createdAt: new Date(m.createdAt)
-        })));
         
         // Load Quran quote if this is a faith goal
         if (goalData.category === 'faith') {
@@ -176,56 +166,6 @@ export default function GoalDetailPage() {
     }
   };
 
-  // Scroll to bottom when messages change
-  useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, [messages]);
-
-  const handleSendMessage = async () => {
-    if (!inputValue.trim() || isSending || !id) return;
-
-    const userMsgText = inputValue.trim();
-    setInputValue("");
-    setIsSending(true);
-
-    // Optimistically add user message
-    const tempId = Date.now().toString();
-    const tempUserMsg: Message = {
-      id: tempId,
-      role: "user",
-      content: userMsgText,
-      createdAt: new Date(),
-    };
-    setMessages(prev => [...prev, tempUserMsg]);
-
-    try {
-      const { userMessage, aiMessage } = await api.goals.chat.send(id, userMsgText);
-
-      // Replace temp message with real one and add AI response
-      setMessages(prev => {
-        const filtered = prev.filter(m => m.id !== tempId);
-        return [
-          ...filtered,
-          { ...userMessage, createdAt: new Date(userMessage.createdAt) },
-          { ...aiMessage, createdAt: new Date(aiMessage.createdAt) }
-        ];
-      });
-    } catch (error) {
-      console.error("Error sending message:", error);
-      // Remove temp message or show error
-    } finally {
-      setIsSending(false);
-    }
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage();
-    }
-  };
 
   const handleSaveNotification = async (time: Goal["notificationTime"] | null, days: Goal["notificationDays"] | null) => {
     if (!goal) return;
@@ -270,8 +210,16 @@ export default function GoalDetailPage() {
           <ArrowLeft className="h-5 w-5 text-muted-foreground" />
         </Button>
         <h1 className="text-lg font-bold text-foreground truncate flex-1">
-          Goal Discussion
+          Goal Details
         </h1>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setChatDialogOpen(true)}
+          className="hover:bg-muted"
+        >
+          <Sparkles className="h-5 w-5 text-muted-foreground" />
+        </Button>
         <Button
           variant="ghost"
           size="icon"
@@ -434,82 +382,6 @@ export default function GoalDetailPage() {
         )}
       </div>
 
-      {/* Chat Area */}
-      <div className="flex-1 overflow-hidden relative bg-card rounded-t-3xl shadow-inner -mt-2 pt-4 border-t border-border/50">
-        <div 
-          ref={scrollRef} 
-          className="h-full overflow-y-auto px-4 pb-20 pt-2 space-y-4"
-        >
-          {messages.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-center p-8 opacity-50 space-y-4">
-              <div className="h-12 w-12 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                <div className="h-6 w-6 rounded-full bg-blue-500" />
-              </div>
-              <p className="text-sm font-medium text-muted-foreground">
-                Start a conversation with your AI coach about this goal.
-              </p>
-            </div>
-          ) : (
-            messages.map((msg) => (
-              <div
-                key={msg.id}
-                className={`flex w-full ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-              >
-                <div
-                  className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm shadow-sm ${
-                    msg.role === "user"
-                      ? "bg-blue-600 text-white rounded-br-none"
-                      : "bg-muted text-foreground rounded-bl-none"
-                  }`}
-                >
-                  {msg.role === "assistant" ? (
-                    <div 
-                      className="prose prose-sm max-w-none dark:prose-invert leading-relaxed"
-                      dangerouslySetInnerHTML={{ __html: markdownToHtml(msg.content) }} 
-                    />
-                  ) : (
-                    msg.content
-                  )}
-                </div>
-              </div>
-            ))
-          )}
-          
-          {isSending && (
-            <div className="flex w-full justify-start">
-              <div className="bg-muted rounded-2xl rounded-bl-none px-4 py-3 text-sm shadow-sm">
-                <div className="flex gap-1 h-5 items-center">
-                  <div className="h-2 w-2 bg-muted-foreground/50 rounded-full animate-bounce [animation-delay:-0.3s]" />
-                  <div className="h-2 w-2 bg-muted-foreground/50 rounded-full animate-bounce [animation-delay:-0.15s]" />
-                  <div className="h-2 w-2 bg-muted-foreground/50 rounded-full animate-bounce" />
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Input Area */}
-      <div className="absolute bottom-0 left-0 right-0 bg-background border-t border-border p-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
-        <div className="flex gap-2 items-center">
-          <Input
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Ask for advice..."
-            className="flex-1 rounded-full border-input bg-muted focus-visible:ring-blue-500 focus-visible:ring-offset-0"
-            disabled={isSending}
-          />
-          <Button
-            onClick={handleSendMessage}
-            disabled={!inputValue.trim() || isSending}
-            size="icon"
-            className="rounded-full h-10 w-10 shrink-0 bg-blue-600 hover:bg-blue-700 shadow-md shadow-blue-500/20 dark:shadow-none"
-          >
-            <Send className="h-4 w-4 text-white" />
-          </Button>
-        </div>
-      </div>
       
       {/* Edit Goal Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
@@ -567,6 +439,33 @@ export default function GoalDetailPage() {
           </DialogBody>
         </DialogContent>
       </Dialog>
+      {goal && (
+        <GoalChatDialog
+          open={chatDialogOpen}
+          onOpenChange={setChatDialogOpen}
+          goal={goal}
+          additionalContext={{
+            progressData: goal.category === 'health' ? undefined : {
+              todayProgress: goal.todayProgress,
+            },
+            healthData: goal.category === 'health' ? {
+              totalMinutes,
+              goalMinutes: healthPeriod === "today" ? (goal.minutesPerDay || 30) :
+                           healthPeriod === "week" ? (goal.minutesPerDay || 30) * 7 :
+                           healthPeriod === "month" ? (goal.minutesPerDay || 30) * 30 :
+                           (goal.minutesPerDay || 30) * 365,
+              period: healthPeriod,
+              percentage: goal.minutesPerDay ? Math.min(100, Math.round((totalMinutes / ((healthPeriod === "today" ? goal.minutesPerDay :
+                           healthPeriod === "week" ? goal.minutesPerDay * 7 :
+                           healthPeriod === "month" ? goal.minutesPerDay * 30 :
+                           goal.minutesPerDay * 365)) * 100))) : 0,
+              periodLabel: healthPeriod === "today" ? "Today" :
+                          healthPeriod === "week" ? "This Week" :
+                          healthPeriod === "month" ? "This Month" : "This Year",
+            } : undefined,
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -2,11 +2,13 @@
 
 import { memo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { useHealthConnect } from "@/hooks/useHealthConnect";
 import { useGoals } from "@/hooks/useGoals";
-import { Lock } from "lucide-react";
+import { Lock, Sparkles } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { GoalCreationDialog } from "@/components/goals/goal-creation-dialog";
+import { GoalChatDialog } from "@/components/goals/goal-chat-dialog";
 
 function RadialProgress({ value, size = 60, remainingMinutes }: { value: number; size?: number; remainingMinutes?: number }) {
   const radius = 24;
@@ -91,6 +93,7 @@ export const HealthCard = memo(function HealthCard({ period = "week" }: HealthCa
   const { totalMinutes, hasPermission, isNative, requestPermission } = useHealthConnect(period);
   const { goals, refreshGoals } = useGoals();
   const [showGoalCreation, setShowGoalCreation] = useState(false);
+  const [chatDialogOpen, setChatDialogOpen] = useState(false);
   
   // Find health goal
   const healthGoal = goals.find(g => g.category === "health");
@@ -143,6 +146,12 @@ export const HealthCard = memo(function HealthCard({ period = "week" }: HealthCa
     }
   };
 
+  const handleChatClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!healthGoal) return;
+    setChatDialogOpen(true);
+  };
+
   const isClickable = true; // Always clickable to navigate to goal detail or create goal
 
   return (
@@ -192,6 +201,16 @@ export const HealthCard = memo(function HealthCard({ period = "week" }: HealthCa
             )}
           </div>
         </div>
+        {healthGoal && isNative && hasPermission && (
+          <Button
+            onClick={handleChatClick}
+            size="sm"
+            className="w-full h-8 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 dark:from-purple-600 dark:to-indigo-700 dark:hover:from-purple-700 dark:hover:to-indigo-800 text-white text-xs font-medium shadow-sm"
+          >
+            <Sparkles className="h-3 w-3 mr-1.5" />
+            Chat with Gemini
+          </Button>
+        )}
       </CardContent>
     </Card>
     <GoalCreationDialog
@@ -203,6 +222,22 @@ export const HealthCard = memo(function HealthCard({ period = "week" }: HealthCa
         setShowGoalCreation(false);
       }}
     />
+    {healthGoal && (
+      <GoalChatDialog
+        open={chatDialogOpen}
+        onOpenChange={setChatDialogOpen}
+        goal={healthGoal}
+        additionalContext={{
+          healthData: {
+            totalMinutes,
+            goalMinutes,
+            period,
+            percentage,
+            periodLabel,
+          },
+        }}
+      />
+    )}
     </>
   );
 });

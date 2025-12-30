@@ -12,7 +12,7 @@ export async function POST(
     }
 
     const { id: goalId } = await params;
-    const { message } = await request.json();
+    const { message, progressData, healthData } = await request.json();
 
     if (!goalId || !message) {
       return NextResponse.json(
@@ -69,13 +69,61 @@ export async function POST(
       throw new Error('Gemini API key is not configured');
     }
 
+    // Build additional context string
+    let contextString = '';
+    
+    // Add progress data if available
+    if (progressData) {
+      if (goal.category === 'health' && healthData) {
+        // Health-specific context
+        const { totalMinutes, goalMinutes, period, percentage, periodLabel } = healthData;
+        const hours = Math.floor(totalMinutes / 60);
+        const mins = totalMinutes % 60;
+        const totalTimeFormatted = hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+        
+        const goalHours = Math.floor(goalMinutes / 60);
+        const goalMins = goalMinutes % 60;
+        const goalTimeFormatted = goalHours > 0 ? `${goalHours}h ${goalMins}m` : `${goalMins}m`;
+        
+        contextString = `
+Current Progress (${periodLabel}):
+- Total Exercise Time: ${totalTimeFormatted}
+- Goal: ${goalTimeFormatted}
+- Progress: ${percentage}%
+- Minutes per day target: ${goal.minutes_per_day || 'Not set'}`;
+      } else if (progressData.todayProgress !== undefined) {
+        // General progress context
+        contextString = `
+Current Progress:
+- Today's progress: ${progressData.todayProgress}${goal.target ? ` out of ${goal.target}` : '%'}`;
+        
+        if (progressData.completionStats) {
+          contextString += `
+- Today's completions: ${progressData.completionStats.todayCompletion || 0}${goal.target ? ` out of ${goal.target}` : ''}
+- Weekly completed days: ${progressData.completionStats.weeklyCompletedDays || 0} out of 7`;
+        }
+      }
+    }
+    
+    // Add goal target/category specific info
+    if (goal.target) {
+      contextString += `
+- Goal target: ${goal.target}`;
+    }
+    if (goal.minutes_per_day) {
+      contextString += `
+- Minutes per day target: ${goal.minutes_per_day}`;
+    }
+
     const systemPrompt = `You are a helpful and supportive goal coaching assistant. 
 The user has set the following goal: "${goal.text}".
 The time period for this goal is: ${goal.period}.
-Here are the initial tips generated for this goal: ${Array.isArray(goal.tips) ? goal.tips.join('; ') : ''}.
+Category: ${goal.category || 'general'}.
+Here are the initial tips generated for this goal: ${Array.isArray(goal.tips) ? goal.tips.join('; ') : ''}.${contextString}
 
 Your task is to help the user achieve this goal by answering their questions, providing motivation, breaking down steps, or offering advice.
-Keep your responses concise, encouraging, and actionable. Use bold and italics for emphasis where appropriate.`;
+Keep your responses concise, encouraging, and actionable. Use bold and italics for emphasis where appropriate.
+When referencing their progress or stats, use the actual numbers provided above.`;
 
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`,

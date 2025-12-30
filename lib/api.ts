@@ -49,10 +49,10 @@ export const api = {
         const data = await fetchApi<{ messages: Message[] }>(`/api/goals/${goalId}/messages`);
         return data.messages;
       },
-      send: async (goalId: string, message: string) => {
+      send: async (goalId: string, message: string, additionalContext?: any) => {
         return fetchApi<{ userMessage: Message; aiMessage: Message }>(`/api/goals/${goalId}/chat`, {
           method: "POST",
-          body: JSON.stringify({ message }),
+          body: JSON.stringify({ message, ...additionalContext }),
         });
       },
     },
