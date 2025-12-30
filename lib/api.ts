@@ -1,4 +1,4 @@
-import { Note, Goal, Message } from "@/types";
+import { Note, Goal, Message, Thought } from "@/types";
 
 // Helper for standardized API calls
 async function fetchApi<T>(url: string, options?: RequestInit): Promise<T> {
@@ -188,6 +188,19 @@ export const api = {
           body: JSON.stringify({ message, history }),
         });
       },
+    },
+  },
+  thoughts: {
+    list: async () => {
+      const data = await fetchApi<{ thoughts: Thought[] }>("/api/thoughts");
+      return data.thoughts;
+    },
+    create: async (thought: Partial<Thought>) => {
+      const data = await fetchApi<{ thought: Thought }>("/api/thoughts", {
+        method: "POST",
+        body: JSON.stringify(thought),
+      });
+      return data.thought;
     },
   },
 };

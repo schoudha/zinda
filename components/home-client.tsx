@@ -10,9 +10,10 @@ import { MediaCard } from "@/components/dashboard/media-card";
 import { WellbeingCard } from "@/components/dashboard/wellbeing-card";
 import { HealthCard } from "@/components/dashboard/health-card";
 import { TimeDistributionCard } from "@/components/dashboard/time-distribution-card";
-import { InputBar } from "@/components/dashboard/input-bar";
+import { ThoughtInput } from "@/components/dashboard/thought-input";
 import { BottomNav } from "@/components/dashboard/bottom-nav";
 import { GoalCard } from "@/components/dashboard/goal-card";
+import { GoalCreationDialog } from "@/components/goals/goal-creation-dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { PasswordGate } from "@/components/auth/password-gate";
 import { useGoals } from "@/hooks/useGoals";
@@ -45,8 +46,8 @@ function HomeContent() {
   const [selectedPeriod, setSelectedPeriod] = useState<"today" | GoalPeriod>("today");
   const [selectedTimePeriod, setSelectedTimePeriod] = useState<"today" | "week" | "month" | "year">("today");
   const [goalsWithProgress, setGoalsWithProgress] = useState<Goal[]>(goals);
-  const [preselectedCategory, setPreselectedCategory] = useState<GoalCategory | null>(null);
-  const inputBarRef = useRef<HTMLDivElement>(null);
+  const [goalCreationDialogOpen, setGoalCreationDialogOpen] = useState(false);
+  const [selectedCategoryForCreation, setSelectedCategoryForCreation] = useState<GoalCategory>("health");
   
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -198,11 +199,8 @@ function HomeContent() {
                           ) : (
                             <button
                               onClick={() => {
-                                setPreselectedCategory(cat.id);
-                                // Scroll to input bar after a brief delay to ensure it's rendered
-                                setTimeout(() => {
-                                  inputBarRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                                }, 100);
+                                setSelectedCategoryForCreation(cat.id);
+                                setGoalCreationDialogOpen(true);
                               }}
                               className="h-24 rounded-2xl border-2 border-dashed border-gray-100 dark:border-white/5 flex items-center justify-center hover:border-gray-200 dark:hover:border-white/10 hover:bg-gray-50/50 dark:hover:bg-white/5 transition-colors cursor-pointer active:scale-95"
                             >
@@ -216,15 +214,18 @@ function HomeContent() {
                   </div>
                 )}
                 
-                <div className="px-6" ref={inputBarRef}>
-                  <InputBar 
-                    onGoalCreated={() => {
-                      refreshGoals();
-                      setPreselectedCategory(null); // Reset after creation
-                    }}
-                    initialCategory={preselectedCategory}
-                  />
+                <div className="px-6">
+                  <ThoughtInput />
                 </div>
+
+                <GoalCreationDialog
+                  open={goalCreationDialogOpen}
+                  onOpenChange={setGoalCreationDialogOpen}
+                  category={selectedCategoryForCreation}
+                  onGoalCreated={() => {
+                    refreshGoals();
+                  }}
+                />
               </>
             ) : activeTab === "time" ? (
               <div className="flex flex-col gap-6 px-6">

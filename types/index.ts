@@ -35,3 +35,10 @@ export interface Message {
   createdAt: Date;
 }
 
+export interface Thought {
+  id: string;
+  text: string;
+  createdAt: Date;
+  date: string; // ISO date string (YYYY-MM-DD)
+}
+
