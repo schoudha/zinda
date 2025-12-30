@@ -162,9 +162,9 @@ function HomeContent() {
       <div className="flex h-full w-full max-w-md flex-col bg-background shadow-2xl shadow-black/20 overflow-hidden min-h-screen relative border-x border-border">
         <ScrollArea className="flex-1 pb-16">
           <div className="flex flex-col gap-6 pb-6">
-            <Header />
             {activeTab === "goals" ? (
               <>
+                <Header />
                 <div className="px-6">
                   <DateTabs value={selectedPeriod} onValueChange={handlePeriodChange} />
                 </div>
