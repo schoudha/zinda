@@ -537,6 +537,7 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
   }, [goal.id, goal.target, todayCompletion, isUpdating, onProgressUpdate]);
 
   return (
+    <>
     <Card 
       className={`border-none bg-gradient-to-br ${cardColorClass} shadow-lg shadow-blue-900/5 dark:shadow-black/20 rounded-2xl ring-1 ring-black/5 dark:ring-white/5 overflow-hidden transition-all duration-300 hover:shadow-blue-900/10 dark:hover:shadow-black/30 relative ${(isHealthGoal || isLearnGoal || selectedPeriod !== "today") ? 'cursor-pointer active:scale-95' : ''}`}
       onClick={(isHealthGoal || isLearnGoal || selectedPeriod !== "today") ? handleCardClick : undefined}
