@@ -21,21 +21,24 @@ import { useNotes } from "@/hooks/useNotes";
 import { GoalPeriod, Goal, GoalCategory } from "@/types";
 import { DashboardSkeleton, GoalCardSkeleton } from "@/components/ui/skeleton";
 import { api } from "@/lib/api";
-import { Heart, BookOpen, Users } from "lucide-react";
+// Health icon (heart ❤️)
+const HealthIcon = ({ className }: { className?: string }) => (
+  <span className={className} style={{ fontSize: 'inherit', lineHeight: 1 }}>❤️</span>
+);
 
-// Custom Islamic crescent icon
-const CrescentIcon = ({ className }: { className?: string }) => (
-  <svg
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className={className}
-  >
-    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-  </svg>
+// Prayer icon (person kneeling 🧎)
+const PrayerIcon = ({ className }: { className?: string }) => (
+  <span className={className} style={{ fontSize: 'inherit', lineHeight: 1 }}>🧎</span>
+);
+
+// Learn icon (book 📚)
+const LearnIcon = ({ className }: { className?: string }) => (
+  <span className={className} style={{ fontSize: 'inherit', lineHeight: 1 }}>📚</span>
+);
+
+// Family icon (family 👨‍👩‍👧‍👦)
+const FamilyIcon = ({ className }: { className?: string }) => (
+  <span className={className} style={{ fontSize: 'inherit', lineHeight: 1 }}>👨‍👩‍👧‍👦</span>
 );
 
 function HomeContent() {
@@ -53,10 +56,10 @@ function HomeContent() {
   const router = useRouter();
 
   const categories: { id: GoalCategory; icon: React.ElementType | React.FC<{ className?: string }>; color: string }[] = [
-    { id: "health", icon: Heart, color: "text-rose-500" },
-    { id: "faith", icon: CrescentIcon, color: "text-violet-500" },
-    { id: "learn", icon: BookOpen, color: "text-blue-500" },
-    { id: "family", icon: Users, color: "text-emerald-500" },
+    { id: "health", icon: HealthIcon, color: "text-rose-500" },
+    { id: "faith", icon: PrayerIcon, color: "text-violet-500" },
+    { id: "learn", icon: LearnIcon, color: "text-blue-500" },
+    { id: "family", icon: FamilyIcon, color: "text-emerald-500" },
   ];
 
   // Fetch today's progress when in "today" view

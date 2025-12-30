@@ -7,22 +7,26 @@ import { Button } from "@/components/ui/button";
 import { detectPeriod, markdownToHtml } from "@/lib/utils";
 import { api } from "@/lib/api";
 import { GoalCategory } from "@/types";
-import { Heart, BookOpen, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-// Custom Islamic crescent icon
-const CrescentIcon = ({ className }: { className?: string }) => (
-  <svg
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className={className}
-  >
-    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-  </svg>
+// Health icon (heart ❤️)
+const HealthIcon = ({ className }: { className?: string }) => (
+  <span className={className} style={{ fontSize: 'inherit', lineHeight: 1 }}>❤️</span>
+);
+
+// Prayer icon (person kneeling 🧎)
+const PrayerIcon = ({ className }: { className?: string }) => (
+  <span className={className} style={{ fontSize: 'inherit', lineHeight: 1 }}>🧎</span>
+);
+
+// Learn icon (book 📚)
+const LearnIcon = ({ className }: { className?: string }) => (
+  <span className={className} style={{ fontSize: 'inherit', lineHeight: 1 }}>📚</span>
+);
+
+// Family icon (family 👨‍👩‍👧‍👦)
+const FamilyIcon = ({ className }: { className?: string }) => (
+  <span className={className} style={{ fontSize: 'inherit', lineHeight: 1 }}>👨‍👩‍👧‍👦</span>
 );
 
 interface GoalCreationDialogProps {
@@ -51,10 +55,10 @@ export function GoalCreationDialog({ open, onOpenChange, category, onGoalCreated
   }, [category, open]);
 
   const categories: { id: GoalCategory; icon: React.ElementType | React.FC<{ className?: string }>; label: string }[] = [
-    { id: "health", icon: Heart, label: "Health" },
-    { id: "faith", icon: CrescentIcon, label: "Faith" },
-    { id: "learn", icon: BookOpen, label: "Learn" },
-    { id: "family", icon: Users, label: "Family" },
+    { id: "health", icon: HealthIcon, label: "Health" },
+    { id: "faith", icon: PrayerIcon, label: "Faith" },
+    { id: "learn", icon: LearnIcon, label: "Learn" },
+    { id: "family", icon: FamilyIcon, label: "Family" },
   ];
 
   // Parse tips from Gemini response
