@@ -60,6 +60,7 @@ function HomeContent() {
   const [isAutoCreatingLearnGoal, setIsAutoCreatingLearnGoal] = useState(false);
   const [isAutoCreatingScreentimeGoal, setIsAutoCreatingScreentimeGoal] = useState(false);
   const [hasCleanedUpDuplicates, setHasCleanedUpDuplicates] = useState(false);
+  const [hasFixedLearnGoalText, setHasFixedLearnGoalText] = useState(false);
   
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -125,6 +126,34 @@ function HomeContent() {
       setHasCleanedUpDuplicates(true);
     }
   }, [goals, goalsLoading, hasCleanedUpDuplicates, deleteGoal, refreshGoals]);
+
+  // Fix learn goal text from "Learn list" to "Learn"
+  useEffect(() => {
+    if (goalsLoading || hasFixedLearnGoalText) return;
+    
+    const learnGoalsToFix = goals.filter(
+      goal => goal.category === "learn" && goal.text.toLowerCase().includes("learn list")
+    );
+    
+    if (learnGoalsToFix.length > 0) {
+      setHasFixedLearnGoalText(true);
+      
+      // Update all learn goals with "Learn list" text to "Learn"
+      Promise.all(learnGoalsToFix.map(goal => 
+        api.goals.update(goal.id, { text: "Learn" })
+      ))
+        .then(() => {
+          console.log(`Fixed ${learnGoalsToFix.length} learn goal(s) text`);
+          refreshGoals();
+        })
+        .catch((error) => {
+          console.error("Error fixing learn goal text:", error);
+          setHasFixedLearnGoalText(false); // Reset on error so it can retry
+        });
+    } else {
+      setHasFixedLearnGoalText(true);
+    }
+  }, [goals, goalsLoading, hasFixedLearnGoalText, refreshGoals]);
 
   // Auto-create screentime goal if it doesn't exist
   useEffect(() => {
