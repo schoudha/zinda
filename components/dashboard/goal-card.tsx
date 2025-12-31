@@ -695,7 +695,7 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
             ) : isScreentimeGoal ? (
               <>
                 <h3 className="text-sm font-bold text-gray-900 dark:text-white leading-tight tracking-tight text-center">
-                  {goal.text} 📵
+                  {goal.text}
                 </h3>
                 {isUsageNative && !hasUsagePermission ? (
                   <div className="flex items-center justify-center gap-2 text-xs text-gray-600 dark:text-gray-400 py-4">
