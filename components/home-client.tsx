@@ -59,6 +59,7 @@ function HomeContent() {
   const [selectedCategoryForCreation, setSelectedCategoryForCreation] = useState<GoalCategory>("health");
   const [isAutoCreatingLearnGoal, setIsAutoCreatingLearnGoal] = useState(false);
   const [isAutoCreatingScreentimeGoal, setIsAutoCreatingScreentimeGoal] = useState(false);
+  const [hasCleanedUpDuplicates, setHasCleanedUpDuplicates] = useState(false);
   
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -93,11 +94,43 @@ function HomeContent() {
     }
   }, [notes, goals, goalsLoading, isAutoCreatingLearnGoal, refreshGoals]);
 
+  // Clean up duplicate screentime goals - keep only the most recent one
+  useEffect(() => {
+    if (goalsLoading || hasCleanedUpDuplicates) return;
+    
+    const screentimeGoals = goals.filter(goal => goal.category === "family" || goal.category === "screentime");
+    
+    if (screentimeGoals.length > 1) {
+      // Sort by createdAt (most recent first) - goals are already sorted, but let's be explicit
+      const sortedGoals = [...screentimeGoals].sort((a, b) => 
+        b.createdAt.getTime() - a.createdAt.getTime()
+      );
+      
+      // Keep the most recent one, delete the rest
+      const goalsToDelete = sortedGoals.slice(1);
+      
+      setHasCleanedUpDuplicates(true);
+      
+      // Delete duplicates in parallel
+      Promise.all(goalsToDelete.map(goal => deleteGoal(goal.id)))
+        .then(() => {
+          console.log(`Cleaned up ${goalsToDelete.length} duplicate screentime goal(s)`);
+          refreshGoals();
+        })
+        .catch((error) => {
+          console.error("Error cleaning up duplicate screentime goals:", error);
+          setHasCleanedUpDuplicates(false); // Reset on error so it can retry
+        });
+    } else {
+      setHasCleanedUpDuplicates(true);
+    }
+  }, [goals, goalsLoading, hasCleanedUpDuplicates, deleteGoal, refreshGoals]);
+
   // Auto-create screentime goal if it doesn't exist
   useEffect(() => {
     const hasScreentimeGoal = goals.some(goal => goal.category === "family" || goal.category === "screentime");
     
-    if (!hasScreentimeGoal && !goalsLoading && !isAutoCreatingScreentimeGoal) {
+    if (!hasScreentimeGoal && !goalsLoading && !isAutoCreatingScreentimeGoal && hasCleanedUpDuplicates) {
       setIsAutoCreatingScreentimeGoal(true);
       const goalId = Date.now().toString();
       const goalData: any = {
@@ -121,7 +154,7 @@ function HomeContent() {
           setIsAutoCreatingScreentimeGoal(false);
         });
     }
-  }, [goals, goalsLoading, isAutoCreatingScreentimeGoal, refreshGoals]);
+  }, [goals, goalsLoading, isAutoCreatingScreentimeGoal, hasCleanedUpDuplicates, refreshGoals]);
 
   const categories: { id: GoalCategory; icon: React.ElementType | React.FC<{ className?: string }>; color: string }[] = [
     { id: "health", icon: HealthIcon, color: "text-rose-500" },
@@ -142,8 +175,23 @@ function HomeContent() {
       family: []
     };
     
+    // Track if we've already added a screentime/family goal to prevent duplicates
+    let screentimeGoalAdded = false;
+    
     filteredGoals.forEach(goal => {
       const cat = goal.category || 'health'; // Default to health
+      
+      // For family/screentime category, only add the first one (most recent, since goals are sorted by created_at DESC)
+      if (cat === 'family' || cat === 'screentime') {
+        if (screentimeGoalAdded) {
+          return; // Skip duplicate screentime goals
+        }
+        grouped['family'].push(goal);
+        screentimeGoalAdded = true;
+        return;
+      }
+      
+      // For other categories, add to their respective group
       if (grouped[cat]) {
         grouped[cat].push(goal);
       } else {
