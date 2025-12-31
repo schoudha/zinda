@@ -24,9 +24,9 @@ const LearnIcon = ({ className }: { className?: string }) => (
   <span className={className} style={{ fontSize: 'inherit', lineHeight: 1 }}>📚</span>
 );
 
-// Family icon (family 👨‍👩‍👧‍👦)
-const FamilyIcon = ({ className }: { className?: string }) => (
-  <span className={className} style={{ fontSize: 'inherit', lineHeight: 1 }}>👨‍👩‍👧‍👦</span>
+// Screentime icon (no phones 📵)
+const ScreentimeIcon = ({ className }: { className?: string }) => (
+  <span className={className} style={{ fontSize: 'inherit', lineHeight: 1 }}>📵</span>
 );
 
 interface GoalCreationDialogProps {
@@ -48,7 +48,7 @@ export function GoalCreationDialog({ open, onOpenChange, category, onGoalCreated
     if (open) {
       setSelectedCategory(category);
       setMessage("");
-      setMinutesPerDay("30");
+      setMinutesPerDay(category === "family" ? "150" : "30");
       // Focus the input when dialog opens
       setTimeout(() => {
         inputRef.current?.focus();
@@ -60,7 +60,7 @@ export function GoalCreationDialog({ open, onOpenChange, category, onGoalCreated
     { id: "health", icon: HealthIcon, label: "Health" },
     { id: "faith", icon: PrayerIcon, label: "Faith" },
     { id: "learn", icon: LearnIcon, label: "Learn" },
-    { id: "family", icon: FamilyIcon, label: "Family" },
+    { id: "family", icon: ScreentimeIcon, label: "Screentime" },
   ];
 
   // Parse tips from Gemini response
@@ -142,8 +142,8 @@ export function GoalCreationDialog({ open, onOpenChange, category, onGoalCreated
         createdAt: new Date(),
       };
       
-      // Add minutesPerDay for health goals
-      if (selectedCategory === "health") {
+      // Add minutesPerDay for health and screentime goals
+      if (selectedCategory === "health" || selectedCategory === "family") {
         const minutes = parseInt(minutesPerDay, 10);
         if (!isNaN(minutes) && minutes > 0) {
           goalData.minutesPerDay = minutes;
@@ -199,7 +199,10 @@ export function GoalCreationDialog({ open, onOpenChange, category, onGoalCreated
               return (
                 <button
                   key={cat.id}
-                  onClick={() => setSelectedCategory(cat.id)}
+                  onClick={() => {
+                    setSelectedCategory(cat.id);
+                    setMinutesPerDay(cat.id === "family" ? "150" : "30");
+                  }}
                   title={cat.label}
                   className={cn(
                     "flex items-center justify-center w-10 h-10 rounded-full border-2 transition-all",
@@ -214,7 +217,7 @@ export function GoalCreationDialog({ open, onOpenChange, category, onGoalCreated
             })}
           </div>
           
-          {selectedCategory === "health" && (
+          {(selectedCategory === "health" || selectedCategory === "family") && (
             <div className="space-y-2">
               <label className="text-sm font-medium text-foreground">
                 Target: Minutes per day

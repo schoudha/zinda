@@ -35,9 +35,9 @@ const LearnIcon = ({ className }: { className?: string }) => (
   <span className={className} style={{ fontSize: 'inherit', lineHeight: 1 }}>📚</span>
 );
 
-// Family icon (family 👨‍👩‍👧‍👦)
-const FamilyIcon = ({ className }: { className?: string }) => (
-  <span className={className} style={{ fontSize: 'inherit', lineHeight: 1 }}>👨‍👩‍👧‍👦</span>
+// Screentime icon (no phones 📵)
+const ScreentimeIcon = ({ className }: { className?: string }) => (
+  <span className={className} style={{ fontSize: 'inherit', lineHeight: 1 }}>📵</span>
 );
 
 function HomeContent() {
@@ -96,7 +96,7 @@ function HomeContent() {
     { id: "health", icon: HealthIcon, color: "text-rose-500" },
     { id: "learn", icon: LearnIcon, color: "text-blue-500" },
     { id: "faith", icon: PrayerIcon, color: "text-violet-500" },
-    { id: "family", icon: FamilyIcon, color: "text-emerald-500" },
+    { id: "family", icon: ScreentimeIcon, color: "text-emerald-500" },
   ];
 
   // Show all goals in all views

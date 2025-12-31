@@ -13,12 +13,14 @@ import { NotificationDialog } from "@/components/goals/notification-dialog";
 import { GoalChatDialog } from "@/components/goals/goal-chat-dialog";
 import { getRandomQuranQuote, type QuranQuote } from "@/lib/quran-quotes";
 import { useHealthConnect } from "@/hooks/useHealthConnect";
+import { useUsageStats } from "@/hooks/useUsageStats";
 import { useNotes } from "@/hooks/useNotes";
 import { useGoalProgress } from "@/hooks/useGoals";
 import { isYoutubeUrl } from "@/lib/url-utils";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { HealthGoalView } from "@/components/goals/health-goal-view";
 import { LearnGoalView } from "@/components/goals/learn-goal-view";
+import { ScreentimeGoalView } from "@/components/goals/screentime-goal-view";
 
 export default function GoalDetailPage() {
   const params = useParams();
@@ -48,7 +50,7 @@ export default function GoalDetailPage() {
   useEffect(() => {
     if (goal) {
       setEditText(goal.text);
-      setEditMinutesPerDay(goal.minutesPerDay?.toString() || "30");
+      setEditMinutesPerDay(goal.minutesPerDay?.toString() || (goal.category === 'screentime' || goal.category === 'family' ? "150" : "30"));
       if (goal.category === 'faith' && !quote) {
         setQuote(getRandomQuranQuote());
       }
@@ -58,6 +60,9 @@ export default function GoalDetailPage() {
   // Health data
   const { totalMinutes, hasPermission, sessions } = useHealthConnect(healthPeriod);
   
+  // Usage Stats data
+  const { totalTime: screentimeMs, apps: screentimeApps, isNative: isUsageNative, hasPermission: hasUsagePermission, requestPermission: requestUsagePermission } = useUsageStats(healthPeriod);
+
   // Notes for learn goals
   const { notes, toggleNote, updateNote, deleteNote } = useNotes();
   
@@ -70,7 +75,7 @@ export default function GoalDetailPage() {
     setIsSavingEdit(true);
     try {
       const updates: Partial<Goal> = { text: editText };
-      if (goal.category === 'health') {
+      if (goal.category === 'health' || goal.category === 'screentime' || goal.category === 'family') {
         const minutes = parseInt(editMinutesPerDay, 10);
         if (!isNaN(minutes) && minutes > 0) {
           updates.minutesPerDay = minutes;
@@ -236,6 +241,20 @@ export default function GoalDetailPage() {
             setHealthPeriod={setHealthPeriod}
           />
         )}
+
+        {/* Screentime/Family-specific content */}
+        {(goal.category === 'screentime' || goal.category === 'family') && (
+           <ScreentimeGoalView
+            goal={goal}
+            totalTime={screentimeMs}
+            apps={screentimeApps}
+            isNative={isUsageNative}
+            hasPermission={hasUsagePermission}
+            requestPermission={requestUsagePermission}
+            period={healthPeriod}
+            setPeriod={setHealthPeriod}
+          />
+        )}
       </div>
 
       {/* Gemini Chat CTA - Large bottom button */}
@@ -271,7 +290,7 @@ export default function GoalDetailPage() {
               />
             </div>
             
-            {goal?.category === 'health' && (
+            {(goal?.category === 'health' || goal?.category === 'screentime' || goal?.category === 'family') && (
               <div className="space-y-2">
                 <label className="text-sm font-medium text-foreground">
                   Target: Minutes per day

@@ -46,7 +46,7 @@ export async function GET() {
       notificationTime: goal.notification_time as 'morning' | 'evening' | 'night' | undefined,
       notificationDays: goal.notification_days as 'everyday' | 'weekday' | 'weekend' | undefined,
       target: goal.target || undefined,
-      category: goal.category as 'health' | 'faith' | 'learn' | 'family' | undefined,
+      category: goal.category as 'health' | 'faith' | 'learn' | 'family' | 'screentime' | undefined,
       minutesPerDay: goal.minutes_per_day || undefined,
     }));
 
@@ -84,9 +84,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (category && !['health', 'faith', 'learn', 'family'].includes(category)) {
+    if (category && !['health', 'faith', 'learn', 'family', 'screentime'].includes(category)) {
       return NextResponse.json(
-        { error: 'category must be health, faith, learn, or family' },
+        { error: 'category must be health, faith, learn, family, or screentime' },
         { status: 400 }
       );
     }

@@ -10,7 +10,7 @@ export interface Note {
 }
 
 export type GoalPeriod = "week" | "month" | "year";
-export type GoalCategory = "health" | "faith" | "learn" | "family";
+export type GoalCategory = "health" | "faith" | "learn" | "family" | "screentime";
 export type NotificationTime = "morning" | "evening" | "night";
 export type NotificationDays = "everyday" | "weekday" | "weekend";
 

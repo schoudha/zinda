@@ -19,7 +19,7 @@ export async function fetchGoals(): Promise<Goal[]> {
     tips: goal.tips || [],
     createdAt: new Date(goal.created_at),
     userId: goal.user_id || undefined,
-    category: goal.category as 'health' | 'faith' | 'learn' | 'family' | undefined,
+    category: goal.category as 'health' | 'faith' | 'learn' | 'family' | 'screentime' | undefined,
     notificationTime: goal.notification_time as 'morning' | 'evening' | 'night' | undefined,
     notificationDays: goal.notification_days as 'everyday' | 'weekday' | 'weekend' | undefined,
     target: goal.target || undefined,
