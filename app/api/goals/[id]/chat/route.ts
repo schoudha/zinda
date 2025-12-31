@@ -14,7 +14,7 @@ export async function POST(
     }
 
     const { id: goalId } = await params;
-    const { message, progressData, healthData, healthSessions, learnNotes, usageStats } = await request.json();
+    const { message, progressData, healthData, healthSessions, learnNotes, usageStats, quote } = await request.json();
 
     if (!goalId || !message) {
       return NextResponse.json(
@@ -214,6 +214,11 @@ Current Progress:
       }
     }
     
+    // Add quote for faith goals
+    if (quote) {
+      contextString += `\n\nCurrent Quran Quote for Inspiration:\n"${quote.english}"\nReference: ${quote.reference}`;
+    }
+
     // Add goal target/category specific info
     if (goal.target) {
       contextString += `

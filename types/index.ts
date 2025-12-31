@@ -91,5 +91,9 @@ export interface ChatContext {
     summary?: string;
     checked: boolean;
   }>;
+  quote?: {
+    english: string;
+    reference: string;
+  };
   usageStats?: UsageStatsData;
 }

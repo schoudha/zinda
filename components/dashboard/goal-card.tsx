@@ -621,23 +621,13 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
   return (
     <>
     <Card 
-      className={`border-none bg-gradient-to-br ${cardColorClass} shadow-lg shadow-blue-900/5 dark:shadow-black/20 rounded-2xl ring-1 ring-black/5 dark:ring-white/5 overflow-hidden transition-all duration-300 hover:shadow-blue-900/10 dark:hover:shadow-black/30 relative ${(isHealthGoal || isLearnGoal || isScreentimeGoal || selectedPeriod !== "today") ? 'cursor-pointer active:scale-95' : ''}`}
+      className={`border-none bg-gradient-to-br ${cardColorClass} shadow-lg shadow-blue-900/5 dark:shadow-black/20 rounded-2xl ring-1 ring-black/5 dark:ring-white/5 overflow-hidden transition-all duration-300 hover:shadow-blue-900/10 dark:hover:shadow-black/30 relative min-h-[160px] ${(isHealthGoal || isLearnGoal || isScreentimeGoal || selectedPeriod !== "today") ? 'cursor-pointer active:scale-95' : ''}`}
       onClick={(isHealthGoal || isLearnGoal || isScreentimeGoal || selectedPeriod !== "today") ? handleCardClick : undefined}
       onKeyDown={(isHealthGoal || isLearnGoal || isScreentimeGoal || selectedPeriod !== "today") ? handleKeyDown : undefined}
       role={(isHealthGoal || isLearnGoal || isScreentimeGoal || selectedPeriod !== "today") ? "button" : undefined}
       tabIndex={(isHealthGoal || isLearnGoal || isScreentimeGoal || selectedPeriod !== "today") ? 0 : undefined}
     >
       <div className="absolute top-1.5 right-1.5 flex gap-0.5 z-10">
-        {!isHealthGoal && !isLearnGoal && !isScreentimeGoal && (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-6 w-6 rounded-full opacity-60 hover:opacity-100 hover:bg-white/50 dark:hover:bg-white/10 dark:text-white"
-            onClick={handleBellClick}
-          >
-            <Bell className={`h-3 w-3 ${currentGoal.notificationTime && currentGoal.notificationDays ? 'fill-current' : ''}`} />
-          </Button>
-        )}
         {onDelete && (
           <Button
             variant="ghost"
@@ -649,20 +639,9 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
           </Button>
         )}
       </div>
-      {!isHealthGoal && !isLearnGoal && !isScreentimeGoal && (
-        <CardHeader className="pb-1.5 pt-4 px-4">
-          <CardTitle className={`${periodColors[goal.period].split(' ')[2]} flex items-center gap-1.5`}>
-            <div className={`h-1 w-1 rounded-full ${goal.period === 'week' ? 'bg-blue-500' : goal.period === 'month' ? 'bg-purple-500' : 'bg-orange-500'} animate-pulse`} />
-            {(() => {
-              const IconComponent = periodIcons[goal.period];
-              return <IconComponent className="h-3.5 w-3.5" />;
-            })()}
-          </CardTitle>
-        </CardHeader>
-      )}
-      <CardContent className={`${(isHealthGoal || isLearnGoal || isScreentimeGoal || selectedPeriod !== "today") ? 'px-4 py-4' : 'space-y-3 px-4 pb-4'}`}>
+      <CardContent className={`${(isHealthGoal || isLearnGoal || isScreentimeGoal || selectedPeriod !== "today") ? 'px-4 py-4' : 'px-4 py-4 flex flex-col justify-between h-full'}`}>
         {(!isHealthGoal && !isLearnGoal && !isScreentimeGoal && selectedPeriod === "today") && (
-          <h3 className="text-sm font-bold text-gray-900 dark:text-white leading-tight tracking-tight">
+          <h3 className="text-sm font-bold text-gray-900 dark:text-white leading-tight tracking-tight text-center mb-2">
             {goal.text}
           </h3>
         )}

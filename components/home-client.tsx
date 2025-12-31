@@ -59,6 +59,7 @@ function HomeContent() {
   const [selectedCategoryForCreation, setSelectedCategoryForCreation] = useState<GoalCategory>("health");
   const [isAutoCreatingLearnGoal, setIsAutoCreatingLearnGoal] = useState(false);
   const [isAutoCreatingScreentimeGoal, setIsAutoCreatingScreentimeGoal] = useState(false);
+  const [isAutoCreatingFaithGoal, setIsAutoCreatingFaithGoal] = useState(false);
   const [hasCleanedUpDuplicates, setHasCleanedUpDuplicates] = useState(false);
   const [hasFixedLearnGoalText, setHasFixedLearnGoalText] = useState(false);
   
@@ -184,6 +185,36 @@ function HomeContent() {
         });
     }
   }, [goals, goalsLoading, isAutoCreatingScreentimeGoal, hasCleanedUpDuplicates, refreshGoals]);
+
+  // Auto-create faith goal (Prayers) if it doesn't exist
+  useEffect(() => {
+    const hasFaithGoal = goals.some(goal => goal.category === "faith");
+    
+    if (!hasFaithGoal && !goalsLoading && !isAutoCreatingFaithGoal) {
+      setIsAutoCreatingFaithGoal(true);
+      const goalId = (Date.now() + 1).toString(); // +1 to avoid collision if running same ms as others
+      const goalData: any = {
+        id: goalId,
+        text: "Daily Prayers",
+        period: "week" as GoalPeriod, // Goals are typically weekly in this app structure
+        category: "faith" as GoalCategory,
+        tips: [],
+        target: 3, // Default to 3 prayers as requested
+        createdAt: new Date(),
+      };
+      
+      api.goals.create(goalData)
+        .then(() => {
+          refreshGoals();
+        })
+        .catch((error) => {
+          console.error("Error auto-creating faith goal:", error);
+        })
+        .finally(() => {
+          setIsAutoCreatingFaithGoal(false);
+        });
+    }
+  }, [goals, goalsLoading, isAutoCreatingFaithGoal, refreshGoals]);
 
   const categories: { id: GoalCategory; icon: React.ElementType | React.FC<{ className?: string }>; color: string }[] = [
     { id: "health", icon: HealthIcon, color: "text-rose-500" },

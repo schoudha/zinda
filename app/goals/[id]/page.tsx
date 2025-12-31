@@ -20,6 +20,7 @@ import { isYoutubeUrl } from "@/lib/url-utils";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { HealthGoalView } from "@/components/goals/health-goal-view";
 import { LearnGoalView } from "@/components/goals/learn-goal-view";
+import { FaithGoalView } from "@/components/goals/faith-goal-view";
 import { ScreentimeGoalView } from "@/components/goals/screentime-goal-view";
 
 export default function GoalDetailPage() {
@@ -35,9 +36,11 @@ export default function GoalDetailPage() {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editText, setEditText] = useState("");
   const [editMinutesPerDay, setEditMinutesPerDay] = useState<string>("");
+  const [editTarget, setEditTarget] = useState<string>("");
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [learnProgress, setLearnProgress] = useState<number>(0);
   const [isUpdatingLearnProgress, setIsUpdatingLearnProgress] = useState(false);
+  const [isUpdatingFaith, setIsUpdatingFaith] = useState(false);
   
   // React Query for Goal Data
   const { data: goal, isLoading: isGoalLoading } = useQuery({
@@ -46,11 +49,19 @@ export default function GoalDetailPage() {
     enabled: !!id,
   });
 
+  // Faith goal completions
+  const { data: completionStats, refetch: refetchCompletions } = useQuery({
+    queryKey: ['goal-completions', id],
+    queryFn: () => api.goals.completions.get(id),
+    enabled: !!goal && goal.category === 'faith',
+  });
+
   // Initialize edit state when goal loads
   useEffect(() => {
     if (goal) {
       setEditText(goal.text);
       setEditMinutesPerDay(goal.minutesPerDay?.toString() || (goal.category === 'screentime' || goal.category === 'family' ? "150" : "30"));
+      setEditTarget(goal.target?.toString() || (goal.category === 'faith' ? "3" : ""));
       if (goal.category === 'faith' && !quote) {
         setQuote(getRandomQuranQuote());
       }
@@ -79,6 +90,13 @@ export default function GoalDetailPage() {
         const minutes = parseInt(editMinutesPerDay, 10);
         if (!isNaN(minutes) && minutes > 0) {
           updates.minutesPerDay = minutes;
+        }
+      }
+      
+      if (goal.category === 'faith') {
+        const target = parseInt(editTarget, 10);
+        if (!isNaN(target) && target > 0) {
+          updates.target = target;
         }
       }
       
@@ -122,6 +140,21 @@ export default function GoalDetailPage() {
       setIsUpdatingLearnProgress(false);
     }
   }, [goal, progress, isUpdatingLearnProgress, refreshProgress]);
+
+  // Handle manual increment for faith goals
+  const handleIncrementFaithProgress = async (increment: number) => {
+    if (!goal || goal.category !== 'faith' || isUpdatingFaith) return;
+    
+    setIsUpdatingFaith(true);
+    try {
+      await api.goals.completions.increment(goal.id, increment);
+      await refetchCompletions();
+    } catch (error) {
+      console.error("Error updating faith progress:", error);
+    } finally {
+      setIsUpdatingFaith(false);
+    }
+  };
 
   if (isGoalLoading) {
     return (
@@ -216,6 +249,17 @@ export default function GoalDetailPage() {
             </CardContent>
           </Card>
         )}
+
+        {/* Faith-specific content */}
+        {goal.category === 'faith' && (
+          <FaithGoalView
+            goal={goal}
+            todayCompletion={completionStats?.todayCompletion || 0}
+            handleIncrementCompletion={handleIncrementFaithProgress}
+            isUpdating={isUpdatingFaith}
+            target={goal.target || 3}
+          />
+        )}
         
         {/* Learn-specific content */}
         {goal.category === 'learn' && (
@@ -307,6 +351,24 @@ export default function GoalDetailPage() {
                 />
               </div>
             )}
+
+            {goal?.category === 'faith' && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground">
+                  Target: Prayers per day
+                </label>
+                <Input
+                  type="number"
+                  min="1"
+                  max="5"
+                  value={editTarget}
+                  onChange={(e) => setEditTarget(e.target.value)}
+                  className="w-full"
+                  placeholder="3"
+                  disabled={isSavingEdit}
+                />
+              </div>
+            )}
             
             <Button
               onClick={handleSaveEdit}
@@ -332,7 +394,11 @@ export default function GoalDetailPage() {
         goal={goal}
         additionalContext={{
           progressData: goal.category === 'health' ? undefined : {
-            todayProgress: goal.todayProgress,
+            todayProgress: goal.category === 'faith' ? (completionStats?.todayCompletion || 0) : (goal.todayProgress || 0),
+            completionStats: goal.category === 'faith' && completionStats ? {
+              todayCompletion: completionStats.todayCompletion,
+              weeklyCompletedDays: completionStats.weeklyCompletedDays
+            } : undefined,
           },
           healthData: goal.category === 'health' ? {
             totalMinutes,
@@ -368,6 +434,10 @@ export default function GoalDetailPage() {
               summary: note.summary,
               checked: note.checked,
             })) : undefined,
+          quote: goal.category === 'faith' && quote ? {
+            english: quote.english,
+            reference: quote.reference
+          } : undefined,
           usageStats: (goal.category === 'screentime' || goal.category === 'family') && hasUsagePermission ? {
             totalTime: screentimeMs,
             apps: screentimeApps,

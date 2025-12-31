@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { id, text, period, tips, createdAt, category, minutesPerDay } = body;
+    const { id, text, period, tips, createdAt, category, minutesPerDay, target: explicitTarget } = body;
 
     if (!id || !text || !period) {
       return NextResponse.json(
@@ -91,8 +91,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Extract integer target from goal text
-    const target = extractIntegerTarget(text);
+    // Determine target: explicit > extracted > default (faith=3)
+    let target = explicitTarget;
+    if (target === undefined || target === null) {
+      target = extractIntegerTarget(text);
+    }
+    if ((target === undefined || target === null) && category === 'faith') {
+      target = 3;
+    }
 
     const { data, error } = await adminClient
       .from('goals')
@@ -149,7 +155,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { id, text, period, tips, minutesPerDay } = body;
+    const { id, text, period, tips, minutesPerDay, target } = body;
 
     if (!id) {
       return NextResponse.json(
@@ -161,10 +167,17 @@ export async function PATCH(request: NextRequest) {
     const updateData: Record<string, unknown> = {};
     if (text !== undefined) {
       updateData.text = text;
-      // Re-extract target if text is updated
-      const target = extractIntegerTarget(text);
-      updateData.target = target || null;
+      // Only re-extract if target is NOT explicitly provided in this update
+      if (target === undefined) {
+        const extracted = extractIntegerTarget(text);
+        if (extracted) updateData.target = extracted;
+      }
     }
+    
+    if (target !== undefined) {
+       updateData.target = target;
+    }
+
     if (period !== undefined) {
       if (!['week', 'month', 'year'].includes(period)) {
         return NextResponse.json(

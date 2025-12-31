@@ -149,6 +149,11 @@ export function GoalCreationDialog({ open, onOpenChange, category, onGoalCreated
           goalData.minutesPerDay = minutes;
         }
       }
+
+      // Default target for faith goals
+      if (selectedCategory === "faith") {
+        goalData.target = 3;
+      }
       
       await api.goals.create(goalData);
 
