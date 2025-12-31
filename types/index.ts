@@ -59,6 +59,18 @@ export interface ProgressData {
   };
 }
 
+export interface UsageStatsData {
+  totalTime: number; // in milliseconds
+  apps: Array<{
+    packageName: string;
+    timeInForeground: number; // in milliseconds
+  }>;
+  goalMinutes: number; // target minutes per day
+  period: string;
+  percentage: number;
+  periodLabel: string;
+}
+
 export interface ChatContext {
   progressData?: ProgressData;
   healthData?: HealthData;
@@ -79,4 +91,5 @@ export interface ChatContext {
     summary?: string;
     checked: boolean;
   }>;
+  usageStats?: UsageStatsData;
 }

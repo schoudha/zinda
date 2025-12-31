@@ -368,6 +368,22 @@ export default function GoalDetailPage() {
               summary: note.summary,
               checked: note.checked,
             })) : undefined,
+          usageStats: (goal.category === 'screentime' || goal.category === 'family') && hasUsagePermission ? {
+            totalTime: screentimeMs,
+            apps: screentimeApps,
+            goalMinutes: healthPeriod === "today" ? (goal.minutesPerDay || 150) :
+                         healthPeriod === "week" ? (goal.minutesPerDay || 150) * 7 :
+                         healthPeriod === "month" ? (goal.minutesPerDay || 150) * 30 :
+                         (goal.minutesPerDay || 150) * 365,
+            period: healthPeriod,
+            percentage: goal.minutesPerDay ? Math.round((screentimeMs / 60000) / ((healthPeriod === "today" ? goal.minutesPerDay :
+                         healthPeriod === "week" ? goal.minutesPerDay * 7 :
+                         healthPeriod === "month" ? goal.minutesPerDay * 30 :
+                         goal.minutesPerDay * 365)) * 100) : 0,
+            periodLabel: healthPeriod === "today" ? "Today" :
+                        healthPeriod === "week" ? "This Week" :
+                        healthPeriod === "month" ? "This Month" : "This Year",
+          } : undefined,
         }}
       />
     </div>

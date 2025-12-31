@@ -14,7 +14,7 @@ export async function POST(
     }
 
     const { id: goalId } = await params;
-    const { message, progressData, healthData, healthSessions, learnNotes } = await request.json();
+    const { message, progressData, healthData, healthSessions, learnNotes, usageStats } = await request.json();
 
     if (!goalId || !message) {
       return NextResponse.json(
@@ -158,6 +158,58 @@ Current Progress:
             contextString += `\n   - Summary: ${note.summary.substring(0, 200)}${note.summary.length > 200 ? '...' : ''}`;
           }
           contextString += `\n   - Status: ${note.checked ? 'Completed' : 'Not completed'}`;
+        });
+      }
+    }
+    
+    // Add usage stats for screentime/family goals
+    if ((goal.category === 'family' || goal.category === 'screentime') && usageStats) {
+      const { totalTime, apps, goalMinutes, period, percentage, periodLabel } = usageStats;
+      
+      // Format total time
+      const totalMinutes = Math.floor(totalTime / 60000);
+      const hours = Math.floor(totalMinutes / 60);
+      const mins = totalMinutes % 60;
+      const totalTimeFormatted = hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+      
+      // Format goal time
+      const goalHours = Math.floor(goalMinutes / 60);
+      const goalMins = goalMinutes % 60;
+      const goalTimeFormatted = goalHours > 0 ? `${goalHours}h ${goalMins}m` : `${goalMins}m`;
+      
+      contextString += `\n\nScreen Time Usage (${periodLabel}):`;
+      contextString += `\n- Total Screen Time: ${totalTimeFormatted}`;
+      contextString += `\n- Daily Goal Limit: ${goalTimeFormatted}`;
+      contextString += `\n- Progress: ${percentage}% of daily limit`;
+      
+      // Add top apps if available
+      if (apps && Array.isArray(apps) && apps.length > 0) {
+        const topApps = apps.slice(0, 10); // Top 10 apps
+        
+        // Helper function to get app name from package name
+        const getAppName = (pkg: string): string => {
+          if (pkg.includes("instagram")) return "Instagram";
+          if (pkg.includes("tiktok")) return "TikTok";
+          if (pkg.includes("youtube")) return "YouTube";
+          if (pkg.includes("facebook")) return "Facebook";
+          if (pkg.includes("whatsapp")) return "WhatsApp";
+          if (pkg.includes("chrome")) return "Chrome";
+          if (pkg.includes("twitter") || pkg.includes("com.twitter.android")) return "X";
+          if (pkg.includes("gmail")) return "Gmail";
+          if (pkg.includes("netflix")) return "Netflix";
+          if (pkg.includes("spotify")) return "Spotify";
+          return pkg.split('.').pop() || pkg;
+        };
+        
+        contextString += `\n\nTop Apps Used (${topApps.length}):`;
+        topApps.forEach((app: any, index: number) => {
+          const appMinutes = Math.floor(app.timeInForeground / 60000);
+          const appHours = Math.floor(appMinutes / 60);
+          const appMins = appMinutes % 60;
+          const appTimeFormatted = appHours > 0 ? `${appHours}h ${appMins}m` : `${appMins}m`;
+          
+          const appName = getAppName(app.packageName);
+          contextString += `\n${index + 1}. ${appName}: ${appTimeFormatted}`;
         });
       }
     }
