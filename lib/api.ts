@@ -9,6 +9,10 @@ async function fetchApi<T>(url: string, options?: RequestInit): Promise<T> {
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
+    if (response.status === 404) {
+      // Return null or throw specific error for 404
+      throw new Error(`Goal not found: ${response.statusText}`);
+    }
     throw new Error(errorData.error || `API error: ${response.statusText}`);
   }
 

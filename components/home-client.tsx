@@ -61,6 +61,7 @@ function HomeContent() {
   const [isAutoCreatingScreentimeGoal, setIsAutoCreatingScreentimeGoal] = useState(false);
   const [isAutoCreatingFaithGoal, setIsAutoCreatingFaithGoal] = useState(false);
   const [hasCleanedUpDuplicates, setHasCleanedUpDuplicates] = useState(false);
+  const [hasCleanedUpFaithDuplicates, setHasCleanedUpFaithDuplicates] = useState(false);
   const [hasFixedLearnGoalText, setHasFixedLearnGoalText] = useState(false);
   
   const searchParams = useSearchParams();
@@ -128,6 +129,37 @@ function HomeContent() {
     }
   }, [goals, goalsLoading, hasCleanedUpDuplicates, deleteGoal, refreshGoals]);
 
+  // Clean up duplicate faith goals - keep only the most recent one
+  useEffect(() => {
+    if (goalsLoading || hasCleanedUpFaithDuplicates) return;
+    
+    const faithGoals = goals.filter(goal => goal.category === "faith");
+    
+    if (faithGoals.length > 1) {
+      // Sort by createdAt (most recent first)
+      const sortedGoals = [...faithGoals].sort((a, b) => 
+        b.createdAt.getTime() - a.createdAt.getTime()
+      );
+      
+      // Keep the most recent one, delete the rest
+      const goalsToDelete = sortedGoals.slice(1);
+      
+      setHasCleanedUpFaithDuplicates(true);
+      
+      Promise.all(goalsToDelete.map(goal => deleteGoal(goal.id)))
+        .then(() => {
+          console.log(`Cleaned up ${goalsToDelete.length} duplicate faith goal(s)`);
+          refreshGoals();
+        })
+        .catch((error) => {
+          console.error("Error cleaning up duplicate faith goals:", error);
+          setHasCleanedUpFaithDuplicates(false);
+        });
+    } else {
+      setHasCleanedUpFaithDuplicates(true);
+    }
+  }, [goals, goalsLoading, hasCleanedUpFaithDuplicates, deleteGoal, refreshGoals]);
+
   // Fix learn goal text from "Learn list" to "Learn"
   useEffect(() => {
     if (goalsLoading || hasFixedLearnGoalText) return;
@@ -190,7 +222,8 @@ function HomeContent() {
   useEffect(() => {
     const hasFaithGoal = goals.some(goal => goal.category === "faith");
     
-    if (!hasFaithGoal && !goalsLoading && !isAutoCreatingFaithGoal) {
+    // Only auto-create if no faith goal exists and we have finished cleaning up duplicates
+    if (!hasFaithGoal && !goalsLoading && !isAutoCreatingFaithGoal && hasCleanedUpFaithDuplicates) {
       setIsAutoCreatingFaithGoal(true);
       const goalId = (Date.now() + 1).toString(); // +1 to avoid collision if running same ms as others
       const goalData: any = {
@@ -214,7 +247,7 @@ function HomeContent() {
           setIsAutoCreatingFaithGoal(false);
         });
     }
-  }, [goals, goalsLoading, isAutoCreatingFaithGoal, refreshGoals]);
+  }, [goals, goalsLoading, isAutoCreatingFaithGoal, refreshGoals, hasCleanedUpFaithDuplicates]);
 
   const categories: { id: GoalCategory; icon: React.ElementType | React.FC<{ className?: string }>; color: string }[] = [
     { id: "health", icon: HealthIcon, color: "text-rose-500" },

@@ -43,10 +43,11 @@ export default function GoalDetailPage() {
   const [isUpdatingFaith, setIsUpdatingFaith] = useState(false);
   
   // React Query for Goal Data
-  const { data: goal, isLoading: isGoalLoading } = useQuery({
+  const { data: goal, isLoading: isGoalLoading, error: goalError } = useQuery({
     queryKey: ['goal', id],
     queryFn: () => api.goals.get(id),
     enabled: !!id,
+    retry: false, // Don't retry if it fails (e.g. 404)
   });
 
   // Faith goal completions
@@ -164,11 +165,19 @@ export default function GoalDetailPage() {
     );
   }
 
-  if (!goal) {
+  if (goalError || (!isGoalLoading && !goal)) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-50 flex-col gap-4">
         <p className="text-gray-500">Goal not found</p>
         <Button onClick={() => router.back()}>Go Back</Button>
+      </div>
+    );
+  }
+
+  if (!goal) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gray-50 flex-col gap-4">
+        <p className="text-gray-500">Loading goal...</p>
       </div>
     );
   }
