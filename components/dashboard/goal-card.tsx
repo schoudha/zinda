@@ -291,27 +291,8 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
      
      let daysMet = 0;
      daysInPeriod.forEach(date => {
-       // For screentime, we don't have historical data yet in usage stats hook easily without calling it for each day or modifying hook to return history
-       // The hook currently only returns aggregate for period.
-       // However, useUsageStats doesn't seem to return daily history yet.
-       // Assuming stats might be populated if we wire it up, but currently stats comes from dailyStats (health) or history (manual).
-       // Screentime history is not passed in 'history' prop nor 'dailyStats'.
-       // We'll fallback to showing 0 or implementation pending for history views for screentime for now, unless we fetch history.
-       // But wait, the user asked for Weekly view to be similar. 
-       // Since useUsageStats only returns totalTime for the period, we can't calculate 'days met' accurately without daily breakdown.
-       // For now, let's treat the 'period' total as the metric.
-       
-       // Actually, we can just check if stats[date] matches.
-       // But stats is empty for screentime.
-       
-       // To fix this properly, useUsageStats needs to return daily history or we need to fetch it.
-       // Given the constraints and current hook implementation, I'll use the aggregate percentage for now or skip detailed daily calculation if data missing.
-       // But for 'family' goal repurposing, maybe the user intends to use the manual tracking for history if device data isn't available?
-       // But the prompt implies automatic "screentime goal".
-       
-       // Let's assume for now we only support 'today' fully with live data, and other views might be inaccurate until we add history support to useUsageStats.
-       // However, I can try to use the manual 'history' prop if provided.
-       
+       // Note: Screentime goals don't have daily history yet - useUsageStats only returns aggregate for period
+       // For screentime, we fall back to manual history if provided, otherwise show 0
        if (isHealthGoal) {
          if ((dailyStats[date] || 0) >= threshold) daysMet++;
        } else {

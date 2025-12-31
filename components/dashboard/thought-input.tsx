@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { api } from "@/lib/api";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { generateId } from "@/lib/id-utils";
 
 export function ThoughtInput() {
   const [message, setMessage] = useState("");
@@ -16,7 +17,7 @@ export function ThoughtInput() {
     mutationFn: async (text: string) => {
       const today = new Date().toISOString().split('T')[0]; // Get YYYY-MM-DD format
       return api.thoughts.create({
-        id: Date.now().toString(),
+        id: generateId(),
         text: text,
         createdAt: new Date(),
         date: today,

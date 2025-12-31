@@ -3,6 +3,7 @@ import { Note, Goal } from "@/types";
 import { api } from "@/lib/api";
 import { getFirstUrl, isYoutubeUrl } from "@/lib/url-utils";
 import { useEffect, useCallback } from "react";
+import { generateId } from "@/lib/id-utils";
 
 export function useNotes() {
   const queryClient = useQueryClient();
@@ -45,7 +46,7 @@ export function useNotes() {
       }
 
       const newNote: Partial<Note> = {
-        id: Date.now().toString(),
+        id: generateId(),
         text: text,
         checked: false,
         checkedAt: null,
@@ -65,7 +66,7 @@ export function useNotes() {
       const url = getFirstUrl(text);
 
       const optimisticNote: Note = {
-        id: Date.now().toString(),
+        id: generateId(),
         text,
         checked: false,
         checkedAt: null,

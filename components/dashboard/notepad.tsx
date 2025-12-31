@@ -8,10 +8,10 @@ const NOTEPAD_THIS_WEEK_ID = "notepad_this_week";
 const NOTEPAD_FUTURE_ID = "notepad_future";
 
 interface NotepadCardProps {
-  notes?: any[]; // Deprecated, not used
+  // No props needed - component is self-contained
 }
 
-export function NotepadCard({ notes }: NotepadCardProps) {
+export function NotepadCard(_props: NotepadCardProps) {
   const thisWeek = useAutoSaveNote(NOTEPAD_THIS_WEEK_ID);
   const future = useAutoSaveNote(NOTEPAD_FUTURE_ID);
 

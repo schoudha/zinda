@@ -3,6 +3,7 @@ import { adminClient } from '@/lib/supabase/server';
 import { isAuthenticated } from '@/lib/auth';
 import { getExerciseTypeName } from '@/lib/exercise-type-map';
 import { isYoutubeUrl } from '@/lib/url-utils';
+import { randomUUID } from 'crypto';
 
 export async function POST(
   request: NextRequest,
@@ -24,7 +25,7 @@ export async function POST(
     }
 
     // 1. Save user message
-    const userMessageId = Date.now().toString();
+    const userMessageId = randomUUID();
     const { error: userMsgError } = await adminClient
       .from('goal_messages')
       .insert({
@@ -271,7 +272,7 @@ When referencing their progress or stats, use the actual numbers provided above.
     const aiText = aiData.candidates?.[0]?.content?.parts?.[0]?.text || 'I apologize, but I could not generate a response at this time.';
 
     // 5. Save AI response
-    const aiMessageId = (Date.now() + 1).toString();
+    const aiMessageId = randomUUID();
     const { error: aiMsgError } = await adminClient
       .from('goal_messages')
       .insert({

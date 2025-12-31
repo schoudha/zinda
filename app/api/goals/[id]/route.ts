@@ -22,6 +22,13 @@ export async function GET(
       .single();
 
     if (error) {
+      // PGRST116 is the error code when no rows are returned
+      if (error.code === 'PGRST116') {
+        return NextResponse.json(
+          { error: 'Goal not found' },
+          { status: 404 }
+        );
+      }
       console.error('Error fetching goal:', error);
       return NextResponse.json(
         { error: 'Failed to fetch goal' },

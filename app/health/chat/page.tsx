@@ -9,6 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Message } from "@/types";
 import { markdownToHtml, formatMinutes } from "@/lib/utils";
 import { useHealthConnect } from "@/hooks/useHealthConnect";
+import { generateId } from "@/lib/id-utils";
 
 function HealthChatContent() {
   const router = useRouter();
@@ -49,7 +50,7 @@ function HealthChatContent() {
     setIsSending(true);
 
     // Optimistically add user message
-    const tempId = Date.now().toString();
+    const tempId = generateId();
     const tempUserMsg: Message = {
       id: tempId,
       role: "user",
@@ -91,8 +92,8 @@ function HealthChatContent() {
         const filtered = prev.filter(m => m.id !== tempId);
         return [
           ...filtered,
-          { ...userMessage, id: Date.now().toString(), createdAt: new Date() },
-          { ...aiMessage, id: (Date.now() + 1).toString(), createdAt: new Date() }
+          { ...userMessage, id: userMessage.id || generateId(), createdAt: new Date() },
+          { ...aiMessage, id: aiMessage.id || generateId(), createdAt: new Date() }
         ];
       });
     } catch (error) {

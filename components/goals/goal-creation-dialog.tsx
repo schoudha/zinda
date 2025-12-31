@@ -6,8 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { detectPeriod, markdownToHtml } from "@/lib/utils";
 import { api } from "@/lib/api";
-import { GoalCategory } from "@/types";
+import { GoalCategory, Goal } from "@/types";
 import { cn } from "@/lib/utils";
+import { generateId } from "@/lib/id-utils";
 
 // Health icon (heart ❤️)
 const HealthIcon = ({ className }: { className?: string }) => (
@@ -132,8 +133,8 @@ export function GoalCreationDialog({ open, onOpenChange, category, onGoalCreated
       const tips = parseTips(tipsResponse);
 
       // Create the goal with selected category
-      const goalId = Date.now().toString();
-      const goalData: any = {
+      const goalId = generateId();
+      const goalData: Partial<Goal> = {
         id: goalId,
         text: goalText,
         period: period,

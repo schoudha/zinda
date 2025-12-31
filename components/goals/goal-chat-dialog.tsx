@@ -8,6 +8,7 @@ import { Goal, Message, ChatContext } from "@/types";
 import { markdownToHtml } from "@/lib/utils";
 import { api } from "@/lib/api";
 import { Send, Loader2 } from "lucide-react";
+import { generateId } from "@/lib/id-utils";
 
 interface GoalChatDialogProps {
   open: boolean;
@@ -64,7 +65,7 @@ export function GoalChatDialog({ open, onOpenChange, goal, additionalContext }: 
     setIsSending(true);
 
     // Optimistically add user message
-    const tempId = Date.now().toString();
+    const tempId = generateId();
     const tempUserMsg: Message = {
       id: tempId,
       role: "user",

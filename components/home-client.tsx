@@ -20,6 +20,7 @@ import { useGoals, useGoalProgress } from "@/hooks/useGoals";
 import { useNotes } from "@/hooks/useNotes";
 import { GoalPeriod, Goal, GoalCategory } from "@/types";
 import { DashboardSkeleton, GoalCardSkeleton } from "@/components/ui/skeleton";
+import { generateId } from "@/lib/id-utils";
 // Health icon (heart ❤️)
 const HealthIcon = ({ className }: { className?: string }) => (
   <span className={className} style={{ fontSize: 'inherit', lineHeight: 1 }}>❤️</span>
@@ -74,7 +75,7 @@ function HomeContent() {
     
     if (mediaNotes.length > 0 && !hasLearnGoal && !goalsLoading && !isAutoCreatingLearnGoal) {
       setIsAutoCreatingLearnGoal(true);
-      const goalId = Date.now().toString();
+      const goalId = generateId();
       const goalData = {
         id: goalId,
         text: "Learn",
@@ -194,8 +195,8 @@ function HomeContent() {
     
     if (!hasScreentimeGoal && !goalsLoading && !isAutoCreatingScreentimeGoal && hasCleanedUpDuplicates) {
       setIsAutoCreatingScreentimeGoal(true);
-      const goalId = Date.now().toString();
-      const goalData: any = {
+      const goalId = generateId();
+      const goalData: Partial<Goal> = {
         id: goalId,
         text: "Screen Time",
         period: "week" as GoalPeriod,
@@ -225,8 +226,8 @@ function HomeContent() {
     // Only auto-create if no faith goal exists and we have finished cleaning up duplicates
     if (!hasFaithGoal && !goalsLoading && !isAutoCreatingFaithGoal && hasCleanedUpFaithDuplicates) {
       setIsAutoCreatingFaithGoal(true);
-      const goalId = (Date.now() + 1).toString(); // +1 to avoid collision if running same ms as others
-      const goalData: any = {
+      const goalId = generateId();
+      const goalData: Partial<Goal> = {
         id: goalId,
         text: "Daily Prayers",
         period: "week" as GoalPeriod, // Goals are typically weekly in this app structure
@@ -413,7 +414,7 @@ function HomeContent() {
               </div>
             ) : (
               <div className="flex flex-col gap-4 px-4 overflow-hidden">
-                <NotepadCard notes={notes} />
+                <NotepadCard />
               </div>
             )}
           </div>
