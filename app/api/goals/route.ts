@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
         tips: tips || [],
         target: target || null,
         category: category || null,
-        minutes_per_day: minutesPerDay && category === 'health' ? minutesPerDay : null,
+        minutes_per_day: minutesPerDay && (category === 'health' || category === 'family') ? minutesPerDay : null,
         created_at: createdAt || new Date().toISOString(),
       })
       .select()

@@ -58,6 +58,7 @@ function HomeContent() {
   const [goalCreationDialogOpen, setGoalCreationDialogOpen] = useState(false);
   const [selectedCategoryForCreation, setSelectedCategoryForCreation] = useState<GoalCategory>("health");
   const [isAutoCreatingLearnGoal, setIsAutoCreatingLearnGoal] = useState(false);
+  const [isAutoCreatingScreentimeGoal, setIsAutoCreatingScreentimeGoal] = useState(false);
   
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -91,6 +92,36 @@ function HomeContent() {
         });
     }
   }, [notes, goals, goalsLoading, isAutoCreatingLearnGoal, refreshGoals]);
+
+  // Auto-create screentime goal if it doesn't exist
+  useEffect(() => {
+    const hasScreentimeGoal = goals.some(goal => goal.category === "family" || goal.category === "screentime");
+    
+    if (!hasScreentimeGoal && !goalsLoading && !isAutoCreatingScreentimeGoal) {
+      setIsAutoCreatingScreentimeGoal(true);
+      const goalId = Date.now().toString();
+      const goalData: any = {
+        id: goalId,
+        text: "Screen Time",
+        period: "week" as GoalPeriod,
+        category: "family" as GoalCategory,
+        tips: [],
+        minutesPerDay: 150, // 2.5 hours = 150 minutes
+        createdAt: new Date(),
+      };
+      
+      api.goals.create(goalData)
+        .then(() => {
+          refreshGoals();
+        })
+        .catch((error) => {
+          console.error("Error auto-creating screentime goal:", error);
+        })
+        .finally(() => {
+          setIsAutoCreatingScreentimeGoal(false);
+        });
+    }
+  }, [goals, goalsLoading, isAutoCreatingScreentimeGoal, refreshGoals]);
 
   const categories: { id: GoalCategory; icon: React.ElementType | React.FC<{ className?: string }>; color: string }[] = [
     { id: "health", icon: HealthIcon, color: "text-rose-500" },
