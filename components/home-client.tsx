@@ -342,7 +342,7 @@ function HomeContent() {
           <div className="flex flex-col gap-6 pb-6">
             {activeTab === "goals" ? (
               <>
-                <Header />
+                <Header selectedPeriod={selectedPeriod} />
                 <div className="px-6">
                   <DateTabs value={selectedPeriod} onValueChange={handlePeriodChange} />
                 </div>
