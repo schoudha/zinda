@@ -153,6 +153,7 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
   const isHealthGoal = goal.category === "health";
   const isLearnGoal = goal.category === "learn";
   const isScreentimeGoal = goal.category === "screentime" || goal.category === "family";
+  const isFaithGoal = goal.category === "faith";
   const healthPeriod = selectedPeriod === "today" ? "today" : selectedPeriod === "week" ? "week" : selectedPeriod === "month" ? "month" : "year";
   const { totalMinutes, dailyStats, hasPermission: hasHealthPermission, isNative: isHealthNative, requestPermission: requestHealthPermission } = useHealthConnect(isHealthGoal ? healthPeriod : "week");
   
@@ -232,20 +233,8 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
     
     return { periodPoints, target, percentage };
   }, [isLearnGoal, goal.id, selectedPeriod, healthPeriod, progress, progressHistory, getPeriodStart]);
-  
-  // Use either health data or local history
-  const stats = isHealthGoal ? dailyStats : (history || {});
-  
-  // Calculate goal stats
-  const minutesPerDay = goal.minutesPerDay || (isScreentimeGoal ? 150 : 21); // Default 150 min (2.5h) for screentime, 21 min/day for health
-  const dailyTarget = (isHealthGoal || isScreentimeGoal) ? minutesPerDay : (goal.target || 100);
-  const threshold = (isHealthGoal || isScreentimeGoal) ? (0.7 * dailyTarget) : (goal.target ? (0.7 * goal.target) : 70);
 
-  let healthProgress = 0;
-  let displayValue = "";
-  let displayLabel = "";
-  let goalLabel = "";
-
+  // Helper function for date ranges (used by faith progress calculation)
   const getDateStr = (date: Date) => {
     return date.toLocaleDateString('en-CA');
   };
@@ -259,6 +248,115 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
     }
     return dates;
   };
+
+  // Calculate completion stats for faith goals (using goal_progress history)
+  const faithProgress = useMemo(() => {
+    if (!isFaithGoal || !goal.target) return { completedDays: 0, totalDays: 7, completedWeeks: 0, totalWeeks: 0, completedMonths: 0, totalMonths: 0, percentage: 0 };
+    
+    if (selectedPeriod === "today") {
+      // For today, use today's completion from state
+      return { completedDays: todayCompletion, totalDays: 7, completedWeeks: 0, totalWeeks: 0, completedMonths: 0, totalMonths: 0, percentage: Math.round((todayCompletion / goal.target) * 100) };
+    }
+    
+    const periodStart = getPeriodStart(healthPeriod);
+    const now = new Date();
+    const goalHistory = progressHistory[goal.id] || {};
+    
+    const target = goal.target; // Already checked above, but TypeScript needs this
+    if (healthPeriod === "week") {
+      // For week view: count days where progress_value >= target (out of 7)
+      let completedDays = 0;
+      const current = new Date(periodStart);
+      while (current <= now) {
+        const dateStr = current.toLocaleDateString('en-CA');
+        const progressValue = goalHistory[dateStr] || 0;
+        if (progressValue >= target) {
+          completedDays++;
+        }
+        current.setDate(current.getDate() + 1);
+      }
+      
+      // Always show out of 7 days for weekly view
+      const percentage = Math.round((completedDays / 7) * 100);
+      return { completedDays, totalDays: 7, completedWeeks: 0, totalWeeks: 0, completedMonths: 0, totalMonths: 0, percentage };
+    } else if (healthPeriod === "month") {
+      // For month view: count weeks where at least 5 days met the target (like health goals)
+      const daysInPeriod = dateRange(periodStart, now);
+      
+      // Group days into weeks (7-day blocks)
+      const weeks: string[][] = [];
+      for (let i = 0; i < daysInPeriod.length; i += 7) {
+        weeks.push(daysInPeriod.slice(i, i + 7));
+      }
+      
+      let weeksMet = 0;
+      weeks.forEach(weekDays => {
+        let daysMetInWeek = 0;
+        weekDays.forEach(date => {
+          const progressValue = goalHistory[date] || 0;
+          if (progressValue >= target) {
+            daysMetInWeek++;
+          }
+        });
+        // Need at least 5 days in a week to count (or all days if week is incomplete)
+        const requiredDays = weekDays.length < 7 ? Math.ceil(weekDays.length * 5 / 7) : 5;
+        if (daysMetInWeek >= requiredDays) weeksMet++;
+      });
+      
+      const totalWeeks = weeks.length;
+      const percentage = totalWeeks > 0 ? Math.round((weeksMet / totalWeeks) * 100) : 0;
+      return { completedDays: 0, totalDays: 7, completedWeeks: weeksMet, totalWeeks, completedMonths: 0, totalMonths: 0, percentage };
+    } else if (healthPeriod === "year") {
+      // For year view: count months where at least 20 days met the target
+      const daysInPeriod = dateRange(periodStart, now);
+      
+      // Group days into months
+      const months: string[][] = [];
+      const currentMonthStart = new Date(periodStart);
+      while (currentMonthStart <= now) {
+        const monthEnd = new Date(currentMonthStart.getFullYear(), currentMonthStart.getMonth() + 1, 0);
+        const monthEndDate = monthEnd > now ? now : monthEnd;
+        const monthDays = dateRange(new Date(currentMonthStart), monthEndDate);
+        if (monthDays.length > 0) months.push(monthDays);
+        
+        currentMonthStart.setMonth(currentMonthStart.getMonth() + 1);
+        currentMonthStart.setDate(1);
+      }
+      
+      let monthsMet = 0;
+      months.forEach(monthDays => {
+        let daysMetInMonth = 0;
+        monthDays.forEach(date => {
+          const progressValue = goalHistory[date] || 0;
+          if (progressValue >= target) {
+            daysMetInMonth++;
+          }
+        });
+        // Need at least 20 days in a month (or proportional if month is incomplete)
+        const requiredDays = monthDays.length < 30 ? Math.ceil(monthDays.length * 20 / 30) : 20;
+        if (daysMetInMonth >= requiredDays) monthsMet++;
+      });
+      
+      const totalMonths = months.length;
+      const percentage = totalMonths > 0 ? Math.round((monthsMet / totalMonths) * 100) : 0;
+      return { completedDays: 0, totalDays: 7, completedWeeks: 0, totalWeeks: 0, completedMonths: monthsMet, totalMonths, percentage };
+    }
+    
+    return { completedDays: 0, totalDays: 7, completedWeeks: 0, totalWeeks: 0, completedMonths: 0, totalMonths: 0, percentage: 0 };
+  }, [isFaithGoal, goal.target, goal.id, selectedPeriod, healthPeriod, progressHistory, getPeriodStart, todayCompletion]);
+  
+  // Use either health data or local history
+  const stats = isHealthGoal ? dailyStats : (history || {});
+  
+  // Calculate goal stats
+  const minutesPerDay = goal.minutesPerDay || (isScreentimeGoal ? 150 : 21); // Default 150 min (2.5h) for screentime, 21 min/day for health
+  const dailyTarget = (isHealthGoal || isScreentimeGoal) ? minutesPerDay : (goal.target || 100);
+  const threshold = (isHealthGoal || isScreentimeGoal) ? (0.7 * dailyTarget) : (goal.target ? (0.7 * goal.target) : 70);
+
+  let healthProgress = 0;
+  let displayValue = "";
+  let displayLabel = "";
+  let goalLabel = "";
 
   // Calculate normalized progress for period
   let normalizedProgress = 0;
@@ -415,11 +513,11 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
         .then(setSmartTip)
         .catch(err => console.error("Failed to generate tip:", err));
     }
-  }, [goal.text, goal.target, goal.todayProgress, isHealthGoal, isScreentimeGoal]);
+  }, [goal.text, goal.target, goal.todayProgress, isHealthGoal, isScreentimeGoal, isFaithGoal]);
 
-  // Fetch completion stats if goal has a target (skip for health/screentime goals)
+  // Fetch completion stats if goal has a target (skip for health/screentime goals, only needed for today view of faith goals)
   useEffect(() => {
-    if (isHealthGoal || isScreentimeGoal || !goal.target) return;
+    if (isHealthGoal || isScreentimeGoal || !goal.target || selectedPeriod !== "today") return;
     
     setIsLoadingCompletion(true);
     api.goals.completions.get(goal.id)
@@ -505,8 +603,8 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
   }, [router, goal.id]);
 
   const handleCardClick = useCallback(async (e: React.MouseEvent | React.TouchEvent) => {
-    // Handle health goals, learn goals, screentime goals or if it's not today view
-    if (isHealthGoal || isLearnGoal || isScreentimeGoal || selectedPeriod !== "today") {
+    // Handle health goals, learn goals, screentime goals, faith goals or if it's not today view
+    if (isHealthGoal || isLearnGoal || isScreentimeGoal || isFaithGoal || selectedPeriod !== "today") {
       e.preventDefault();
       e.stopPropagation();
       
@@ -523,16 +621,16 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
       // Navigate to goal detail page
       router.push(`/goals/${goal.id}`);
     }
-  }, [isHealthGoal, isLearnGoal, isScreentimeGoal, selectedPeriod, isHealthNative, hasHealthPermission, requestHealthPermission, isUsageNative, hasUsagePermission, requestUsagePermission, router, goal.id]);
+  }, [isHealthGoal, isLearnGoal, isScreentimeGoal, isFaithGoal, selectedPeriod, isHealthNative, hasHealthPermission, requestHealthPermission, isUsageNative, hasUsagePermission, requestUsagePermission, router, goal.id]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (isHealthGoal || isLearnGoal || isScreentimeGoal || selectedPeriod !== "today") {
+    if (isHealthGoal || isLearnGoal || isScreentimeGoal || isFaithGoal || selectedPeriod !== "today") {
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
         handleCardClick(e as any);
       }
     }
-  }, [isHealthGoal, isLearnGoal, isScreentimeGoal, selectedPeriod, handleCardClick]);
+  }, [isHealthGoal, isLearnGoal, isScreentimeGoal, isFaithGoal, selectedPeriod, handleCardClick]);
 
   const handleProgressUpdate = useCallback(async (newValue: number) => {
     if (isUpdating || newValue < 0 || newValue > 100) return;
@@ -603,10 +701,10 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
     <>
     <Card 
       className={`border-none bg-gradient-to-br ${cardColorClass} shadow-lg shadow-blue-900/5 dark:shadow-black/20 rounded-2xl ring-1 ring-black/5 dark:ring-white/5 overflow-hidden transition-all duration-300 hover:shadow-blue-900/10 dark:hover:shadow-black/30 relative min-h-[160px] ${(isHealthGoal || isLearnGoal || isScreentimeGoal || selectedPeriod !== "today") ? 'cursor-pointer active:scale-95' : ''}`}
-      onClick={(isHealthGoal || isLearnGoal || isScreentimeGoal || selectedPeriod !== "today") ? handleCardClick : undefined}
-      onKeyDown={(isHealthGoal || isLearnGoal || isScreentimeGoal || selectedPeriod !== "today") ? handleKeyDown : undefined}
-      role={(isHealthGoal || isLearnGoal || isScreentimeGoal || selectedPeriod !== "today") ? "button" : undefined}
-      tabIndex={(isHealthGoal || isLearnGoal || isScreentimeGoal || selectedPeriod !== "today") ? 0 : undefined}
+      onClick={(isHealthGoal || isLearnGoal || isScreentimeGoal || isFaithGoal || selectedPeriod !== "today") ? handleCardClick : undefined}
+      onKeyDown={(isHealthGoal || isLearnGoal || isScreentimeGoal || isFaithGoal || selectedPeriod !== "today") ? handleKeyDown : undefined}
+      role={(isHealthGoal || isLearnGoal || isScreentimeGoal || isFaithGoal || selectedPeriod !== "today") ? "button" : undefined}
+      tabIndex={(isHealthGoal || isLearnGoal || isScreentimeGoal || isFaithGoal || selectedPeriod !== "today") ? 0 : undefined}
     >
       <div className="absolute top-1.5 right-1.5 flex gap-0.5 z-10">
         {onDelete && (
@@ -620,15 +718,15 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
           </Button>
         )}
       </div>
-      <CardContent className={`${(isHealthGoal || isLearnGoal || isScreentimeGoal || selectedPeriod !== "today") ? 'px-4 py-4' : 'px-4 py-4 flex flex-col justify-between h-full'}`}>
-        {(!isHealthGoal && !isLearnGoal && !isScreentimeGoal && selectedPeriod === "today") && (
+      <CardContent className={`${(isHealthGoal || isLearnGoal || isScreentimeGoal || isFaithGoal || selectedPeriod !== "today") ? 'px-4 py-4' : 'px-4 py-4 flex flex-col justify-between h-full'}`}>
+        {(!isHealthGoal && !isLearnGoal && !isScreentimeGoal && !isFaithGoal && selectedPeriod === "today") && (
           <h3 className="text-sm font-bold text-gray-900 dark:text-white leading-tight tracking-tight text-center mb-2">
             {goal.text}
           </h3>
         )}
 
-        {/* Unified progress view for all goals in non-today views, and health/learn/screentime goals always */}
-        {(isHealthGoal || isLearnGoal || isScreentimeGoal || selectedPeriod !== "today") ? (
+        {/* Unified progress view for all goals in non-today views, and health/learn/screentime/faith goals always */}
+        {(isHealthGoal || isLearnGoal || isScreentimeGoal || isFaithGoal || selectedPeriod !== "today") ? (
           <div className="flex flex-col gap-6">
             {isHealthGoal ? (
               <>
@@ -691,6 +789,29 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
                   />
                 </div>
               </>
+            ) : isFaithGoal ? (
+              <>
+                <h3 className="text-sm font-bold text-gray-900 dark:text-white leading-tight tracking-tight text-center">
+                  {goal.text}
+                </h3>
+                <div className="flex items-center justify-center">
+                  <RadialProgress 
+                    value={faithProgress.percentage} 
+                    size={120} 
+                    displayText={
+                      selectedPeriod === "today" 
+                        ? `${faithProgress.completedDays}/${goal.target}`
+                        : healthPeriod === "week"
+                        ? `${faithProgress.completedDays}/7`
+                        : healthPeriod === "month"
+                        ? `${faithProgress.completedWeeks}/${faithProgress.totalWeeks}`
+                        : `${faithProgress.completedMonths}/${faithProgress.totalMonths}`
+                    }
+                    redThreshold={40}
+                    yellowThreshold={70}
+                  />
+                </div>
+              </>
             ) : (
               <>
                 <h3 className="text-sm font-bold text-gray-900 dark:text-white leading-tight tracking-tight">
@@ -717,7 +838,7 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
               </>
             )}
           </div>
-        ) : goal.target ? (
+        ) : goal.target && selectedPeriod === "today" ? (
           <div className="flex flex-col gap-2">
             {/* ... existing target interactive logic ... */}
              <div className="flex flex-wrap items-center justify-center gap-1.5">
@@ -793,8 +914,8 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
           </div>
         )}
 
-        {/* Don't show tips/insights for health/learn/screentime goals or non-today views */}
-        {(!isHealthGoal && !isLearnGoal && !isScreentimeGoal && selectedPeriod === "today") && (smartTip || goal.tips.length > 0) && (
+        {/* Don't show tips/insights for health/learn/screentime/faith goals or non-today views */}
+        {(!isHealthGoal && !isLearnGoal && !isScreentimeGoal && !isFaithGoal && selectedPeriod === "today") && (smartTip || goal.tips.length > 0) && (
           <div className="pt-1.5 border-t border-black/5 dark:border-white/5">
             {smartTip ? (
               <p className="text-[10px] text-gray-600 dark:text-gray-400 leading-relaxed italic animate-in fade-in duration-500">
