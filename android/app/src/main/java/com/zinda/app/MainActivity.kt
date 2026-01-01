@@ -28,6 +28,7 @@ class MainActivity : BridgeActivity() {
         
         registerPlugin(UsageStatsPlugin::class.java)
         registerPlugin(HealthConnectPlugin::class.java)
+        registerPlugin(AppBlockingPlugin::class.java)
         super.onCreate(savedInstanceState)
 
         handleHealthConnectRationale(intent)

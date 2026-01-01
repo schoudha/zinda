@@ -10,6 +10,9 @@ import { api } from "@/lib/api";
 import { useHealthConnect } from "@/hooks/useHealthConnect";
 import { useGoalProgress } from "@/hooks/useGoals";
 import { useUsageStats } from "@/hooks/useUsageStats";
+import { useAppBlocking, BLOCKED_APP_PACKAGES } from "@/hooks/useAppBlocking";
+import { Shield, ShieldOff } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 // Lazy load NotificationDialog - only needed when user clicks bell icon
 const NotificationDialog = lazy(() => 
@@ -148,6 +151,18 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
   const [weeklyCompletedDays, setWeeklyCompletedDays] = useState<number>(0);
   const [isLoadingCompletion, setIsLoadingCompletion] = useState(false);
   const [smartTip, setSmartTip] = useState<string | null>(null);
+  const [showBlockingPermissionDialog, setShowBlockingPermissionDialog] = useState(false);
+
+  // App blocking functionality
+  const {
+    isNative: isBlockingNative,
+    isAccessibilityEnabled,
+    isBlockingEnabled,
+    isLoading: isBlockingLoading,
+    requestAccessibilityPermission,
+    enableBlocking,
+    disableBlocking,
+  } = useAppBlocking();
 
   // Health Connect integration for health goals
   const isHealthGoal = goal.category === "health";
@@ -768,6 +783,57 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
                       displayText={progressDisplayText}
                       inverted={true}
                     />
+                  </div>
+                )}
+                {/* Block Apps Button - Show when over limit and on today view */}
+                {isUsageNative && hasUsagePermission && selectedPeriod === "today" && screentimeMinutes > dailyTarget && (
+                  <div className="mt-4 space-y-2">
+                    <Button
+                      onClick={async () => {
+                        if (!isBlockingNative) {
+                          alert("App blocking is only available on Android devices.");
+                          return;
+                        }
+                        
+                        if (!isAccessibilityEnabled) {
+                          setShowBlockingPermissionDialog(true);
+                          return;
+                        }
+                        
+                        try {
+                          if (isBlockingEnabled) {
+                            await disableBlocking();
+                          } else {
+                            await enableBlocking(Array.from(BLOCKED_APP_PACKAGES));
+                          }
+                        } catch (error: any) {
+                          alert(error.message || "Failed to toggle app blocking");
+                        }
+                      }}
+                      disabled={isBlockingLoading}
+                      variant={isBlockingEnabled ? "destructive" : "default"}
+                      size="sm"
+                      className="w-full"
+                    >
+                      {isBlockingLoading ? (
+                        "Loading..."
+                      ) : isBlockingEnabled ? (
+                        <>
+                          <Shield className="h-4 w-4 mr-2" />
+                          Unblock Apps
+                        </>
+                      ) : (
+                        <>
+                          <ShieldOff className="h-4 w-4 mr-2" />
+                          Block Apps
+                        </>
+                      )}
+                    </Button>
+                    {isBlockingEnabled && (
+                      <p className="text-xs text-center text-muted-foreground">
+                        X, Instagram, YouTube, and Facebook are blocked
+                      </p>
+                    )}
                   </div>
                 )}
               </>
