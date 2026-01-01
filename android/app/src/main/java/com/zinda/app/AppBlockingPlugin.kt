@@ -114,10 +114,14 @@ class AppBlockingPlugin : Plugin() {
         val accessibilityManager = context.getSystemService(Context.ACCESSIBILITY_SERVICE) as AccessibilityManager
         val enabledServices = accessibilityManager.getEnabledAccessibilityServiceList(AccessibilityServiceInfo.FEEDBACK_GENERIC)
         
-        val serviceName = ComponentName(context, AppBlockingService::class.java)
+        val serviceName = ComponentName(context.packageName, AppBlockingService::class.java.name)
         
         return enabledServices.any { serviceInfo ->
-            serviceInfo.resolveInfo.serviceInfo.componentName == serviceName
+            val serviceComponentName = ComponentName(
+                serviceInfo.resolveInfo.serviceInfo.packageName,
+                serviceInfo.resolveInfo.serviceInfo.name
+            )
+            serviceComponentName == serviceName
         }
     }
     
