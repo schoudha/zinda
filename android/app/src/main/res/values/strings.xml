@@ -4,4 +4,5 @@
     <string name="title_activity_main">Zinda</string>
     <string name="package_name">com.zinda.app</string>
     <string name="custom_url_scheme">com.zinda.app</string>
+    <string name="accessibility_service_description">Blocks distracting apps when screen time limit is exceeded</string>
 </resources>
