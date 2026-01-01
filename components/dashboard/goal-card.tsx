@@ -2,7 +2,7 @@
 
 import { useState, useEffect, memo, lazy, Suspense, useCallback, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { X, Bell, MessageCircle, Plus, Minus, Calendar, CalendarRange, CalendarCheck, Lock } from "lucide-react";
+import { X, Bell, MessageCircle, Plus, Minus, Calendar, CalendarRange, CalendarCheck, Lock, BookOpen, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { Goal } from "@/types";
@@ -10,6 +10,7 @@ import { api } from "@/lib/api";
 import { useHealthConnect } from "@/hooks/useHealthConnect";
 import { useGoalProgress } from "@/hooks/useGoals";
 import { useUsageStats } from "@/hooks/useUsageStats";
+import { useNotes } from "@/hooks/useNotes";
 import { useAppBlocking, BLOCKED_APP_PACKAGES } from "@/hooks/useAppBlocking";
 import { Shield, ShieldOff } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -164,6 +165,9 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
     disableBlocking,
   } = useAppBlocking();
 
+  // Notes for reading list (learn goals)
+  const { notes, updateNote } = useNotes();
+
   // Health Connect integration for health goals
   const isHealthGoal = goal.category === "health";
   const isLearnGoal = goal.category === "learn";
@@ -210,6 +214,25 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
     return now;
   }, []);
   
+  // Get oldest unread article from reading list (for learn goals)
+  const oldestUnreadArticle = useMemo(() => {
+    if (!isLearnGoal) return null;
+    
+    // Filter notes to get unread articles (notes with URL where checked === false)
+    const unreadArticles = notes.filter(note => 
+      note.url && !note.checked
+    );
+    
+    if (unreadArticles.length === 0) return null;
+    
+    // Find oldest by sorting by createdAt ascending
+    const sorted = [...unreadArticles].sort((a, b) => 
+      a.createdAt.getTime() - b.createdAt.getTime()
+    );
+    
+    return sorted[0];
+  }, [isLearnGoal, notes]);
+
   // Calculate completion count for learn goals (using manual progress tracking)
   const learnProgress = useMemo(() => {
     if (!isLearnGoal) return { periodPoints: 0, target: 0, percentage: 0 };
@@ -854,6 +877,34 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
                     yellowThreshold={70}
                   />
                 </div>
+                {/* Reading list quick link - Agentic action */}
+                {oldestUnreadArticle && (
+                  <div className="mt-4">
+                    <Button
+                      onClick={async () => {
+                        if (!oldestUnreadArticle.url) return;
+                        
+                        // Open URL in browser
+                        window.open(oldestUnreadArticle.url, '_blank', 'noopener,noreferrer');
+                        
+                        // Mark note as read
+                        updateNote(oldestUnreadArticle.id, {
+                          checked: true,
+                          checkedAt: new Date(),
+                        });
+                      }}
+                      variant="outline"
+                      size="sm"
+                      className="w-full flex items-center justify-center gap-2"
+                    >
+                      <BookOpen className="h-4 w-4" />
+                      <span className="truncate flex-1 text-left">
+                        {oldestUnreadArticle.urlTitle || oldestUnreadArticle.url}
+                      </span>
+                      <ExternalLink className="h-3.5 w-3.5 shrink-0" />
+                    </Button>
+                  </div>
+                )}
               </>
             ) : isFaithGoal ? (
               <>
