@@ -21,6 +21,7 @@ import { useNotes } from "@/hooks/useNotes";
 import { GoalPeriod, Goal, GoalCategory } from "@/types";
 import { DashboardSkeleton, GoalCardSkeleton } from "@/components/ui/skeleton";
 import { generateId } from "@/lib/id-utils";
+import { getDateTimestamp } from "@/lib/utils";
 // Health icon (heart ❤️)
 const HealthIcon = ({ className }: { className?: string }) => (
   <span className={className} style={{ fontSize: 'inherit', lineHeight: 1 }}>❤️</span>
@@ -107,7 +108,7 @@ function HomeContent() {
     if (screentimeGoals.length > 1) {
       // Sort by createdAt (most recent first) - goals are already sorted, but let's be explicit
       const sortedGoals = [...screentimeGoals].sort((a, b) => 
-        b.createdAt.getTime() - a.createdAt.getTime()
+        getDateTimestamp(b.createdAt) - getDateTimestamp(a.createdAt)
       );
       
       // Keep the most recent one, delete the rest
@@ -139,7 +140,7 @@ function HomeContent() {
     if (faithGoals.length > 1) {
       // Sort by createdAt (most recent first)
       const sortedGoals = [...faithGoals].sort((a, b) => 
-        b.createdAt.getTime() - a.createdAt.getTime()
+        getDateTimestamp(b.createdAt) - getDateTimestamp(a.createdAt)
       );
       
       // Keep the most recent one, delete the rest

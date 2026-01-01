@@ -80,3 +80,25 @@ export function extractIntegerTarget(text: string): number | null {
   
   return null;
 }
+
+/**
+ * Normalizes a date value to a Date object.
+ * Handles both Date objects and ISO date strings (from JSON serialization).
+ */
+export function normalizeDate(date: Date | string): Date {
+  if (date instanceof Date) {
+    return date;
+  }
+  if (typeof date === 'string') {
+    return new Date(date);
+  }
+  throw new Error(`Invalid date value: ${date}`);
+}
+
+/**
+ * Gets the timestamp from a date value (Date object or ISO string).
+ * Safe for use in sorting operations.
+ */
+export function getDateTimestamp(date: Date | string): number {
+  return normalizeDate(date).getTime();
+}

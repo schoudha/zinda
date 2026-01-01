@@ -2,14 +2,23 @@ import { useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Goal } from "@/types";
 import { api } from "@/lib/api";
+import { normalizeDate } from "@/lib/utils";
 
 export function useGoals() {
   const queryClient = useQueryClient();
 
-  const { data: goals = [], isLoading, refetch } = useQuery({
+  const { data: goalsData = [], isLoading, refetch } = useQuery({
     queryKey: ["goals"],
     queryFn: api.goals.list,
   });
+
+  // Normalize dates to ensure they're Date objects (handles JSON serialization)
+  const goals = useMemo(() => {
+    return goalsData.map(goal => ({
+      ...goal,
+      createdAt: normalizeDate(goal.createdAt),
+    }));
+  }, [goalsData]);
 
   const deleteMutation = useMutation({
     mutationFn: api.goals.delete,

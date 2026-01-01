@@ -2,16 +2,26 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Note, Goal } from "@/types";
 import { api } from "@/lib/api";
 import { getFirstUrl, isYoutubeUrl } from "@/lib/url-utils";
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useMemo } from "react";
 import { generateId } from "@/lib/id-utils";
+import { normalizeDate } from "@/lib/utils";
 
 export function useNotes() {
   const queryClient = useQueryClient();
 
-  const { data: notes = [], isLoading } = useQuery({
+  const { data: notesData = [], isLoading } = useQuery({
     queryKey: ["notes"],
     queryFn: api.notes.list,
   });
+
+  // Normalize dates to ensure they're Date objects (handles JSON serialization)
+  const notes = useMemo(() => {
+    return notesData.map(note => ({
+      ...note,
+      createdAt: normalizeDate(note.createdAt),
+      checkedAt: note.checkedAt ? normalizeDate(note.checkedAt) : null,
+    }));
+  }, [notesData]);
 
   const addMutation = useMutation({
     mutationFn: async (noteText: string) => {

@@ -14,6 +14,7 @@ import { useNotes } from "@/hooks/useNotes";
 import { useAppBlocking, BLOCKED_APP_PACKAGES } from "@/hooks/useAppBlocking";
 import { Shield, ShieldOff } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { getDateTimestamp } from "@/lib/utils";
 
 // Lazy load NotificationDialog - only needed when user clicks bell icon
 const NotificationDialog = lazy(() => 
@@ -227,7 +228,7 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
     
     // Find oldest by sorting by createdAt ascending
     const sorted = [...unreadArticles].sort((a, b) => 
-      a.createdAt.getTime() - b.createdAt.getTime()
+      getDateTimestamp(a.createdAt) - getDateTimestamp(b.createdAt)
     );
     
     return sorted[0];
