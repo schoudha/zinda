@@ -1,6 +1,4 @@
 import { useState, useEffect, useRef } from 'react';
-import { Capacitor } from '@capacitor/core';
-import { App } from '@capacitor/app';
 import { HealthConnect, ExerciseSession } from '@/lib/capacitor/health-connect';
 
 export function useHealthConnect(period: string = 'week') {
@@ -15,6 +13,12 @@ export function useHealthConnect(period: string = 'week') {
   const hasPermissionRef = useRef(false);
 
   const checkAvailability = async () => {
+    let Capacitor: typeof import('@capacitor/core').Capacitor;
+    try {
+      Capacitor = (await import('@capacitor/core')).Capacitor;
+    } catch {
+      return false;
+    }
     if (!Capacitor.isNativePlatform()) return false;
     try {
       const { isAvailable } = await HealthConnect.checkAvailability();
@@ -28,6 +32,12 @@ export function useHealthConnect(period: string = 'week') {
   };
 
   const checkPermission = async () => {
+    let Capacitor: typeof import('@capacitor/core').Capacitor;
+    try {
+      Capacitor = (await import('@capacitor/core')).Capacitor;
+    } catch {
+      return false;
+    }
     if (!Capacitor.isNativePlatform()) return false;
     
     // Check availability if we haven't confirmed it's available
@@ -50,6 +60,14 @@ export function useHealthConnect(period: string = 'week') {
   };
 
   const loadExerciseMinutes = async () => {
+    let Capacitor: typeof import('@capacitor/core').Capacitor;
+    try {
+      Capacitor = (await import('@capacitor/core')).Capacitor;
+    } catch {
+      // No Capacitor on web - show 0
+      setTotalMinutes(0);
+      return;
+    }
     if (!Capacitor.isNativePlatform()) {
       // No mock data - show 0 on web
       setTotalMinutes(0);
@@ -91,6 +109,12 @@ export function useHealthConnect(period: string = 'week') {
   };
 
   const requestPermission = async () => {
+    let Capacitor: typeof import('@capacitor/core').Capacitor;
+    try {
+      Capacitor = (await import('@capacitor/core')).Capacitor;
+    } catch {
+      return;
+    }
     if (!Capacitor.isNativePlatform()) return;
     
     // Check availability first
@@ -108,71 +132,124 @@ export function useHealthConnect(period: string = 'week') {
   };
 
   useEffect(() => {
-    setIsNative(Capacitor.isNativePlatform());
-    if (Capacitor.isNativePlatform()) {
-      checkAvailability().then(async (available) => {
-          if (available) {
-            const hasPerm = await checkPermission();
-            if (hasPerm) {
-                loadExerciseMinutes();
-            }
-          }
-      });
-      
-      // Refresh every 5 minutes
-      const interval = setInterval(() => {
-          if (isAvailable && hasPermissionRef.current) {
-              loadExerciseMinutes();
-          }
-      }, 5 * 60000);
+    let cleanup: (() => void) | undefined;
+    
+    const init = async () => {
+      let Capacitor: typeof import('@capacitor/core').Capacitor;
+      let App: typeof import('@capacitor/app').App;
+      try {
+        const capacitorModule = await import('@capacitor/core');
+        Capacitor = capacitorModule.Capacitor;
+        const appModule = await import('@capacitor/app');
+        App = appModule.App;
+      } catch {
+        // Capacitor not available (web environment)
+        setIsNative(false);
+        // Show mock data on web
+        const mockSessions: ExerciseSession[] = [
+          { startTime: Date.now() - 1000 * 60 * 60 * 2, endTime: Date.now() - 1000 * 60 * 60 * 2 + 1000 * 60 * 45, durationMinutes: 45, title: 'Morning Run', exerciseType: 'running', notes: '' },
+          { startTime: Date.now() - 1000 * 60 * 60 * 24 * 1, endTime: Date.now() - 1000 * 60 * 60 * 24 * 1 + 1000 * 60 * 30, durationMinutes: 30, title: 'Yoga Flow', exerciseType: 'yoga', notes: '' },
+          { startTime: Date.now() - 1000 * 60 * 60 * 24 * 2, endTime: Date.now() - 1000 * 60 * 60 * 24 * 2 + 1000 * 60 * 60, durationMinutes: 60, title: 'Gym Workout', exerciseType: 'strength_training', notes: '' },
+          { startTime: Date.now() - 1000 * 60 * 60 * 24 * 3, endTime: Date.now() - 1000 * 60 * 60 * 24 * 3 + 1000 * 60 * 20, durationMinutes: 20, title: 'Quick HIIT', exerciseType: 'high_intensity_interval_training', notes: '' },
+          { startTime: Date.now() - 1000 * 60 * 60 * 24 * 4, endTime: Date.now() - 1000 * 60 * 60 * 24 * 4 + 1000 * 60 * 40, durationMinutes: 40, title: 'Evening Walk', exerciseType: 'walking', notes: '' },
+        ];
+        
+        const filteredSessions = mockSessions.filter(s => {
+          const date = new Date(s.startTime);
+          const now = new Date();
+          if (period === 'today') return date.toDateString() === now.toDateString();
+          if (period === 'week') return date.getTime() > now.getTime() - 7 * 24 * 60 * 60 * 1000;
+          if (period === 'month') return date.getTime() > now.getTime() - 30 * 24 * 60 * 60 * 1000;
+          return true;
+        });
+        
+        const total = filteredSessions.reduce((acc, s) => acc + s.durationMinutes, 0);
+        setTotalMinutes(total);
+        
+        const stats: Record<string, number> = {};
+        filteredSessions.forEach(session => {
+          const date = new Date(session.startTime).toLocaleDateString('en-CA');
+          stats[date] = (stats[date] || 0) + session.durationMinutes;
+        });
+        setDailyStats(stats);
+        setSessions(filteredSessions);
+        setHasPermission(true);
+        setIsAvailable(true);
+        return;
+      }
 
-      // Re-check permission when app resumes (returns from settings/permission dialog)
-      const resumeListener = App.addListener('resume', () => {
-          // Add a small delay to allow Health Connect to update its permission state
-          setTimeout(async () => {
+      setIsNative(Capacitor.isNativePlatform());
+      if (Capacitor.isNativePlatform()) {
+        checkAvailability().then(async (available) => {
+            if (available) {
               const hasPerm = await checkPermission();
               if (hasPerm) {
                   loadExerciseMinutes();
               }
-          }, 500);
-      });
+            }
+        });
+        
+        // Refresh every 5 minutes
+        const interval = setInterval(() => {
+            if (isAvailable && hasPermissionRef.current) {
+                loadExerciseMinutes();
+            }
+        }, 5 * 60000);
 
-      return () => {
-          clearInterval(interval);
-          resumeListener.then((handle: any) => handle.remove());
-      };
-    } else {
-      // On web, provide mock data for development
-      const mockSessions: ExerciseSession[] = [
-        { startTime: Date.now() - 1000 * 60 * 60 * 2, endTime: Date.now() - 1000 * 60 * 60 * 2 + 1000 * 60 * 45, durationMinutes: 45, title: 'Morning Run', exerciseType: 'running', notes: '' },
-        { startTime: Date.now() - 1000 * 60 * 60 * 24 * 1, endTime: Date.now() - 1000 * 60 * 60 * 24 * 1 + 1000 * 60 * 30, durationMinutes: 30, title: 'Yoga Flow', exerciseType: 'yoga', notes: '' },
-        { startTime: Date.now() - 1000 * 60 * 60 * 24 * 2, endTime: Date.now() - 1000 * 60 * 60 * 24 * 2 + 1000 * 60 * 60, durationMinutes: 60, title: 'Gym Workout', exerciseType: 'strength_training', notes: '' },
-        { startTime: Date.now() - 1000 * 60 * 60 * 24 * 3, endTime: Date.now() - 1000 * 60 * 60 * 24 * 3 + 1000 * 60 * 20, durationMinutes: 20, title: 'Quick HIIT', exerciseType: 'high_intensity_interval_training', notes: '' },
-        { startTime: Date.now() - 1000 * 60 * 60 * 24 * 4, endTime: Date.now() - 1000 * 60 * 60 * 24 * 4 + 1000 * 60 * 40, durationMinutes: 40, title: 'Evening Walk', exerciseType: 'walking', notes: '' },
-      ];
-      
-      const filteredSessions = mockSessions.filter(s => {
-        const date = new Date(s.startTime);
-        const now = new Date();
-        if (period === 'today') return date.toDateString() === now.toDateString();
-        if (period === 'week') return date.getTime() > now.getTime() - 7 * 24 * 60 * 60 * 1000;
-        if (period === 'month') return date.getTime() > now.getTime() - 30 * 24 * 60 * 60 * 1000;
-        return true;
-      });
-      
-      const total = filteredSessions.reduce((acc, s) => acc + s.durationMinutes, 0);
-      setTotalMinutes(total);
-      
-      const stats: Record<string, number> = {};
-      filteredSessions.forEach(session => {
-        const date = new Date(session.startTime).toLocaleDateString('en-CA');
-        stats[date] = (stats[date] || 0) + session.durationMinutes;
-      });
-      setDailyStats(stats);
-      setSessions(filteredSessions);
-      setHasPermission(true);
-      setIsAvailable(true);
-    }
+        // Re-check permission when app resumes (returns from settings/permission dialog)
+        const resumeListener = App.addListener('resume', () => {
+            // Add a small delay to allow Health Connect to update its permission state
+            setTimeout(async () => {
+                const hasPerm = await checkPermission();
+                if (hasPerm) {
+                    loadExerciseMinutes();
+                }
+            }, 500);
+        });
+
+        cleanup = () => {
+            clearInterval(interval);
+            resumeListener.then((handle: any) => handle.remove());
+        };
+      } else {
+        // On web, provide mock data for development
+        const mockSessions: ExerciseSession[] = [
+          { startTime: Date.now() - 1000 * 60 * 60 * 2, endTime: Date.now() - 1000 * 60 * 60 * 2 + 1000 * 60 * 45, durationMinutes: 45, title: 'Morning Run', exerciseType: 'running', notes: '' },
+          { startTime: Date.now() - 1000 * 60 * 60 * 24 * 1, endTime: Date.now() - 1000 * 60 * 60 * 24 * 1 + 1000 * 60 * 30, durationMinutes: 30, title: 'Yoga Flow', exerciseType: 'yoga', notes: '' },
+          { startTime: Date.now() - 1000 * 60 * 60 * 24 * 2, endTime: Date.now() - 1000 * 60 * 60 * 24 * 2 + 1000 * 60 * 60, durationMinutes: 60, title: 'Gym Workout', exerciseType: 'strength_training', notes: '' },
+          { startTime: Date.now() - 1000 * 60 * 60 * 24 * 3, endTime: Date.now() - 1000 * 60 * 60 * 24 * 3 + 1000 * 60 * 20, durationMinutes: 20, title: 'Quick HIIT', exerciseType: 'high_intensity_interval_training', notes: '' },
+          { startTime: Date.now() - 1000 * 60 * 60 * 24 * 4, endTime: Date.now() - 1000 * 60 * 60 * 24 * 4 + 1000 * 60 * 40, durationMinutes: 40, title: 'Evening Walk', exerciseType: 'walking', notes: '' },
+        ];
+        
+        const filteredSessions = mockSessions.filter(s => {
+          const date = new Date(s.startTime);
+          const now = new Date();
+          if (period === 'today') return date.toDateString() === now.toDateString();
+          if (period === 'week') return date.getTime() > now.getTime() - 7 * 24 * 60 * 60 * 1000;
+          if (period === 'month') return date.getTime() > now.getTime() - 30 * 24 * 60 * 60 * 1000;
+          return true;
+        });
+        
+        const total = filteredSessions.reduce((acc, s) => acc + s.durationMinutes, 0);
+        setTotalMinutes(total);
+        
+        const stats: Record<string, number> = {};
+        filteredSessions.forEach(session => {
+          const date = new Date(session.startTime).toLocaleDateString('en-CA');
+          stats[date] = (stats[date] || 0) + session.durationMinutes;
+        });
+        setDailyStats(stats);
+        setSessions(filteredSessions);
+        setHasPermission(true);
+        setIsAvailable(true);
+      }
+    };
+
+    init();
+
+    return () => {
+      if (cleanup) cleanup();
+    };
   }, [period]);
 
   return {

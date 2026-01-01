@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Capacitor } from "@capacitor/core";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Lock } from "lucide-react";
@@ -13,21 +12,6 @@ export function PasswordGate({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(false);
   const [isAndroid, setIsAndroid] = useState(false);
 
-  // Check if running on Android device
-  useEffect(() => {
-    const platform = Capacitor.getPlatform();
-    setIsAndroid(platform === "android");
-    
-    // Skip auth check on Android
-    if (platform === "android") {
-      setIsAuthenticated(true);
-      return;
-    }
-    
-    // Check authentication status on mount for non-Android platforms
-    checkAuth();
-  }, []);
-
   const checkAuth = async () => {
     try {
       const response = await fetch("/api/auth/check");
@@ -37,6 +21,32 @@ export function PasswordGate({ children }: { children: React.ReactNode }) {
       setIsAuthenticated(false);
     }
   };
+
+  // Check if running on Android device
+  useEffect(() => {
+    const checkPlatform = async () => {
+      try {
+        // Dynamically import Capacitor to avoid errors on web
+        const { Capacitor } = await import("@capacitor/core");
+        const platform = Capacitor.getPlatform();
+        setIsAndroid(platform === "android");
+        
+        // Skip auth check on Android
+        if (platform === "android") {
+          setIsAuthenticated(true);
+          return;
+        }
+      } catch (error) {
+        // Capacitor not available (web environment) - proceed with auth check
+        setIsAndroid(false);
+      }
+      
+      // Check authentication status on mount for non-Android platforms
+      checkAuth();
+    };
+
+    checkPlatform();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
