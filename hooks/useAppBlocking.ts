@@ -56,7 +56,7 @@ export function useAppBlocking() {
     }
   }, [checkAccessibilityStatus]);
 
-  const enableBlocking = useCallback(async (packageNames: string[] = BLOCKED_APP_PACKAGES) => {
+  const enableBlocking = useCallback(async (packageNames: readonly string[] | string[] = BLOCKED_APP_PACKAGES) => {
     if (!Capacitor.isNativePlatform()) {
       throw new Error('App blocking is only available on Android');
     }
@@ -69,7 +69,8 @@ export function useAppBlocking() {
         throw new Error('Accessibility service is not enabled. Please enable it in settings.');
       }
       
-      await AppBlocking.enableBlocking({ packageNames });
+      // Convert to mutable array for the API call
+      await AppBlocking.enableBlocking({ packageNames: Array.from(packageNames) });
       await checkBlockingStatus();
     } catch (error) {
       console.error('Failed to enable blocking:', error);
