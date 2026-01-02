@@ -48,6 +48,8 @@ export async function GET(
       target: data.target || undefined,
       category: data.category as 'health' | 'faith' | 'learn' | 'family' | undefined,
       minutesPerDay: data.minutes_per_day || undefined,
+      screentimeStartHour: data.screentime_start_hour || undefined,
+      screentimeEndHour: data.screentime_end_hour || undefined,
     };
 
     return NextResponse.json({ goal });

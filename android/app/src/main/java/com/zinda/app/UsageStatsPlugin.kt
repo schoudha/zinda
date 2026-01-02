@@ -29,6 +29,8 @@ class UsageStatsPlugin : Plugin() {
     @PluginMethod
     fun getUsage(call: PluginCall) {
         val period = call.getString("period", "today")
+        val startHour = call.getInt("startHour", -1) // -1 means no time window filter
+        val endHour = call.getInt("endHour", -1)
 
         val context = context
         val pm = context.packageManager
@@ -95,6 +97,86 @@ class UsageStatsPlugin : Plugin() {
         // Use queryEvents for all periods to ensure we only track actual foreground usage
         // This prevents counting background usage (e.g., Instagram playing music in background)
         Log.d(TAG, "Using queryEvents for precise foreground-only tracking")
+        if (startHour >= 0 && endHour >= 0) {
+            Log.d(TAG, "Time window filter: $startHour:00 - $endHour:00")
+        }
+        
+        // Helper function to check if a timestamp falls within the time window (if specified)
+        fun isWithinTimeWindow(timestamp: Long): Boolean {
+            if (startHour < 0 || endHour < 0) return true // No time window filter
+            
+            val cal = Calendar.getInstance(timeZone)
+            cal.timeInMillis = timestamp
+            val hour = cal.get(Calendar.HOUR_OF_DAY)
+            
+            // Handle case where window spans midnight (e.g., 22-2)
+            return if (startHour <= endHour) {
+                hour >= startHour && hour < endHour
+            } else {
+                hour >= startHour || hour < endHour
+            }
+        }
+        
+        // Helper function to calculate overlap between a time range and the time window
+        fun calculateWindowOverlap(start: Long, end: Long): Long {
+            if (startHour < 0 || endHour < 0) return end - start // No time window filter
+            
+            var overlap: Long = 0
+            val cal = Calendar.getInstance(timeZone)
+            
+            // Process each day that the range spans
+            var currentStart = start
+            while (currentStart < end) {
+                cal.timeInMillis = currentStart
+                val dayOfYear = cal.get(Calendar.DAY_OF_YEAR)
+                val year = cal.get(Calendar.YEAR)
+                
+                // Calculate window start for this day
+                val windowStartCal = Calendar.getInstance(timeZone)
+                windowStartCal.set(Calendar.YEAR, year)
+                windowStartCal.set(Calendar.DAY_OF_YEAR, dayOfYear)
+                windowStartCal.set(Calendar.HOUR_OF_DAY, startHour)
+                windowStartCal.set(Calendar.MINUTE, 0)
+                windowStartCal.set(Calendar.SECOND, 0)
+                windowStartCal.set(Calendar.MILLISECOND, 0)
+                
+                // Calculate window end for this day
+                val windowEndCal = Calendar.getInstance(timeZone)
+                windowEndCal.set(Calendar.YEAR, year)
+                windowEndCal.set(Calendar.DAY_OF_YEAR, dayOfYear)
+                if (startHour <= endHour) {
+                    windowEndCal.set(Calendar.HOUR_OF_DAY, endHour)
+                } else {
+                    // Window spans midnight, so end is next day
+                    windowEndCal.add(Calendar.DAY_OF_YEAR, 1)
+                    windowEndCal.set(Calendar.HOUR_OF_DAY, endHour)
+                }
+                windowEndCal.set(Calendar.MINUTE, 0)
+                windowEndCal.set(Calendar.SECOND, 0)
+                windowEndCal.set(Calendar.MILLISECOND, 0)
+                
+                val windowStart = windowStartCal.timeInMillis
+                val windowEnd = windowEndCal.timeInMillis
+                
+                // Calculate overlap for this day
+                val overlapStart = maxOf(currentStart, windowStart)
+                val overlapEnd = minOf(end, windowEnd)
+                
+                if (overlapStart < overlapEnd) {
+                    overlap += overlapEnd - overlapStart
+                }
+                
+                // Move to start of next day
+                cal.add(Calendar.DAY_OF_YEAR, 1)
+                cal.set(Calendar.HOUR_OF_DAY, 0)
+                cal.set(Calendar.MINUTE, 0)
+                cal.set(Calendar.SECOND, 0)
+                cal.set(Calendar.MILLISECOND, 0)
+                currentStart = cal.timeInMillis
+            }
+            
+            return overlap
+        }
         
         // 1. Get the raw event stream for the specified period
         val events = usm.queryEvents(startTime, endTime)
@@ -103,7 +185,12 @@ class UsageStatsPlugin : Plugin() {
         while (events.hasNextEvent()) {
             val event = android.app.usage.UsageEvents.Event()
             events.getNextEvent(event)
-            val pkg = event.packageName
+            val pkg = event.packageName.toLowerCase()
+
+            // Exclude YouTube Music packages
+            if (pkg.contains("youtubemusic") || pkg.contains("youtube.music")) {
+                continue
+            }
 
             // 2. Track when apps move to foreground (only count when app is actually in use)
             if (event.eventType == android.app.usage.UsageEvents.Event.MOVE_TO_FOREGROUND) {
@@ -114,7 +201,12 @@ class UsageStatsPlugin : Plugin() {
                 val start = startMap[pkg]
                 // Only count if we saw the start event inside our 'startTime' window
                 if (start != null && start >= startTime) {
-                    val duration = event.timeStamp - start
+                    // Calculate overlap with time window if specified
+                    val duration = if (startHour >= 0 && endHour >= 0) {
+                        calculateWindowOverlap(start, event.timeStamp)
+                    } else {
+                        event.timeStamp - start
+                    }
                     if (duration > 0) {
                         timePerPackage[pkg] = (timePerPackage[pkg] ?: 0L) + duration
                     }
@@ -128,7 +220,12 @@ class UsageStatsPlugin : Plugin() {
         // Only count if the start time is within our query window
         for ((pkg, start) in startMap) {
             if (start >= startTime) {
-                val duration = endTime - start
+                // Calculate overlap with time window if specified
+                val duration = if (startHour >= 0 && endHour >= 0) {
+                    calculateWindowOverlap(start, endTime)
+                } else {
+                    endTime - start
+                }
                 if (duration > 0) {
                     timePerPackage[pkg] = (timePerPackage[pkg] ?: 0L) + duration
                 }

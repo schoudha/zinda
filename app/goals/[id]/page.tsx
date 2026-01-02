@@ -61,7 +61,7 @@ export default function GoalDetailPage() {
   useEffect(() => {
     if (goal) {
       setEditText(goal.text);
-      setEditMinutesPerDay(goal.minutesPerDay?.toString() || (goal.category === 'screentime' || goal.category === 'family' ? "150" : "30"));
+      setEditMinutesPerDay(goal.minutesPerDay?.toString() || (goal.category === 'screentime' ? "10" : goal.category === 'family' ? "150" : "30"));
       setEditTarget(goal.target?.toString() || (goal.category === 'faith' ? "3" : ""));
       if (goal.category === 'faith' && !quote) {
         setQuote(getRandomQuranQuote());
@@ -72,8 +72,18 @@ export default function GoalDetailPage() {
   // Health data
   const { totalMinutes, hasPermission, sessions } = useHealthConnect(healthPeriod);
   
-  // Usage Stats data
-  const { totalTime: screentimeMs, apps: screentimeApps, isNative: isUsageNative, hasPermission: hasUsagePermission, requestPermission: requestUsagePermission } = useUsageStats(healthPeriod);
+  // Usage Stats data - for screentime goals, use time window if specified
+  const screentimeStartHour = goal?.category === 'screentime' || goal?.category === 'family' 
+    ? (goal.screentimeStartHour ?? 18) 
+    : undefined;
+  const screentimeEndHour = goal?.category === 'screentime' || goal?.category === 'family'
+    ? (goal.screentimeEndHour ?? 20)
+    : undefined;
+  const { totalTime: screentimeMs, apps: screentimeApps, isNative: isUsageNative, hasPermission: hasUsagePermission, requestPermission: requestUsagePermission } = useUsageStats(
+    healthPeriod,
+    screentimeStartHour,
+    screentimeEndHour
+  );
 
   // Notes for learn goals
   const { notes, toggleNote, updateNote, deleteNote } = useNotes();
@@ -450,10 +460,10 @@ export default function GoalDetailPage() {
           usageStats: (goal.category === 'screentime' || goal.category === 'family') && hasUsagePermission ? {
             totalTime: screentimeMs,
             apps: screentimeApps,
-            goalMinutes: healthPeriod === "today" ? (goal.minutesPerDay || 150) :
-                         healthPeriod === "week" ? (goal.minutesPerDay || 150) * 7 :
-                         healthPeriod === "month" ? (goal.minutesPerDay || 150) * 30 :
-                         (goal.minutesPerDay || 150) * 365,
+            goalMinutes: healthPeriod === "today" ? (goal.minutesPerDay || (goal.category === 'screentime' ? 10 : 150)) :
+                         healthPeriod === "week" ? (goal.minutesPerDay || (goal.category === 'screentime' ? 10 : 150)) * 7 :
+                         healthPeriod === "month" ? (goal.minutesPerDay || (goal.category === 'screentime' ? 10 : 150)) * 30 :
+                         (goal.minutesPerDay || (goal.category === 'screentime' ? 10 : 150)) * 365,
             period: healthPeriod,
             percentage: goal.minutesPerDay ? Math.round((screentimeMs / 60000) / ((healthPeriod === "today" ? goal.minutesPerDay :
                          healthPeriod === "week" ? goal.minutesPerDay * 7 :

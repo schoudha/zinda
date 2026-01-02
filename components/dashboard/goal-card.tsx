@@ -177,8 +177,14 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
   const healthPeriod = selectedPeriod === "today" ? "today" : selectedPeriod === "week" ? "week" : selectedPeriod === "month" ? "month" : "year";
   const { totalMinutes, dailyStats, hasPermission: hasHealthPermission, isNative: isHealthNative, requestPermission: requestHealthPermission } = useHealthConnect(isHealthGoal ? healthPeriod : "week");
   
-  // Usage Stats for screentime goals
-  const { totalTime: screentimeMs, hasPermission: hasUsagePermission, isNative: isUsageNative, requestPermission: requestUsagePermission } = useUsageStats(isScreentimeGoal ? healthPeriod : "today");
+  // Usage Stats for screentime goals - pass time window if specified
+  const screentimeStartHour = isScreentimeGoal ? (goal.screentimeStartHour ?? 18) : undefined;
+  const screentimeEndHour = isScreentimeGoal ? (goal.screentimeEndHour ?? 20) : undefined;
+  const { totalTime: screentimeMs, hasPermission: hasUsagePermission, isNative: isUsageNative, requestPermission: requestUsagePermission } = useUsageStats(
+    isScreentimeGoal ? healthPeriod : "today",
+    screentimeStartHour,
+    screentimeEndHour
+  );
   const screentimeMinutes = Math.round(screentimeMs / 60000);
 
   // Get progress data for learn goals
@@ -388,7 +394,7 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
   const stats = isHealthGoal ? dailyStats : (history || {});
   
   // Calculate goal stats
-  const minutesPerDay = goal.minutesPerDay || (isScreentimeGoal ? 150 : 21); // Default 150 min (2.5h) for screentime, 21 min/day for health
+  const minutesPerDay = goal.minutesPerDay || (isScreentimeGoal ? 10 : 21); // Default 10 min for screentime (time-windowed), 21 min/day for health
   const dailyTarget = (isHealthGoal || isScreentimeGoal) ? minutesPerDay : (goal.target || 100);
   const threshold = (isHealthGoal || isScreentimeGoal) ? (0.7 * dailyTarget) : (goal.target ? (0.7 * goal.target) : 70);
 

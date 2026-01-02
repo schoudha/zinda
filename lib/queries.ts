@@ -24,6 +24,8 @@ export async function fetchGoals(): Promise<Goal[]> {
     notificationDays: goal.notification_days as 'everyday' | 'weekday' | 'weekend' | undefined,
     target: goal.target || undefined,
     minutesPerDay: goal.minutes_per_day || undefined,
+    screentimeStartHour: goal.screentime_start_hour || undefined,
+    screentimeEndHour: goal.screentime_end_hour || undefined,
   }));
 }
 

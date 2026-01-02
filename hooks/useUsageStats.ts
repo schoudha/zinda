@@ -7,7 +7,7 @@ export interface AppUsage {
   timeInForeground: number;
 }
 
-export function useUsageStats(period: string = 'today') {
+export function useUsageStats(period: string = 'today', startHour?: number, endHour?: number) {
   const [totalTime, setTotalTime] = useState<number>(0);
   const [apps, setApps] = useState<AppUsage[]>([]);
   const [hasPermission, setHasPermission] = useState<boolean>(false);
@@ -27,7 +27,12 @@ export function useUsageStats(period: string = 'today') {
     if (!Capacitor.isNativePlatform()) return;
     
     try {
-      const stats = await UsageStats.getUsage({ period });
+      const options: { period: string; startHour?: number; endHour?: number } = { period };
+      if (startHour !== undefined && endHour !== undefined) {
+        options.startHour = startHour;
+        options.endHour = endHour;
+      }
+      const stats = await UsageStats.getUsage(options);
       
       // Deduplicate stats by package name
       const aggregated = new Map<string, typeof stats.apps[0]>();
@@ -82,6 +87,11 @@ export function useUsageStats(period: string = 'today') {
             'chrome', 'youtube', 'maps', 'gmail', 'photos', 'camera', 'calendar', 'calculator', 'clock', 'messaging', 'music', 'spotify', 'netflix', 'whatsapp', 'instagram', 'facebook', 'twitter', 'tiktok', 'snapchat'
           ];
           
+          // Exclude YouTube Music (for podcasts)
+          if (pkg.toLowerCase().includes('youtubemusic') || pkg.toLowerCase().includes('youtube.music')) {
+            return false;
+          }
+          
           if (allowlistKeywords.some(keyword => pkg.toLowerCase().includes(keyword))) {
             return true;
           }
@@ -103,7 +113,7 @@ export function useUsageStats(period: string = 'today') {
     } catch (e) {
       console.error('Failed to load usage stats', e);
     }
-  }, [period]); // Add period as dependency
+  }, [period, startHour, endHour]); // Add period and time window as dependencies
 
   const requestPermission = async () => {
     if (!Capacitor.isNativePlatform()) return;

@@ -77,11 +77,24 @@ export function ScreentimeGoalView({
   setPeriod 
 }: ScreentimeGoalViewProps) {
   
-  // Default target is 2.5 hours (in ms) if not specified
-  const targetMinutes = goal.minutesPerDay || 150; // 2.5 hours = 150 mins
+  // Get time window from goal (defaults to 6pm-8pm)
+  const startHour = goal.screentimeStartHour ?? 18;
+  const endHour = goal.screentimeEndHour ?? 20;
+  
+  // Format time window for display
+  const formatHour = (hour: number): string => {
+    const period = hour >= 12 ? 'pm' : 'am';
+    const displayHour = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour;
+    return `${displayHour}${period}`;
+  };
+  const timeWindowText = `${formatHour(startHour)} - ${formatHour(endHour)}`;
+  
+  // Default target is 10 minutes (in ms) for time-windowed screentime goals
+  const targetMinutes = goal.minutesPerDay || 10; // 10 minutes default
   const targetMs = targetMinutes * 60 * 1000;
   
-  // Adjust target based on period
+  // For time-windowed goals, we only track "today" since the window is daily
+  // But we keep period support for backward compatibility
   const periodTargetMs = period === "today" ? targetMs :
                          period === "week" ? targetMs * 7 :
                          period === "month" ? targetMs * 30 :
@@ -151,6 +164,23 @@ export function ScreentimeGoalView({
         </TabsList>
         
         <TabsContent value={period} className="space-y-4 mt-4">
+          {/* Time Window Info */}
+          <Card className="border-none shadow-sm bg-blue-50 dark:bg-blue-950/30">
+            <CardContent className="p-4 space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                  Time Window
+                </span>
+                <span className="text-sm font-semibold text-blue-700 dark:text-blue-300">
+                  {timeWindowText}
+                </span>
+              </div>
+              <div className="text-xs text-blue-700/70 dark:text-blue-300/70">
+                Only usage during this time is tracked
+              </div>
+            </CardContent>
+          </Card>
+          
           {/* Progress Summary */}
           <Card className={`border-none shadow-sm ${
             isOverLimit ? 'bg-red-50 dark:bg-red-950/30' : 
@@ -164,7 +194,7 @@ export function ScreentimeGoalView({
                   isNearLimit ? 'text-yellow-900 dark:text-yellow-100' : 
                   'text-green-900 dark:text-green-100'
                 }`}>
-                  Screen Time
+                  Screen Time ({timeWindowText})
                 </span>
                 <span className={`text-lg font-bold ${
                   isOverLimit ? 'text-red-700 dark:text-red-300' : 

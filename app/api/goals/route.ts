@@ -36,6 +36,8 @@ export async function GET() {
       target: number | null;
       category: string | null;
       minutes_per_day: number | null;
+      screentime_start_hour: number | null;
+      screentime_end_hour: number | null;
     }) => ({
       id: goal.id,
       text: goal.text,
@@ -48,6 +50,8 @@ export async function GET() {
       target: goal.target || undefined,
       category: goal.category as 'health' | 'faith' | 'learn' | 'family' | 'screentime' | undefined,
       minutesPerDay: goal.minutes_per_day || undefined,
+      screentimeStartHour: goal.screentime_start_hour || undefined,
+      screentimeEndHour: goal.screentime_end_hour || undefined,
     }));
 
     return NextResponse.json({ goals });
@@ -68,7 +72,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { id, text, period, tips, createdAt, category, minutesPerDay, target: explicitTarget } = body;
+    const { id, text, period, tips, createdAt, category, minutesPerDay, target: explicitTarget, screentimeStartHour, screentimeEndHour } = body;
 
     if (!id || !text || !period) {
       return NextResponse.json(
@@ -100,18 +104,30 @@ export async function POST(request: NextRequest) {
       target = 3;
     }
 
+    // Set default time window for screentime goals (6pm-8pm)
+    const insertData: Record<string, unknown> = {
+      id,
+      text,
+      period,
+      tips: tips || [],
+      target: target || null,
+      category: category || null,
+      minutes_per_day: minutesPerDay && (category === 'health' || category === 'family' || category === 'screentime') ? minutesPerDay : null,
+      created_at: createdAt || new Date().toISOString(),
+    };
+    
+    // Set time window defaults for screentime goals
+    if (category === 'screentime' || category === 'family') {
+      insertData.screentime_start_hour = screentimeStartHour !== undefined ? screentimeStartHour : 18;
+      insertData.screentime_end_hour = screentimeEndHour !== undefined ? screentimeEndHour : 20;
+    } else if (screentimeStartHour !== undefined || screentimeEndHour !== undefined) {
+      insertData.screentime_start_hour = screentimeStartHour || null;
+      insertData.screentime_end_hour = screentimeEndHour || null;
+    }
+    
     const { data, error } = await adminClient
       .from('goals')
-      .insert({
-        id,
-        text,
-        period,
-        tips: tips || [],
-        target: target || null,
-        category: category || null,
-        minutes_per_day: minutesPerDay && (category === 'health' || category === 'family') ? minutesPerDay : null,
-        created_at: createdAt || new Date().toISOString(),
-      })
+      .insert(insertData)
       .select()
       .single();
 
@@ -135,6 +151,8 @@ export async function POST(request: NextRequest) {
       target: data.target || undefined,
       category: data.category as 'health' | 'faith' | 'learn' | 'family' | undefined,
       minutesPerDay: data.minutes_per_day || undefined,
+      screentimeStartHour: data.screentime_start_hour || undefined,
+      screentimeEndHour: data.screentime_end_hour || undefined,
     };
 
     return NextResponse.json({ goal }, { status: 201 });
@@ -155,7 +173,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { id, text, period, tips, minutesPerDay, target } = body;
+    const { id, text, period, tips, minutesPerDay, target, screentimeStartHour, screentimeEndHour } = body;
 
     if (!id) {
       return NextResponse.json(
@@ -218,7 +236,7 @@ export async function PATCH(request: NextRequest) {
       updateData.notification_days = body.notificationDays;
     }
     if (minutesPerDay !== undefined) {
-      // Only allow minutesPerDay for health goals
+      // Allow minutesPerDay for health, screentime, and family goals
       if (minutesPerDay !== null && (!Number.isInteger(minutesPerDay) || minutesPerDay < 1)) {
         return NextResponse.json(
           { error: 'minutesPerDay must be a positive integer' },
@@ -226,6 +244,24 @@ export async function PATCH(request: NextRequest) {
         );
       }
       updateData.minutes_per_day = minutesPerDay;
+    }
+    if (screentimeStartHour !== undefined) {
+      if (screentimeStartHour !== null && (!Number.isInteger(screentimeStartHour) || screentimeStartHour < 0 || screentimeStartHour > 23)) {
+        return NextResponse.json(
+          { error: 'screentimeStartHour must be an integer between 0 and 23' },
+          { status: 400 }
+        );
+      }
+      updateData.screentime_start_hour = screentimeStartHour;
+    }
+    if (screentimeEndHour !== undefined) {
+      if (screentimeEndHour !== null && (!Number.isInteger(screentimeEndHour) || screentimeEndHour < 0 || screentimeEndHour > 23)) {
+        return NextResponse.json(
+          { error: 'screentimeEndHour must be an integer between 0 and 23' },
+          { status: 400 }
+        );
+      }
+      updateData.screentime_end_hour = screentimeEndHour;
     }
 
     const { data, error } = await adminClient
@@ -254,6 +290,8 @@ export async function PATCH(request: NextRequest) {
       notificationDays: data.notification_days as 'everyday' | 'weekday' | 'weekend' | undefined,
       target: data.target || undefined,
       minutesPerDay: data.minutes_per_day || undefined,
+      screentimeStartHour: data.screentime_start_hour || undefined,
+      screentimeEndHour: data.screentime_end_hour || undefined,
     };
 
     return NextResponse.json({ goal });

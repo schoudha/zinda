@@ -49,7 +49,8 @@ export function GoalCreationDialog({ open, onOpenChange, category, onGoalCreated
     if (open) {
       setSelectedCategory(category);
       setMessage("");
-      setMinutesPerDay(category === "family" ? "150" : "30");
+      // Set default minutesPerDay: 10 for screentime, 150 for family, 30 for health
+      setMinutesPerDay(category === "screentime" || category === "family" ? (category === "screentime" ? "10" : "150") : "30");
       // Focus the input when dialog opens
       setTimeout(() => {
         inputRef.current?.focus();
@@ -143,12 +144,18 @@ export function GoalCreationDialog({ open, onOpenChange, category, onGoalCreated
         createdAt: new Date(),
       };
       
-      // Add minutesPerDay for health and screentime goals
-      if (selectedCategory === "health" || selectedCategory === "family") {
+      // Add minutesPerDay for health, screentime, and family goals
+      if (selectedCategory === "health" || selectedCategory === "family" || selectedCategory === "screentime") {
         const minutes = parseInt(minutesPerDay, 10);
         if (!isNaN(minutes) && minutes > 0) {
           goalData.minutesPerDay = minutes;
         }
+      }
+
+      // Set time window defaults for screentime goals (6pm-8pm)
+      if (selectedCategory === "screentime" || selectedCategory === "family") {
+        goalData.screentimeStartHour = 18; // 6pm
+        goalData.screentimeEndHour = 20; // 8pm
       }
 
       // Default target for faith goals
@@ -207,7 +214,8 @@ export function GoalCreationDialog({ open, onOpenChange, category, onGoalCreated
                   key={cat.id}
                   onClick={() => {
                     setSelectedCategory(cat.id);
-                    setMinutesPerDay(cat.id === "family" ? "150" : "30");
+                    // Set default minutesPerDay: 10 for screentime, 150 for family, 30 for health
+                    setMinutesPerDay(cat.id === "screentime" ? "10" : cat.id === "family" ? "150" : "30");
                   }}
                   title={cat.label}
                   className={cn(
@@ -223,7 +231,7 @@ export function GoalCreationDialog({ open, onOpenChange, category, onGoalCreated
             })}
           </div>
           
-          {(selectedCategory === "health" || selectedCategory === "family") && (
+          {(selectedCategory === "health" || selectedCategory === "family" || selectedCategory === "screentime") && (
             <div className="space-y-2">
               <label className="text-sm font-medium text-foreground">
                 Target: Minutes per day
@@ -235,7 +243,7 @@ export function GoalCreationDialog({ open, onOpenChange, category, onGoalCreated
                 value={minutesPerDay}
                 onChange={(e) => setMinutesPerDay(e.target.value)}
                 className="w-full h-12 px-4 border border-input bg-background text-base"
-                placeholder="30"
+                placeholder={selectedCategory === "screentime" ? "10" : selectedCategory === "family" ? "150" : "30"}
                 disabled={isLoading}
               />
             </div>
