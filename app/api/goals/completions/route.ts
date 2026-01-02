@@ -5,7 +5,7 @@ import { isAuthenticated } from '@/lib/auth';
 // GET - Fetch completion stats for a goal (today's completion and weekly stats)
 export async function GET(request: NextRequest) {
   try {
-    if (!await isAuthenticated()) {
+    if (!await isAuthenticated(request)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -107,7 +107,7 @@ export async function GET(request: NextRequest) {
 // POST - Increment completion count for today (up to 3 times per day)
 export async function POST(request: NextRequest) {
   try {
-    if (!await isAuthenticated()) {
+    if (!await isAuthenticated(request)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -202,7 +202,7 @@ export async function POST(request: NextRequest) {
 // PATCH - Set completion count for today
 export async function PATCH(request: NextRequest) {
   try {
-    if (!await isAuthenticated()) {
+    if (!await isAuthenticated(request)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
