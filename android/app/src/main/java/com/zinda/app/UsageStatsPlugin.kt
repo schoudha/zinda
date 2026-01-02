@@ -92,67 +92,50 @@ class UsageStatsPlugin : Plugin() {
         Log.d(TAG, "Time range: startTime=$startTime, endTime=$endTime, interval=$intervalType")
         Log.d(TAG, "Time range (readable): ${java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS Z", java.util.Locale.getDefault()).format(java.util.Date(startTime))} to ${java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS Z", java.util.Locale.getDefault()).format(java.util.Date(endTime))}")
         
-        // For "today" queries, use queryEvents for precise daily tracking
-        // For multi-day queries (week/month/year), use queryUsageStats and manually aggregate
-        if (period == "today") {
-            Log.d(TAG, "Using queryEvents for precise daily tracking")
-            
-            // 1. Get the raw event stream for today
-            val events = usm.queryEvents(startTime, endTime)
-            val startMap = mutableMapOf<String, Long>()
-            
-            while (events.hasNextEvent()) {
-                val event = android.app.usage.UsageEvents.Event()
-                events.getNextEvent(event)
-                val pkg = event.packageName
+        // Use queryEvents for all periods to ensure we only track actual foreground usage
+        // This prevents counting background usage (e.g., Instagram playing music in background)
+        Log.d(TAG, "Using queryEvents for precise foreground-only tracking")
+        
+        // 1. Get the raw event stream for the specified period
+        val events = usm.queryEvents(startTime, endTime)
+        val startMap = mutableMapOf<String, Long>()
+        
+        while (events.hasNextEvent()) {
+            val event = android.app.usage.UsageEvents.Event()
+            events.getNextEvent(event)
+            val pkg = event.packageName
 
-                // 2. Track when apps move to foreground
-                if (event.eventType == android.app.usage.UsageEvents.Event.MOVE_TO_FOREGROUND) {
-                    startMap[pkg] = event.timeStamp
-                } 
-                // 3. Calculate duration when they move to background
-                else if (event.eventType == android.app.usage.UsageEvents.Event.MOVE_TO_BACKGROUND) {
-                    val start = startMap[pkg]
-                    // Only count if we saw the start event inside our 'startTime' window
-                    if (start != null) {
-                        val duration = event.timeStamp - start
-                        if (duration > 0) {
-                            timePerPackage[pkg] = (timePerPackage[pkg] ?: 0L) + duration
-                        }
-                        // Reset for next session
-                        startMap.remove(pkg) 
+            // 2. Track when apps move to foreground (only count when app is actually in use)
+            if (event.eventType == android.app.usage.UsageEvents.Event.MOVE_TO_FOREGROUND) {
+                startMap[pkg] = event.timeStamp
+            } 
+            // 3. Calculate duration when they move to background
+            else if (event.eventType == android.app.usage.UsageEvents.Event.MOVE_TO_BACKGROUND) {
+                val start = startMap[pkg]
+                // Only count if we saw the start event inside our 'startTime' window
+                if (start != null && start >= startTime) {
+                    val duration = event.timeStamp - start
+                    if (duration > 0) {
+                        timePerPackage[pkg] = (timePerPackage[pkg] ?: 0L) + duration
                     }
+                    // Reset for next session
+                    startMap.remove(pkg) 
                 }
             }
+        }
 
-            // 4. Handle apps that are STILL open right now (no background event yet)
-            for ((pkg, start) in startMap) {
+        // 4. Handle apps that are STILL open right now (no background event yet)
+        // Only count if the start time is within our query window
+        for ((pkg, start) in startMap) {
+            if (start >= startTime) {
                 val duration = endTime - start
                 if (duration > 0) {
                     timePerPackage[pkg] = (timePerPackage[pkg] ?: 0L) + duration
                 }
             }
-            
-            Log.d(TAG, "Processed event stream for ${timePerPackage.size} packages")
-        } else {
-            // For multi-day queries, use queryUsageStats and manually aggregate daily buckets
-            val usageStatsList = usm.queryUsageStats(intervalType, startTime, endTime)
-            
-            if (usageStatsList != null) {
-                Log.d(TAG, "Retrieved ${usageStatsList.size} usage stats entries for multi-day query")
-                for (stats in usageStatsList) {
-                    if (stats.totalTimeInForeground > 0) {
-                        val pkg = stats.packageName
-                        val current = timePerPackage[pkg] ?: 0L
-                        timePerPackage[pkg] = current + stats.totalTimeInForeground
-                        Log.d(TAG, "Processing stats: $pkg = ${stats.totalTimeInForeground}ms (accumulated: ${timePerPackage[pkg]}ms)")
-                    }
-                }
-                Log.d(TAG, "Aggregated ${timePerPackage.size} unique packages")
-            } else {
-                Log.w(TAG, "Usage stats list is null")
-            }
         }
+        
+        Log.d(TAG, "Processed event stream for ${timePerPackage.size} packages")
 
         val result = JSObject()
         var totalScreenTime: Long = 0
