@@ -29,8 +29,8 @@ class UsageStatsPlugin : Plugin() {
     @PluginMethod
     fun getUsage(call: PluginCall) {
         val period = call.getString("period", "today")
-        val startHour = call.getInt("startHour", -1) // -1 means no time window filter
-        val endHour = call.getInt("endHour", -1)
+        val startHour = call.getInt("startHour") ?: -1 // -1 means no time window filter
+        val endHour = call.getInt("endHour") ?: -1
 
         val context = context
         val pm = context.packageManager
