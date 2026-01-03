@@ -33,11 +33,14 @@ class MainActivity : BridgeActivity() {
         super.onCreate(savedInstanceState)
 
         handleHealthConnectRationale(intent)
+        handleShareIntent(intent)
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
+        setIntent(intent)
         handleHealthConnectRationale(intent)
+        handleShareIntent(intent)
     }
 
     private fun handleHealthConnectRationale(intent: Intent?) {
@@ -45,6 +48,60 @@ class MainActivity : BridgeActivity() {
             // TODO: Navigate to your Privacy Policy page or show a dialog explaining why you need access
             android.util.Log.d("HealthConnect", "Rationale intent received")
             Toast.makeText(this, "Access to health data is required to show your exercise stats.", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun handleShareIntent(intent: Intent?) {
+        if (intent?.action == Intent.ACTION_SEND) {
+            val sharedText = intent.getStringExtra(Intent.EXTRA_TEXT)
+            val sharedSubject = intent.getStringExtra(Intent.EXTRA_SUBJECT)
+            
+            if (sharedText != null || sharedSubject != null) {
+                android.util.Log.d("ShareIntent", "Received share: text=$sharedText, subject=$sharedSubject")
+                
+                // Extract URL from shared text if it contains one
+                val extractedUrl = sharedText?.takeIf { 
+                    android.util.Patterns.WEB_URL.matcher(it).find() 
+                } ?: ""
+                
+                // Build query parameters with proper encoding
+                val textParam = sharedText?.let { "text=${android.net.Uri.encode(it)}" } ?: ""
+                val titleParam = sharedSubject?.let { "title=${android.net.Uri.encode(it)}" } ?: ""
+                val urlParam = extractedUrl.takeIf { it.isNotEmpty() }?.let { "url=${android.net.Uri.encode(it)}" } ?: ""
+                
+                val params = listOfNotNull(textParam, titleParam, urlParam).joinToString("&")
+                
+                // Use JavaScript to update the URL without reloading the page
+                val jsCode = """
+                    (function() {
+                        const queryString = '$params';
+                        if (queryString) {
+                            const url = new URL(window.location.href);
+                            const params = new URLSearchParams(queryString);
+                            params.forEach((value, key) => {
+                                url.searchParams.set(key, value);
+                            });
+                            window.history.replaceState({}, '', url.toString());
+                            window.dispatchEvent(new PopStateEvent('popstate'));
+                        }
+                    })();
+                """.trimIndent()
+                
+                // Execute JavaScript after ensuring the webview is ready
+                val handler = android.os.Handler(android.os.Looper.getMainLooper())
+                val executeJs = {
+                    val webView = bridge?.webView
+                    if (webView != null) {
+                        webView.evaluateJavascript(jsCode, null)
+                    } else {
+                        // Retry after a delay if bridge isn't ready yet
+                        handler.postDelayed(executeJs, 200)
+                    }
+                }
+                
+                // Start trying to execute after a short delay
+                handler.postDelayed(executeJs, 500)
+            }
         }
     }
     
