@@ -2,7 +2,7 @@
 
 import { useState, useEffect, memo, lazy, Suspense, useCallback, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { X, Bell, MessageCircle, Plus, Minus, Calendar, CalendarRange, CalendarCheck, Lock, BookOpen, ExternalLink } from "lucide-react";
+import { X, Bell, MessageCircle, Plus, Minus, Calendar, CalendarRange, CalendarCheck, Lock, BookOpen, ExternalLink, ThumbsUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { Goal } from "@/types";
@@ -1166,7 +1166,7 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
                 <h3 className="text-sm font-bold text-gray-900 dark:text-white leading-tight tracking-tight text-center">
                   {goal.text}
                 </h3>
-                <div className="flex items-center justify-center">
+                <div className="flex flex-col items-center justify-center gap-3">
                   <RadialProgress 
                     value={faithProgress.percentage} 
                     size={120} 
@@ -1182,6 +1182,16 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
                     redThreshold={selectedPeriod === "today" ? 40 : (healthPeriod === "week" ? (3/7)*100 : healthPeriod === "month" ? (2/4)*100 : (7/12)*100)}
                     yellowThreshold={selectedPeriod === "today" ? 70 : (healthPeriod === "week" ? (5/7)*100 : healthPeriod === "month" ? (4/4)*100 : (10/12)*100)}
                   />
+                  {selectedPeriod === "today" && (
+                    <Button
+                      onClick={handleCompletionIncrement}
+                      disabled={isUpdating || !goal.target || todayCompletion >= Math.min(3, goal.target)}
+                      className="h-10 w-10 rounded-full bg-violet-600 hover:bg-violet-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                      aria-label="Increment prayer count"
+                    >
+                      <ThumbsUp className="h-5 w-5" />
+                    </Button>
+                  )}
                 </div>
               </>
             ) : (
