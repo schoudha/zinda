@@ -288,6 +288,54 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
     return { periodPoints, target, percentage };
   }, [isLearnGoal, goal.id, selectedPeriod, healthPeriod, progress, progressHistory, getPeriodStart]);
 
+  // Helper function for date ranges (used by faith and learn progress calculation)
+  const getDateStr = useCallback((date: Date) => {
+    return date.toLocaleDateString('en-CA');
+  }, []);
+
+  const dateRange = useCallback((start: Date, end: Date): string[] => {
+    const dates: string[] = [];
+    const current = new Date(start);
+    while (current <= end) {
+      dates.push(getDateStr(current));
+      current.setDate(current.getDate() + 1);
+    }
+    return dates;
+  }, [getDateStr]);
+
+  // Helper function to calculate expected months completed for year view
+  const getExpectedMonthsCompleted = useCallback((currentDate: Date): number => {
+    const monthIndex = currentDate.getMonth(); // 0-11
+    const dayOfMonth = currentDate.getDate();
+    // Calculate expected months: if we're past day 20 of current month, count it
+    const monthsCompleted = monthIndex + (dayOfMonth >= 20 ? 1 : 0);
+    // Expected is 10/12 of the year, so scale accordingly
+    return Math.ceil((monthsCompleted / 12) * 10);
+  }, []);
+
+  // Helper function to determine completion status color
+  const getCompletionStatusColor = useCallback((
+    period: 'week' | 'month' | 'year',
+    completed: number,
+    total: number,
+    expected?: number
+  ): 'green' | 'yellow' | 'red' => {
+    if (period === 'week') {
+      if (completed >= 5) return 'green';
+      if (completed >= 3) return 'yellow';
+      return 'red';
+    } else if (period === 'month') {
+      if (completed >= 4) return 'green';
+      if (completed >= 2) return 'yellow';
+      return 'red';
+    } else { // year
+      const target = expected || 10;
+      if (completed >= target) return 'green';
+      if (completed >= Math.ceil(target * 0.7)) return 'yellow';
+      return 'red';
+    }
+  }, []);
+
   // Calculate completion stats for learn goals (days/weeks/months where points >= 2)
   const learnProgressCompletion = useMemo(() => {
     if (!isLearnGoal) return { completedDays: 0, totalDays: 7, completedWeeks: 0, totalWeeks: 4, completedMonths: 0, totalMonths: 12, expectedMonths: 0, statusColor: 'red' as const, percentage: 0 };
@@ -390,55 +438,7 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
     }
     
     return { completedDays: 0, totalDays: 7, completedWeeks: 0, totalWeeks: 4, completedMonths: 0, totalMonths: 12, expectedMonths: 0, statusColor: 'red' as const, percentage: 0 };
-  }, [isLearnGoal, goal.id, selectedPeriod, healthPeriod, progress, progressHistory, getPeriodStart, getCompletionStatusColor, getExpectedMonthsCompleted]);
-
-  // Helper function for date ranges (used by faith progress calculation)
-  const getDateStr = (date: Date) => {
-    return date.toLocaleDateString('en-CA');
-  };
-
-  const dateRange = (start: Date, end: Date): string[] => {
-    const dates: string[] = [];
-    const current = new Date(start);
-    while (current <= end) {
-      dates.push(getDateStr(current));
-      current.setDate(current.getDate() + 1);
-    }
-    return dates;
-  };
-
-  // Helper function to calculate expected months completed for year view
-  const getExpectedMonthsCompleted = useCallback((currentDate: Date): number => {
-    const monthIndex = currentDate.getMonth(); // 0-11
-    const dayOfMonth = currentDate.getDate();
-    // Calculate expected months: if we're past day 20 of current month, count it
-    const monthsCompleted = monthIndex + (dayOfMonth >= 20 ? 1 : 0);
-    // Expected is 10/12 of the year, so scale accordingly
-    return Math.ceil((monthsCompleted / 12) * 10);
-  }, []);
-
-  // Helper function to determine completion status color
-  const getCompletionStatusColor = useCallback((
-    period: 'week' | 'month' | 'year',
-    completed: number,
-    total: number,
-    expected?: number
-  ): 'green' | 'yellow' | 'red' => {
-    if (period === 'week') {
-      if (completed >= 5) return 'green';
-      if (completed >= 3) return 'yellow';
-      return 'red';
-    } else if (period === 'month') {
-      if (completed >= 4) return 'green';
-      if (completed >= 2) return 'yellow';
-      return 'red';
-    } else { // year
-      const target = expected || 10;
-      if (completed >= target) return 'green';
-      if (completed >= Math.ceil(target * 0.7)) return 'yellow';
-      return 'red';
-    }
-  }, []);
+  }, [isLearnGoal, goal.id, selectedPeriod, healthPeriod, progress, progressHistory, getPeriodStart, getCompletionStatusColor, getExpectedMonthsCompleted, dateRange]);
 
   // Calculate completion stats for faith goals (using goal_progress history)
   const faithProgress = useMemo(() => {
@@ -540,7 +540,7 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
     }
     
     return { completedDays: 0, totalDays: 7, completedWeeks: 0, totalWeeks: 4, completedMonths: 0, totalMonths: 12, expectedMonths: 0, statusColor: 'red' as const, percentage: 0 };
-  }, [isFaithGoal, goal.target, goal.id, selectedPeriod, healthPeriod, progressHistory, getPeriodStart, todayCompletion, getCompletionStatusColor, getExpectedMonthsCompleted]);
+  }, [isFaithGoal, goal.target, goal.id, selectedPeriod, healthPeriod, progressHistory, getPeriodStart, todayCompletion, getCompletionStatusColor, getExpectedMonthsCompleted, dateRange]);
   
   // Use either health data or local history
   const stats = isHealthGoal ? dailyStats : (history || {});
@@ -841,10 +841,10 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
   // Get status color for faith/learn goals
   const getStatusColorForCard = (): 'green' | 'yellow' | 'red' | undefined => {
     if (selectedPeriod === "today") return undefined;
-    if (isFaithGoal && selectedPeriod !== "today") {
+    if (isFaithGoal) {
       return faithProgress.statusColor;
     }
-    if (isLearnGoal && selectedPeriod !== "today") {
+    if (isLearnGoal) {
       return learnProgressCompletion.statusColor;
     }
     return undefined;
