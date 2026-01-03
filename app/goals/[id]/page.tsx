@@ -22,6 +22,7 @@ import { HealthGoalView } from "@/components/goals/health-goal-view";
 import { LearnGoalView } from "@/components/goals/learn-goal-view";
 import { FaithGoalView } from "@/components/goals/faith-goal-view";
 import { ScreentimeGoalView } from "@/components/goals/screentime-goal-view";
+import { FamilyGoalView } from "@/components/goals/family-goal-view";
 
 export default function GoalDetailPage() {
   const params = useParams();
@@ -305,8 +306,8 @@ export default function GoalDetailPage() {
           />
         )}
 
-        {/* Screentime/Family-specific content */}
-        {(goal.category === 'screentime' || goal.category === 'family') && (
+        {/* Screentime-specific content */}
+        {goal.category === 'screentime' && (
            <ScreentimeGoalView
             goal={goal}
             totalTime={screentimeMs}
@@ -314,6 +315,15 @@ export default function GoalDetailPage() {
             isNative={isUsageNative}
             hasPermission={hasUsagePermission}
             requestPermission={requestUsagePermission}
+            period={healthPeriod}
+            setPeriod={setHealthPeriod}
+          />
+        )}
+
+        {/* Family-specific content */}
+        {goal.category === 'family' && (
+          <FamilyGoalView
+            goal={goal}
             period={healthPeriod}
             setPeriod={setHealthPeriod}
           />

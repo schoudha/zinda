@@ -38,6 +38,7 @@ export async function GET() {
       minutes_per_day: number | null;
       screentime_start_hour: number | null;
       screentime_end_hour: number | null;
+      family_phone_numbers: string[] | null;
     }) => ({
       id: goal.id,
       text: goal.text,
@@ -52,6 +53,7 @@ export async function GET() {
       minutesPerDay: goal.minutes_per_day || undefined,
       screentimeStartHour: goal.screentime_start_hour || undefined,
       screentimeEndHour: goal.screentime_end_hour || undefined,
+      familyPhoneNumbers: goal.family_phone_numbers || undefined,
     }));
 
     return NextResponse.json({ goals });
@@ -72,7 +74,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { id, text, period, tips, createdAt, category, minutesPerDay, target: explicitTarget, screentimeStartHour, screentimeEndHour } = body;
+    const { id, text, period, tips, createdAt, category, minutesPerDay, target: explicitTarget, screentimeStartHour, screentimeEndHour, familyPhoneNumbers } = body;
 
     if (!id || !text || !period) {
       return NextResponse.json(
@@ -125,6 +127,11 @@ export async function POST(request: NextRequest) {
       insertData.screentime_end_hour = screentimeEndHour || null;
     }
     
+    // Set family phone numbers for family goals
+    if (category === 'family' && familyPhoneNumbers && Array.isArray(familyPhoneNumbers)) {
+      insertData.family_phone_numbers = familyPhoneNumbers;
+    }
+    
     const { data, error } = await adminClient
       .from('goals')
       .insert(insertData)
@@ -153,6 +160,7 @@ export async function POST(request: NextRequest) {
       minutesPerDay: data.minutes_per_day || undefined,
       screentimeStartHour: data.screentime_start_hour || undefined,
       screentimeEndHour: data.screentime_end_hour || undefined,
+      familyPhoneNumbers: data.family_phone_numbers || undefined,
     };
 
     return NextResponse.json({ goal }, { status: 201 });
@@ -173,7 +181,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { id, text, period, tips, minutesPerDay, target, screentimeStartHour, screentimeEndHour } = body;
+    const { id, text, period, tips, minutesPerDay, target, screentimeStartHour, screentimeEndHour, familyPhoneNumbers } = body;
 
     if (!id) {
       return NextResponse.json(
@@ -263,6 +271,15 @@ export async function PATCH(request: NextRequest) {
       }
       updateData.screentime_end_hour = screentimeEndHour;
     }
+    if (familyPhoneNumbers !== undefined) {
+      if (familyPhoneNumbers !== null && !Array.isArray(familyPhoneNumbers)) {
+        return NextResponse.json(
+          { error: 'familyPhoneNumbers must be an array or null' },
+          { status: 400 }
+        );
+      }
+      updateData.family_phone_numbers = familyPhoneNumbers;
+    }
 
     const { data, error } = await adminClient
       .from('goals')
@@ -292,6 +309,7 @@ export async function PATCH(request: NextRequest) {
       minutesPerDay: data.minutes_per_day || undefined,
       screentimeStartHour: data.screentime_start_hour || undefined,
       screentimeEndHour: data.screentime_end_hour || undefined,
+      familyPhoneNumbers: data.family_phone_numbers || undefined,
     };
 
     return NextResponse.json({ goal });

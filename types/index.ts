@@ -29,6 +29,7 @@ export interface Goal {
   minutesPerDay?: number; // Minutes per day target for health goals
   screentimeStartHour?: number; // Start hour (0-23) for screentime time window, default 18 (6pm)
   screentimeEndHour?: number; // End hour (0-23) for screentime time window, default 20 (8pm)
+  familyPhoneNumbers?: string[]; // Phone numbers to track for family goals
 }
 
 export interface Message {

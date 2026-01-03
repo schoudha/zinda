@@ -258,8 +258,13 @@ function HomeContent() {
     { id: "family", icon: ScreentimeIcon, color: "text-emerald-500" },
   ];
 
-  // Show all goals in all views
-  const filteredGoals = goalsWithProgress;
+  // Filter goals based on period - hide family goals in today view
+  const filteredGoals = useMemo(() => {
+    if (selectedPeriod === "today") {
+      return goalsWithProgress.filter(goal => goal.category !== "family");
+    }
+    return goalsWithProgress;
+  }, [goalsWithProgress, selectedPeriod]);
 
   // Group goals by category
   const goalsByCategory = useMemo(() => {

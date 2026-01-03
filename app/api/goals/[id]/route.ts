@@ -50,6 +50,7 @@ export async function GET(
       minutesPerDay: data.minutes_per_day || undefined,
       screentimeStartHour: data.screentime_start_hour || undefined,
       screentimeEndHour: data.screentime_end_hour || undefined,
+      familyPhoneNumbers: data.family_phone_numbers || undefined,
     };
 
     return NextResponse.json({ goal });

@@ -41,6 +41,8 @@ export function GoalCreationDialog({ open, onOpenChange, category, onGoalCreated
   const [message, setMessage] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<GoalCategory>(category);
   const [minutesPerDay, setMinutesPerDay] = useState<string>("30");
+  const [momPhoneNumber, setMomPhoneNumber] = useState<string>("707 813 9151");
+  const [sisterPhoneNumber, setSisterPhoneNumber] = useState<string>("802 310 5975");
   const [isLoading, setIsLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -51,6 +53,11 @@ export function GoalCreationDialog({ open, onOpenChange, category, onGoalCreated
       setMessage("");
       // Set default minutesPerDay: 10 for screentime, 150 for family, 30 for health
       setMinutesPerDay(category === "screentime" || category === "family" ? (category === "screentime" ? "10" : "150") : "30");
+      // Set default phone numbers for family goals
+      if (category === "family") {
+        setMomPhoneNumber("707 813 9151");
+        setSisterPhoneNumber("802 310 5975");
+      }
       // Focus the input when dialog opens
       setTimeout(() => {
         inputRef.current?.focus();
@@ -158,6 +165,20 @@ export function GoalCreationDialog({ open, onOpenChange, category, onGoalCreated
         goalData.screentimeEndHour = 20; // 8pm
       }
 
+      // Set family phone numbers for family goals
+      if (selectedCategory === "family") {
+        const phoneNumbers: string[] = [];
+        if (momPhoneNumber.trim()) {
+          phoneNumbers.push(momPhoneNumber.trim());
+        }
+        if (sisterPhoneNumber.trim()) {
+          phoneNumbers.push(sisterPhoneNumber.trim());
+        }
+        if (phoneNumbers.length > 0) {
+          goalData.familyPhoneNumbers = phoneNumbers;
+        }
+      }
+
       // Default target for faith goals
       if (selectedCategory === "faith") {
         goalData.target = 3;
@@ -216,6 +237,11 @@ export function GoalCreationDialog({ open, onOpenChange, category, onGoalCreated
                     setSelectedCategory(cat.id);
                     // Set default minutesPerDay: 10 for screentime, 150 for family, 30 for health
                     setMinutesPerDay(cat.id === "screentime" ? "10" : cat.id === "family" ? "150" : "30");
+                    // Set default phone numbers for family goals
+                    if (cat.id === "family") {
+                      setMomPhoneNumber("707 813 9151");
+                      setSisterPhoneNumber("802 310 5975");
+                    }
                   }}
                   title={cat.label}
                   className={cn(
@@ -246,6 +272,37 @@ export function GoalCreationDialog({ open, onOpenChange, category, onGoalCreated
                 placeholder={selectedCategory === "screentime" ? "10" : selectedCategory === "family" ? "150" : "30"}
                 disabled={isLoading}
               />
+            </div>
+          )}
+
+          {selectedCategory === "family" && (
+            <div className="space-y-3">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground">
+                  Mom's Phone Number
+                </label>
+                <Input
+                  type="tel"
+                  value={momPhoneNumber}
+                  onChange={(e) => setMomPhoneNumber(e.target.value)}
+                  className="w-full h-12 px-4 border border-input bg-background text-base"
+                  placeholder="707 813 9151"
+                  disabled={isLoading}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground">
+                  Sister's Phone Number
+                </label>
+                <Input
+                  type="tel"
+                  value={sisterPhoneNumber}
+                  onChange={(e) => setSisterPhoneNumber(e.target.value)}
+                  className="w-full h-12 px-4 border border-input bg-background text-base"
+                  placeholder="802 310 5975"
+                  disabled={isLoading}
+                />
+              </div>
             </div>
           )}
           
