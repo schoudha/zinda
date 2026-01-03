@@ -72,11 +72,11 @@ export default function GoalDetailPage() {
   // Health data
   const { totalMinutes, hasPermission, sessions } = useHealthConnect(healthPeriod);
   
-  // Usage Stats data - for screentime goals, use time window if specified
-  const screentimeStartHour = goal?.category === 'screentime' || goal?.category === 'family' 
+  // Usage Stats data - for screentime goals only, use time window if specified
+  const screentimeStartHour = goal?.category === 'screentime'
     ? (goal.screentimeStartHour ?? 18) 
     : undefined;
-  const screentimeEndHour = goal?.category === 'screentime' || goal?.category === 'family'
+  const screentimeEndHour = goal?.category === 'screentime'
     ? (goal.screentimeEndHour ?? 20)
     : undefined;
   const { totalTime: screentimeMs, apps: screentimeApps, isNative: isUsageNative, hasPermission: hasUsagePermission, requestPermission: requestUsagePermission } = useUsageStats(

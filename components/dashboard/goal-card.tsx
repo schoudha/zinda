@@ -177,9 +177,9 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
   const healthPeriod = selectedPeriod === "today" ? "today" : selectedPeriod === "week" ? "week" : selectedPeriod === "month" ? "month" : "year";
   const { totalMinutes, dailyStats, hasPermission: hasHealthPermission, isNative: isHealthNative, requestPermission: requestHealthPermission } = useHealthConnect(isHealthGoal ? healthPeriod : "week");
   
-  // Usage Stats for screentime goals - pass time window if specified
-  const screentimeStartHour = isScreentimeGoal ? (goal.screentimeStartHour ?? 18) : undefined;
-  const screentimeEndHour = isScreentimeGoal ? (goal.screentimeEndHour ?? 20) : undefined;
+  // Usage Stats for screentime goals - pass time window if specified (only for screentime, not family)
+  const screentimeStartHour = goal.category === "screentime" ? (goal.screentimeStartHour ?? 18) : undefined;
+  const screentimeEndHour = goal.category === "screentime" ? (goal.screentimeEndHour ?? 20) : undefined;
   const { totalTime: screentimeMs, hasPermission: hasUsagePermission, isNative: isUsageNative, requestPermission: requestUsagePermission } = useUsageStats(
     isScreentimeGoal ? healthPeriod : "today",
     screentimeStartHour,
