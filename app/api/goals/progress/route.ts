@@ -2,6 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { adminClient } from '@/lib/supabase/server';
 import { isAuthenticated } from '@/lib/auth';
 
+// Helper function to get local date in YYYY-MM-DD format (timezone-aware)
+function getLocalDateString(date: Date = new Date()): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 // GET - Fetch progress for goals
 export async function GET(request: NextRequest) {
   try {
@@ -19,9 +27,9 @@ export async function GET(request: NextRequest) {
     if (period === 'history') {
       const oneYearAgo = new Date();
       oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
-      query = query.gte('date', oneYearAgo.toISOString().split('T')[0]);
+      query = query.gte('date', getLocalDateString(oneYearAgo));
     } else {
-      const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+      const today = getLocalDateString(); // YYYY-MM-DD format (local timezone)
       query = query.eq('date', today);
     }
 
@@ -79,7 +87,7 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+    const today = getLocalDateString(); // YYYY-MM-DD format (local timezone)
     const progressId = `${goalId}_${today}`;
 
     // Upsert progress for today

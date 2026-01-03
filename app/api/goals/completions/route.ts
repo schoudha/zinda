@@ -2,6 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { adminClient } from '@/lib/supabase/server';
 import { isAuthenticated } from '@/lib/auth';
 
+// Helper function to get local date in YYYY-MM-DD format (timezone-aware)
+function getLocalDateString(date: Date = new Date()): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 // GET - Fetch completion stats for a goal (today's completion and weekly stats)
 export async function GET(request: NextRequest) {
   try {
@@ -19,7 +27,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+    const today = getLocalDateString(); // YYYY-MM-DD format (local timezone)
     
     // Get today's completion
     const { data: todayData, error: todayError } = await adminClient
@@ -42,7 +50,7 @@ export async function GET(request: NextRequest) {
     // Get weekly stats (last 7 days)
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-    const sevenDaysAgoStr = sevenDaysAgo.toISOString().split('T')[0];
+    const sevenDaysAgoStr = getLocalDateString(sevenDaysAgo);
 
     // Get goal target to determine if a day is "completed"
     const { data: goalData, error: goalError } = await adminClient
@@ -143,7 +151,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const today = new Date().toISOString().split('T')[0];
+    const today = getLocalDateString(); // YYYY-MM-DD format (local timezone)
     const progressId = `${goalId}_${today}`;
 
     // Get current completion
@@ -241,7 +249,7 @@ export async function PATCH(request: NextRequest) {
     const maxCompletions = Math.min(3, target); // Up to 3 completions per day
     const clampedCount = Math.max(0, Math.min(maxCompletions, Math.floor(completionCount)));
 
-    const today = new Date().toISOString().split('T')[0];
+    const today = getLocalDateString(); // YYYY-MM-DD format (local timezone)
     const progressId = `${goalId}_${today}`;
 
     // Upsert completion
