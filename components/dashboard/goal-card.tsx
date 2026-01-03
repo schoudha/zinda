@@ -288,6 +288,110 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
     return { periodPoints, target, percentage };
   }, [isLearnGoal, goal.id, selectedPeriod, healthPeriod, progress, progressHistory, getPeriodStart]);
 
+  // Calculate completion stats for learn goals (days/weeks/months where points >= 2)
+  const learnProgressCompletion = useMemo(() => {
+    if (!isLearnGoal) return { completedDays: 0, totalDays: 7, completedWeeks: 0, totalWeeks: 4, completedMonths: 0, totalMonths: 12, expectedMonths: 0, statusColor: 'red' as const, percentage: 0 };
+    
+    if (selectedPeriod === "today") {
+      // For today, check if points >= 2
+      const todayPoints = progress[goal.id] || 0;
+      const completed = todayPoints >= 2 ? 1 : 0;
+      return { completedDays: completed, totalDays: 7, completedWeeks: 0, totalWeeks: 4, completedMonths: 0, totalMonths: 12, expectedMonths: 0, statusColor: 'red' as const, percentage: completed * 100 };
+    }
+    
+    const periodStart = getPeriodStart(healthPeriod);
+    const now = new Date();
+    const goalHistory = progressHistory[goal.id] || {};
+    const dailyThreshold = 2; // Points needed to count as a completed day
+    
+    if (healthPeriod === "week") {
+      // For week view: count days where points >= 2 (out of 7)
+      let completedDays = 0;
+      const current = new Date(periodStart);
+      while (current <= now) {
+        const dateStr = current.toLocaleDateString('en-CA');
+        const progressValue = goalHistory[dateStr] || 0;
+        if (progressValue >= dailyThreshold) {
+          completedDays++;
+        }
+        current.setDate(current.getDate() + 1);
+      }
+      
+      // Always show out of 7 days for weekly view
+      const percentage = Math.round((completedDays / 7) * 100);
+      const statusColor = getCompletionStatusColor('week', completedDays, 7);
+      return { completedDays, totalDays: 7, completedWeeks: 0, totalWeeks: 4, completedMonths: 0, totalMonths: 12, expectedMonths: 0, statusColor, percentage };
+    } else if (healthPeriod === "month") {
+      // For month view: count weeks where at least 5 days had points >= 2 (out of 4 weeks)
+      const daysInPeriod = dateRange(periodStart, now);
+      
+      // Group days into weeks (7-day blocks)
+      const weeks: string[][] = [];
+      for (let i = 0; i < daysInPeriod.length; i += 7) {
+        weeks.push(daysInPeriod.slice(i, i + 7));
+      }
+      
+      let weeksMet = 0;
+      weeks.forEach(weekDays => {
+        let daysMetInWeek = 0;
+        weekDays.forEach(date => {
+          const progressValue = goalHistory[date] || 0;
+          if (progressValue >= dailyThreshold) {
+            daysMetInWeek++;
+          }
+        });
+        // Need at least 5 days in a week to count (or all days if week is incomplete)
+        const requiredDays = weekDays.length < 7 ? Math.ceil(weekDays.length * 5 / 7) : 5;
+        if (daysMetInWeek >= requiredDays) weeksMet++;
+      });
+      
+      // Always show out of 4 weeks for monthly view
+      const totalWeeks = 4;
+      const percentage = Math.round((weeksMet / totalWeeks) * 100);
+      const statusColor = getCompletionStatusColor('month', weeksMet, totalWeeks);
+      return { completedDays: 0, totalDays: 7, completedWeeks: weeksMet, totalWeeks, completedMonths: 0, totalMonths: 12, expectedMonths: 0, statusColor, percentage };
+    } else if (healthPeriod === "year") {
+      // For year view: count months where at least 20 days had points >= 2
+      const daysInPeriod = dateRange(periodStart, now);
+      
+      // Group days into months
+      const months: string[][] = [];
+      const currentMonthStart = new Date(periodStart);
+      while (currentMonthStart <= now) {
+        const monthEnd = new Date(currentMonthStart.getFullYear(), currentMonthStart.getMonth() + 1, 0);
+        const monthEndDate = monthEnd > now ? now : monthEnd;
+        const monthDays = dateRange(new Date(currentMonthStart), monthEndDate);
+        if (monthDays.length > 0) months.push(monthDays);
+        
+        currentMonthStart.setMonth(currentMonthStart.getMonth() + 1);
+        currentMonthStart.setDate(1);
+      }
+      
+      let monthsMet = 0;
+      months.forEach(monthDays => {
+        let daysMetInMonth = 0;
+        monthDays.forEach(date => {
+          const progressValue = goalHistory[date] || 0;
+          if (progressValue >= dailyThreshold) {
+            daysMetInMonth++;
+          }
+        });
+        // Need at least 20 days in a month (or proportional if month is incomplete)
+        const requiredDays = monthDays.length < 30 ? Math.ceil(monthDays.length * 20 / 30) : 20;
+        if (daysMetInMonth >= requiredDays) monthsMet++;
+      });
+      
+      // Calculate expected months based on current date
+      const expectedMonths = getExpectedMonthsCompleted(now);
+      const totalMonths = 12;
+      const percentage = Math.round((monthsMet / totalMonths) * 100);
+      const statusColor = getCompletionStatusColor('year', monthsMet, totalMonths, expectedMonths);
+      return { completedDays: 0, totalDays: 7, completedWeeks: 0, totalWeeks: 4, completedMonths: monthsMet, totalMonths, expectedMonths, statusColor, percentage };
+    }
+    
+    return { completedDays: 0, totalDays: 7, completedWeeks: 0, totalWeeks: 4, completedMonths: 0, totalMonths: 12, expectedMonths: 0, statusColor: 'red' as const, percentage: 0 };
+  }, [isLearnGoal, goal.id, selectedPeriod, healthPeriod, progress, progressHistory, getPeriodStart, getCompletionStatusColor, getExpectedMonthsCompleted]);
+
   // Helper function for date ranges (used by faith progress calculation)
   const getDateStr = (date: Date) => {
     return date.toLocaleDateString('en-CA');
@@ -303,13 +407,46 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
     return dates;
   };
 
+  // Helper function to calculate expected months completed for year view
+  const getExpectedMonthsCompleted = useCallback((currentDate: Date): number => {
+    const monthIndex = currentDate.getMonth(); // 0-11
+    const dayOfMonth = currentDate.getDate();
+    // Calculate expected months: if we're past day 20 of current month, count it
+    const monthsCompleted = monthIndex + (dayOfMonth >= 20 ? 1 : 0);
+    // Expected is 10/12 of the year, so scale accordingly
+    return Math.ceil((monthsCompleted / 12) * 10);
+  }, []);
+
+  // Helper function to determine completion status color
+  const getCompletionStatusColor = useCallback((
+    period: 'week' | 'month' | 'year',
+    completed: number,
+    total: number,
+    expected?: number
+  ): 'green' | 'yellow' | 'red' => {
+    if (period === 'week') {
+      if (completed >= 5) return 'green';
+      if (completed >= 3) return 'yellow';
+      return 'red';
+    } else if (period === 'month') {
+      if (completed >= 4) return 'green';
+      if (completed >= 2) return 'yellow';
+      return 'red';
+    } else { // year
+      const target = expected || 10;
+      if (completed >= target) return 'green';
+      if (completed >= Math.ceil(target * 0.7)) return 'yellow';
+      return 'red';
+    }
+  }, []);
+
   // Calculate completion stats for faith goals (using goal_progress history)
   const faithProgress = useMemo(() => {
-    if (!isFaithGoal || !goal.target) return { completedDays: 0, totalDays: 7, completedWeeks: 0, totalWeeks: 0, completedMonths: 0, totalMonths: 0, percentage: 0 };
+    if (!isFaithGoal || !goal.target) return { completedDays: 0, totalDays: 7, completedWeeks: 0, totalWeeks: 4, completedMonths: 0, totalMonths: 12, expectedMonths: 0, statusColor: 'red' as const, percentage: 0 };
     
     if (selectedPeriod === "today") {
       // For today, use today's completion from state
-      return { completedDays: todayCompletion, totalDays: 7, completedWeeks: 0, totalWeeks: 0, completedMonths: 0, totalMonths: 0, percentage: Math.round((todayCompletion / goal.target) * 100) };
+      return { completedDays: todayCompletion, totalDays: 7, completedWeeks: 0, totalWeeks: 4, completedMonths: 0, totalMonths: 12, expectedMonths: 0, statusColor: 'red' as const, percentage: Math.round((todayCompletion / goal.target) * 100) };
     }
     
     const periodStart = getPeriodStart(healthPeriod);
@@ -332,9 +469,10 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
       
       // Always show out of 7 days for weekly view
       const percentage = Math.round((completedDays / 7) * 100);
-      return { completedDays, totalDays: 7, completedWeeks: 0, totalWeeks: 0, completedMonths: 0, totalMonths: 0, percentage };
+      const statusColor = getCompletionStatusColor('week', completedDays, 7);
+      return { completedDays, totalDays: 7, completedWeeks: 0, totalWeeks: 4, completedMonths: 0, totalMonths: 12, expectedMonths: 0, statusColor, percentage };
     } else if (healthPeriod === "month") {
-      // For month view: count weeks where at least 5 days met the target (like health goals)
+      // For month view: count weeks where at least 5 days met the target (out of 4 weeks)
       const daysInPeriod = dateRange(periodStart, now);
       
       // Group days into weeks (7-day blocks)
@@ -357,9 +495,11 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
         if (daysMetInWeek >= requiredDays) weeksMet++;
       });
       
-      const totalWeeks = weeks.length;
-      const percentage = totalWeeks > 0 ? Math.round((weeksMet / totalWeeks) * 100) : 0;
-      return { completedDays: 0, totalDays: 7, completedWeeks: weeksMet, totalWeeks, completedMonths: 0, totalMonths: 0, percentage };
+      // Always show out of 4 weeks for monthly view
+      const totalWeeks = 4;
+      const percentage = Math.round((weeksMet / totalWeeks) * 100);
+      const statusColor = getCompletionStatusColor('month', weeksMet, totalWeeks);
+      return { completedDays: 0, totalDays: 7, completedWeeks: weeksMet, totalWeeks, completedMonths: 0, totalMonths: 12, expectedMonths: 0, statusColor, percentage };
     } else if (healthPeriod === "year") {
       // For year view: count months where at least 20 days met the target
       const daysInPeriod = dateRange(periodStart, now);
@@ -391,13 +531,16 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
         if (daysMetInMonth >= requiredDays) monthsMet++;
       });
       
-      const totalMonths = months.length;
-      const percentage = totalMonths > 0 ? Math.round((monthsMet / totalMonths) * 100) : 0;
-      return { completedDays: 0, totalDays: 7, completedWeeks: 0, totalWeeks: 0, completedMonths: monthsMet, totalMonths, percentage };
+      // Calculate expected months based on current date
+      const expectedMonths = getExpectedMonthsCompleted(now);
+      const totalMonths = 12;
+      const percentage = Math.round((monthsMet / totalMonths) * 100);
+      const statusColor = getCompletionStatusColor('year', monthsMet, totalMonths, expectedMonths);
+      return { completedDays: 0, totalDays: 7, completedWeeks: 0, totalWeeks: 4, completedMonths: monthsMet, totalMonths, expectedMonths, statusColor, percentage };
     }
     
-    return { completedDays: 0, totalDays: 7, completedWeeks: 0, totalWeeks: 0, completedMonths: 0, totalMonths: 0, percentage: 0 };
-  }, [isFaithGoal, goal.target, goal.id, selectedPeriod, healthPeriod, progressHistory, getPeriodStart, todayCompletion]);
+    return { completedDays: 0, totalDays: 7, completedWeeks: 0, totalWeeks: 4, completedMonths: 0, totalMonths: 12, expectedMonths: 0, statusColor: 'red' as const, percentage: 0 };
+  }, [isFaithGoal, goal.target, goal.id, selectedPeriod, healthPeriod, progressHistory, getPeriodStart, todayCompletion, getCompletionStatusColor, getExpectedMonthsCompleted]);
   
   // Use either health data or local history
   const stats = isHealthGoal ? dailyStats : (history || {});
@@ -663,8 +806,19 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
   };
 
   // Get color hue based on progress (only for weekly, monthly, yearly views)
-  const getProgressColor = (period: string, progress: number): string => {
+  const getProgressColor = (period: string, progress: number, statusColor?: 'green' | 'yellow' | 'red'): string => {
     if (period === "today") return periodColors[goal.period];
+    
+    // For faith and learn goals, use the statusColor from completion calculations
+    if (statusColor) {
+      if (statusColor === 'green') {
+        return "from-green-50 to-emerald-50 text-green-600/80 dark:from-green-950/20 dark:to-emerald-950/20 dark:text-green-400";
+      } else if (statusColor === 'yellow') {
+        return "from-yellow-50 to-amber-50 text-yellow-600/80 dark:from-yellow-950/20 dark:to-amber-950/20 dark:text-yellow-400";
+      } else {
+        return "from-red-50 to-rose-50 text-red-600/80 dark:from-red-950/20 dark:to-rose-950/20 dark:text-red-400";
+      }
+    }
     
     // Screentime logic for history views might be inverted too?
     // "Red when the user has cross 100% of their target goal for the day."
@@ -684,8 +838,20 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
     }
   };
 
+  // Get status color for faith/learn goals
+  const getStatusColorForCard = (): 'green' | 'yellow' | 'red' | undefined => {
+    if (selectedPeriod === "today") return undefined;
+    if (isFaithGoal && selectedPeriod !== "today") {
+      return faithProgress.statusColor;
+    }
+    if (isLearnGoal && selectedPeriod !== "today") {
+      return learnProgressCompletion.statusColor;
+    }
+    return undefined;
+  };
+
   const cardColorClass = selectedPeriod !== "today" 
-    ? getProgressColor(healthPeriod, normalizedProgress)
+    ? getProgressColor(healthPeriod, normalizedProgress, getStatusColorForCard())
     : periodColors[goal.period];
 
   const handleDelete = useCallback((e: React.MouseEvent) => {
@@ -950,14 +1116,20 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
                 </h3>
                 <div className="flex items-center justify-center">
                   <RadialProgress 
-                    value={learnProgress.percentage} 
+                    value={selectedPeriod === "today" 
+                      ? learnProgress.percentage 
+                      : learnProgressCompletion.percentage} 
                     size={120} 
                     displayText={selectedPeriod === "today" 
                       ? learnProgress.periodPoints.toString()
-                      : `${learnProgress.periodPoints}/${learnProgress.target}`
+                      : healthPeriod === "week"
+                      ? `${learnProgressCompletion.completedDays}/7`
+                      : healthPeriod === "month"
+                      ? `${learnProgressCompletion.completedWeeks}/${learnProgressCompletion.totalWeeks}`
+                      : `${learnProgressCompletion.completedMonths}/${learnProgressCompletion.expectedMonths || learnProgressCompletion.totalMonths}`
                     }
-                    redThreshold={40}
-                    yellowThreshold={70}
+                    redThreshold={selectedPeriod === "today" ? 40 : (healthPeriod === "week" ? (3/7)*100 : healthPeriod === "month" ? (2/4)*100 : (7/12)*100)}
+                    yellowThreshold={selectedPeriod === "today" ? 70 : (healthPeriod === "week" ? (5/7)*100 : healthPeriod === "month" ? (4/4)*100 : (10/12)*100)}
                   />
                 </div>
                 {/* Reading list quick link - Agentic action */}
@@ -1005,10 +1177,10 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
                         ? `${faithProgress.completedDays}/7`
                         : healthPeriod === "month"
                         ? `${faithProgress.completedWeeks}/${faithProgress.totalWeeks}`
-                        : `${faithProgress.completedMonths}/${faithProgress.totalMonths}`
+                        : `${faithProgress.completedMonths}/${faithProgress.expectedMonths || faithProgress.totalMonths}`
                     }
-                    redThreshold={40}
-                    yellowThreshold={70}
+                    redThreshold={selectedPeriod === "today" ? 40 : (healthPeriod === "week" ? (3/7)*100 : healthPeriod === "month" ? (2/4)*100 : (7/12)*100)}
+                    yellowThreshold={selectedPeriod === "today" ? 70 : (healthPeriod === "week" ? (5/7)*100 : healthPeriod === "month" ? (4/4)*100 : (10/12)*100)}
                   />
                 </div>
               </>

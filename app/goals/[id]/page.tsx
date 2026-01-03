@@ -34,6 +34,8 @@ export default function GoalDetailPage() {
   const [chatDialogOpen, setChatDialogOpen] = useState(false);
   const [quote, setQuote] = useState<QuranQuote | null>(null);
   const [healthPeriod, setHealthPeriod] = useState<"today" | "week" | "month" | "year">("today");
+  const [faithPeriod, setFaithPeriod] = useState<"today" | "week" | "month" | "year">("today");
+  const [learnPeriod, setLearnPeriod] = useState<"today" | "week" | "month" | "year">("today");
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editText, setEditText] = useState("");
   const [editMinutesPerDay, setEditMinutesPerDay] = useState<string>("");
@@ -278,6 +280,8 @@ export default function GoalDetailPage() {
             handleIncrementCompletion={handleIncrementFaithProgress}
             isUpdating={isUpdatingFaith}
             target={goal.target || 3}
+            period={faithPeriod}
+            setPeriod={setFaithPeriod}
           />
         )}
         
@@ -292,6 +296,8 @@ export default function GoalDetailPage() {
             toggleNote={toggleNote}
             updateNote={updateNote}
             deleteNote={deleteNote}
+            period={learnPeriod}
+            setPeriod={setLearnPeriod}
           />
         )}
         
