@@ -89,18 +89,20 @@ class MainActivity : BridgeActivity() {
                 
                 // Execute JavaScript after ensuring the webview is ready
                 val handler = android.os.Handler(android.os.Looper.getMainLooper())
-                val executeJs = {
+                
+                // Local function that can reference itself recursively
+                fun executeJs() {
                     val webView = bridge?.webView
                     if (webView != null) {
                         webView.evaluateJavascript(jsCode, null)
                     } else {
                         // Retry after a delay if bridge isn't ready yet
-                        handler.postDelayed(executeJs, 200)
+                        handler.postDelayed({ executeJs() }, 200)
                     }
                 }
                 
                 // Start trying to execute after a short delay
-                handler.postDelayed(executeJs, 500)
+                handler.postDelayed({ executeJs() }, 500)
             }
         }
     }
