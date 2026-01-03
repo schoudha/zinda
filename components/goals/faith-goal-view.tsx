@@ -27,7 +27,7 @@ export function FaithGoalView({
   period = "today",
   setPeriod,
 }: FaithGoalViewProps) {
-  const { progressHistory } = useGoalProgress();
+  const { history: progressHistory } = useGoalProgress();
 
   // Helper function to get normalized start date for period
   const getPeriodStart = useCallback((period: string): Date => {
@@ -55,11 +55,11 @@ export function FaithGoalView({
   }, []);
 
   // Helper function for date ranges
-  const getDateStr = (date: Date) => {
+  const getDateStr = useCallback((date: Date) => {
     return date.toLocaleDateString('en-CA');
-  };
+  }, []);
 
-  const dateRange = (start: Date, end: Date): string[] => {
+  const dateRange = useCallback((start: Date, end: Date): string[] => {
     const dates: string[] = [];
     const current = new Date(start);
     while (current <= end) {
@@ -67,7 +67,7 @@ export function FaithGoalView({
       current.setDate(current.getDate() + 1);
     }
     return dates;
-  };
+  }, [getDateStr]);
 
   // Helper function to calculate expected months completed for year view
   const getExpectedMonthsCompleted = useCallback((currentDate: Date): number => {
@@ -187,7 +187,7 @@ export function FaithGoalView({
     }
     
     return { completedDays: 0, totalDays: 7, completedWeeks: 0, totalWeeks: 4, completedMonths: 0, totalMonths: 12, expectedMonths: 0, statusColor: 'red' as const, percentage: 0 };
-  }, [goal.id, goal.target, period, progressHistory, todayCompletion, getPeriodStart, getCompletionStatusColor, getExpectedMonthsCompleted]);
+  }, [goal.id, goal.target, period, progressHistory, todayCompletion, getPeriodStart, getCompletionStatusColor, getExpectedMonthsCompleted, dateRange]);
 
   // Calculate percentage for progress bar or visual indicator
   const percentage = period === "today" 

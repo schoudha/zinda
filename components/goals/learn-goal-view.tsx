@@ -34,7 +34,7 @@ export function LearnGoalView({
   period = "today",
   setPeriod,
 }: LearnGoalViewProps) {
-  const { progress, progressHistory } = useGoalProgress();
+  const { progress, history: progressHistory } = useGoalProgress();
   const dailyThreshold = 2; // Points needed to count as a completed day
 
   // Helper function to get normalized start date for period
@@ -63,11 +63,11 @@ export function LearnGoalView({
   }, []);
 
   // Helper function for date ranges
-  const getDateStr = (date: Date) => {
+  const getDateStr = useCallback((date: Date) => {
     return date.toLocaleDateString('en-CA');
-  };
+  }, []);
 
-  const dateRange = (start: Date, end: Date): string[] => {
+  const dateRange = useCallback((start: Date, end: Date): string[] => {
     const dates: string[] = [];
     const current = new Date(start);
     while (current <= end) {
@@ -75,7 +75,7 @@ export function LearnGoalView({
       current.setDate(current.getDate() + 1);
     }
     return dates;
-  };
+  }, [getDateStr]);
 
   // Helper function to calculate expected months completed for year view
   const getExpectedMonthsCompleted = useCallback((currentDate: Date): number => {
@@ -192,7 +192,7 @@ export function LearnGoalView({
     }
     
     return { completedDays: 0, totalDays: 7, completedWeeks: 0, totalWeeks: 4, completedMonths: 0, totalMonths: 12, expectedMonths: 0, statusColor: 'red' as const, percentage: 0 };
-  }, [goal.id, period, progressHistory, learnProgress, getPeriodStart, getCompletionStatusColor, getExpectedMonthsCompleted, dailyThreshold]);
+  }, [goal.id, period, progressHistory, learnProgress, getPeriodStart, getCompletionStatusColor, getExpectedMonthsCompleted, dailyThreshold, dateRange]);
 
   // Get status color class
   const getStatusColorClass = (statusColor: 'green' | 'yellow' | 'red') => {
