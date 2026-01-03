@@ -19,6 +19,7 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const goalId = searchParams.get('goalId');
+    const clientDate = searchParams.get('date'); // Optional: client-provided date in YYYY-MM-DD format
 
     if (!goalId) {
       return NextResponse.json(
@@ -27,7 +28,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const today = getLocalDateString(); // YYYY-MM-DD format (local timezone)
+    // Use client-provided date if available (ensures client timezone), otherwise use server date
+    const today = clientDate || getLocalDateString(); // YYYY-MM-DD format
     
     // Get today's completion
     const { data: todayData, error: todayError } = await adminClient
@@ -120,7 +122,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { goalId, increment = 1 } = body;
+    const { goalId, increment = 1, date: clientDate } = body;
 
     if (!goalId) {
       return NextResponse.json(
@@ -151,7 +153,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const today = getLocalDateString(); // YYYY-MM-DD format (local timezone)
+    // Use client-provided date if available (ensures client timezone), otherwise use server date
+    const today = clientDate || getLocalDateString(); // YYYY-MM-DD format
     const progressId = `${goalId}_${today}`;
 
     // Get current completion
@@ -215,7 +218,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { goalId, completionCount } = body;
+    const { goalId, completionCount, date: clientDate } = body;
 
     if (!goalId || completionCount === undefined) {
       return NextResponse.json(
@@ -249,7 +252,8 @@ export async function PATCH(request: NextRequest) {
     const maxCompletions = Math.min(3, target); // Up to 3 completions per day
     const clampedCount = Math.max(0, Math.min(maxCompletions, Math.floor(completionCount)));
 
-    const today = getLocalDateString(); // YYYY-MM-DD format (local timezone)
+    // Use client-provided date if available (ensures client timezone), otherwise use server date
+    const today = clientDate || getLocalDateString(); // YYYY-MM-DD format
     const progressId = `${goalId}_${today}`;
 
     // Upsert completion

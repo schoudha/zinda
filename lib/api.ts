@@ -116,18 +116,36 @@ export const api = {
     },
     completions: {
       get: async (goalId: string) => {
-        return fetchApi<{ todayCompletion: number; weeklyCompletedDays: number; weeklyTotalDays: number; target: number }>(`/api/goals/completions?goalId=${goalId}`);
+        // Calculate today's date in client timezone (YYYY-MM-DD format)
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        const dateStr = `${year}-${month}-${day}`;
+        return fetchApi<{ todayCompletion: number; weeklyCompletedDays: number; weeklyTotalDays: number; target: number }>(`/api/goals/completions?goalId=${goalId}&date=${dateStr}`);
       },
       increment: async (goalId: string, increment: number = 1) => {
+        // Calculate today's date in client timezone (YYYY-MM-DD format)
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        const dateStr = `${year}-${month}-${day}`;
         return fetchApi<{ success: boolean; completion: { goalId: string; date: string; completionCount: number; target: number } }>("/api/goals/completions", {
           method: "POST",
-          body: JSON.stringify({ goalId, increment }),
+          body: JSON.stringify({ goalId, increment, date: dateStr }),
         });
       },
       set: async (goalId: string, completionCount: number) => {
+        // Calculate today's date in client timezone (YYYY-MM-DD format)
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        const dateStr = `${year}-${month}-${day}`;
         return fetchApi<{ success: boolean; completion: { goalId: string; date: string; completionCount: number; target: number } }>("/api/goals/completions", {
           method: "PATCH",
-          body: JSON.stringify({ goalId, completionCount }),
+          body: JSON.stringify({ goalId, completionCount, date: dateStr }),
         });
       },
     },
