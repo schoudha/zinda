@@ -185,7 +185,7 @@ class UsageStatsPlugin : Plugin() {
         while (events.hasNextEvent()) {
             val event = android.app.usage.UsageEvents.Event()
             events.getNextEvent(event)
-            val pkg = event.packageName.toLowerCase()
+            val pkg = event.packageName.lowercase()
 
             // Exclude YouTube Music packages
             if (pkg.contains("youtubemusic") || pkg.contains("youtube.music")) {
