@@ -84,7 +84,7 @@ export const api = {
         method: "POST",
         body: JSON.stringify({ message }),
       });
-      
+
       // Ensure we only return 1 sentence by splitting on sentence endings and taking the first
       const response = data.response.trim();
       const firstSentence = response.split(/[.!?]+/)[0].trim();
@@ -148,6 +148,11 @@ export const api = {
           body: JSON.stringify({ goalId, completionCount, date: dateStr }),
         });
       },
+    },
+    ensureDefaults: async () => {
+      return fetchApi<{ success: boolean; created: { faith: boolean; screentime: boolean; learn: boolean } }>("/api/goals/defaults", {
+        method: "POST",
+      });
     },
   },
   notes: {

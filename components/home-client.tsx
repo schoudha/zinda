@@ -20,8 +20,6 @@ import { useGoals, useGoalProgress } from "@/hooks/useGoals";
 import { useNotes } from "@/hooks/useNotes";
 import { GoalPeriod, Goal, GoalCategory } from "@/types";
 import { DashboardSkeleton, GoalCardSkeleton } from "@/components/ui/skeleton";
-import { generateId } from "@/lib/id-utils";
-import { getDateTimestamp } from "@/lib/utils";
 // Health icon (heart ❤️)
 const HealthIcon = ({ className }: { className?: string }) => (
   <span className={className} style={{ fontSize: 'inherit', lineHeight: 1 }}>❤️</span>
@@ -46,7 +44,7 @@ function HomeContent() {
   const { notes, addNote, toggleNote, updateNote, deleteNote } = useNotes();
   const { goals, isLoading: goalsLoading, refreshGoals, deleteGoal } = useGoals();
   const { progress, history: progressHistory, isLoading: progressLoading, updateProgress } = useGoalProgress();
-  
+
   const [activeTab, setActiveTab] = useState<"goals" | "notepad" | "time">("goals");
   const [selectedPeriod, setSelectedPeriod] = useState<"today" | GoalPeriod>("today");
   // Derived state combining goals and progress
@@ -59,197 +57,25 @@ function HomeContent() {
 
   const [goalCreationDialogOpen, setGoalCreationDialogOpen] = useState(false);
   const [selectedCategoryForCreation, setSelectedCategoryForCreation] = useState<GoalCategory>("health");
-  const [isAutoCreatingLearnGoal, setIsAutoCreatingLearnGoal] = useState(false);
-  const [isAutoCreatingScreentimeGoal, setIsAutoCreatingScreentimeGoal] = useState(false);
-  const [isAutoCreatingFaithGoal, setIsAutoCreatingFaithGoal] = useState(false);
-  const [hasCleanedUpDuplicates, setHasCleanedUpDuplicates] = useState(false);
-  const [hasCleanedUpFaithDuplicates, setHasCleanedUpFaithDuplicates] = useState(false);
-  const [hasFixedLearnGoalText, setHasFixedLearnGoalText] = useState(false);
-  
+
   const searchParams = useSearchParams();
   const router = useRouter();
-  
-  // Auto-create learn goal if media notes exist but no learn goal
-  useEffect(() => {
-    const mediaNotes = notes.filter(note => note.url);
-    const hasLearnGoal = goals.some(goal => goal.category === "learn");
-    
-    if (mediaNotes.length > 0 && !hasLearnGoal && !goalsLoading && !isAutoCreatingLearnGoal) {
-      setIsAutoCreatingLearnGoal(true);
-      const goalId = generateId();
-      const goalData = {
-        id: goalId,
-        text: "Learn",
-        period: "week" as GoalPeriod,
-        category: "learn" as GoalCategory,
-        tips: [],
-        createdAt: new Date(),
-      };
-      
-      api.goals.create(goalData)
-        .then(() => {
-          refreshGoals();
-        })
-        .catch((error) => {
-          console.error("Error auto-creating learn goal:", error);
-        })
-        .finally(() => {
-          setIsAutoCreatingLearnGoal(false);
-        });
-    }
-  }, [notes, goals, goalsLoading, isAutoCreatingLearnGoal, refreshGoals]);
 
-  // Clean up duplicate screentime goals - keep only the most recent one
+  // Auto-create default goals (handled by server)
   useEffect(() => {
-    if (goalsLoading || hasCleanedUpDuplicates) return;
-    
-    const screentimeGoals = goals.filter(goal => goal.category === "family" || goal.category === "screentime");
-    
-    if (screentimeGoals.length > 1) {
-      // Sort by createdAt (most recent first) - goals are already sorted, but let's be explicit
-      const sortedGoals = [...screentimeGoals].sort((a, b) => 
-        getDateTimestamp(b.createdAt) - getDateTimestamp(a.createdAt)
-      );
-      
-      // Keep the most recent one, delete the rest
-      const goalsToDelete = sortedGoals.slice(1);
-      
-      setHasCleanedUpDuplicates(true);
-      
-      // Delete duplicates in parallel
-      Promise.all(goalsToDelete.map(goal => deleteGoal(goal.id)))
-        .then(() => {
-          console.log(`Cleaned up ${goalsToDelete.length} duplicate screentime goal(s)`);
+    const ensureDefaults = async () => {
+      try {
+        const { created } = await api.goals.ensureDefaults();
+        if (created.faith || created.screentime || created.learn) {
           refreshGoals();
-        })
-        .catch((error) => {
-          console.error("Error cleaning up duplicate screentime goals:", error);
-          setHasCleanedUpDuplicates(false); // Reset on error so it can retry
-        });
-    } else {
-      setHasCleanedUpDuplicates(true);
-    }
-  }, [goals, goalsLoading, hasCleanedUpDuplicates, deleteGoal, refreshGoals]);
+        }
+      } catch (error) {
+        console.error("Error ensuring default goals:", error);
+      }
+    };
 
-  // Clean up duplicate faith goals - keep only the most recent one
-  useEffect(() => {
-    if (goalsLoading || hasCleanedUpFaithDuplicates) return;
-    
-    const faithGoals = goals.filter(goal => goal.category === "faith");
-    
-    if (faithGoals.length > 1) {
-      // Sort by createdAt (most recent first)
-      const sortedGoals = [...faithGoals].sort((a, b) => 
-        getDateTimestamp(b.createdAt) - getDateTimestamp(a.createdAt)
-      );
-      
-      // Keep the most recent one, delete the rest
-      const goalsToDelete = sortedGoals.slice(1);
-      
-      setHasCleanedUpFaithDuplicates(true);
-      
-      Promise.all(goalsToDelete.map(goal => deleteGoal(goal.id)))
-        .then(() => {
-          console.log(`Cleaned up ${goalsToDelete.length} duplicate faith goal(s)`);
-          refreshGoals();
-        })
-        .catch((error) => {
-          console.error("Error cleaning up duplicate faith goals:", error);
-          setHasCleanedUpFaithDuplicates(false);
-        });
-    } else {
-      setHasCleanedUpFaithDuplicates(true);
-    }
-  }, [goals, goalsLoading, hasCleanedUpFaithDuplicates, deleteGoal, refreshGoals]);
-
-  // Fix learn goal text from "Learn list" to "Learn"
-  useEffect(() => {
-    if (goalsLoading || hasFixedLearnGoalText) return;
-    
-    const learnGoalsToFix = goals.filter(
-      goal => goal.category === "learn" && goal.text.toLowerCase().includes("learn list")
-    );
-    
-    if (learnGoalsToFix.length > 0) {
-      setHasFixedLearnGoalText(true);
-      
-      // Update all learn goals with "Learn list" text to "Learn"
-      Promise.all(learnGoalsToFix.map(goal => 
-        api.goals.update(goal.id, { text: "Learn" })
-      ))
-        .then(() => {
-          console.log(`Fixed ${learnGoalsToFix.length} learn goal(s) text`);
-          refreshGoals();
-        })
-        .catch((error) => {
-          console.error("Error fixing learn goal text:", error);
-          setHasFixedLearnGoalText(false); // Reset on error so it can retry
-        });
-    } else {
-      setHasFixedLearnGoalText(true);
-    }
-  }, [goals, goalsLoading, hasFixedLearnGoalText, refreshGoals]);
-
-  // Auto-create screentime goal if it doesn't exist
-  useEffect(() => {
-    const hasScreentimeGoal = goals.some(goal => goal.category === "family" || goal.category === "screentime");
-    
-    if (!hasScreentimeGoal && !goalsLoading && !isAutoCreatingScreentimeGoal && hasCleanedUpDuplicates) {
-      setIsAutoCreatingScreentimeGoal(true);
-      const goalId = generateId();
-      const goalData: Partial<Goal> = {
-        id: goalId,
-        text: "Screen Time",
-        period: "week" as GoalPeriod,
-        category: "family" as GoalCategory,
-        tips: [],
-        minutesPerDay: 150, // 2.5 hours = 150 minutes
-        createdAt: new Date(),
-      };
-      
-      api.goals.create(goalData)
-        .then(() => {
-          refreshGoals();
-        })
-        .catch((error) => {
-          console.error("Error auto-creating screentime goal:", error);
-        })
-        .finally(() => {
-          setIsAutoCreatingScreentimeGoal(false);
-        });
-    }
-  }, [goals, goalsLoading, isAutoCreatingScreentimeGoal, hasCleanedUpDuplicates, refreshGoals]);
-
-  // Auto-create faith goal (Prayers) if it doesn't exist
-  useEffect(() => {
-    const hasFaithGoal = goals.some(goal => goal.category === "faith");
-    
-    // Only auto-create if no faith goal exists and we have finished cleaning up duplicates
-    if (!hasFaithGoal && !goalsLoading && !isAutoCreatingFaithGoal && hasCleanedUpFaithDuplicates) {
-      setIsAutoCreatingFaithGoal(true);
-      const goalId = generateId();
-      const goalData: Partial<Goal> = {
-        id: goalId,
-        text: "Daily Prayers",
-        period: "week" as GoalPeriod, // Goals are typically weekly in this app structure
-        category: "faith" as GoalCategory,
-        tips: [],
-        target: 3, // Default to 3 prayers as requested
-        createdAt: new Date(),
-      };
-      
-      api.goals.create(goalData)
-        .then(() => {
-          refreshGoals();
-        })
-        .catch((error) => {
-          console.error("Error auto-creating faith goal:", error);
-        })
-        .finally(() => {
-          setIsAutoCreatingFaithGoal(false);
-        });
-    }
-  }, [goals, goalsLoading, isAutoCreatingFaithGoal, refreshGoals, hasCleanedUpFaithDuplicates]);
+    ensureDefaults();
+  }, [refreshGoals]);
 
   const categories: { id: GoalCategory; icon: React.ElementType | React.FC<{ className?: string }>; color: string }[] = [
     { id: "health", icon: HealthIcon, color: "text-rose-500" },
@@ -274,13 +100,13 @@ function HomeContent() {
       learn: [],
       family: []
     };
-    
+
     // Track if we've already added a screentime/family goal to prevent duplicates
     let screentimeGoalAdded = false;
-    
+
     filteredGoals.forEach(goal => {
       const cat = goal.category || 'health'; // Default to health
-      
+
       // For family/screentime category, only add the first one (most recent, since goals are sorted by created_at DESC)
       if (cat === 'family' || cat === 'screentime') {
         if (screentimeGoalAdded) {
@@ -290,7 +116,7 @@ function HomeContent() {
         screentimeGoalAdded = true;
         return;
       }
-      
+
       // For other categories, add to their respective group
       if (grouped[cat]) {
         grouped[cat].push(goal);
@@ -329,9 +155,9 @@ function HomeContent() {
       const title = searchParams.get('title');
       const text = searchParams.get('text');
       const url = searchParams.get('url');
-      
+
       const sharedContent = url || text || title || null;
-      
+
       if (sharedContent) {
         await addNote(sharedContent);
         router.replace('/', { scroll: false });
@@ -352,7 +178,7 @@ function HomeContent() {
                 <div className="px-6">
                   <DateTabs value={selectedPeriod} onValueChange={handlePeriodChange} />
                 </div>
-                
+
                 {goalsLoading ? (
                   <div className="flex flex-col gap-4 px-6">
                     <GoalCardSkeleton />
@@ -363,41 +189,41 @@ function HomeContent() {
                     {categories.map((cat) => {
                       const IconComponent = cat.icon as React.ElementType<{ className?: string }>;
                       return (
-                      <div key={cat.id} className="flex flex-col gap-2 min-w-0">
-                        <div className={`${cat.color} mb-1 pl-1 flex items-center`}>
-                          <IconComponent className="h-4 w-4" />
+                        <div key={cat.id} className="flex flex-col gap-2 min-w-0">
+                          <div className={`${cat.color} mb-1 pl-1 flex items-center`}>
+                            <IconComponent className="h-4 w-4" />
+                          </div>
+                          <div className="flex flex-col gap-3">
+                            {goalsByCategory[cat.id].length > 0 ? (
+                              goalsByCategory[cat.id].map(goal => (
+                                <GoalCard
+                                  key={goal.id}
+                                  goal={goal}
+                                  onDelete={deleteGoal}
+                                  showProgress={true}
+                                  onProgressChange={(val) => handleProgressUpdate(goal.id, val)}
+                                  selectedPeriod={selectedPeriod}
+                                  history={progressHistory[goal.id]}
+                                />
+                              ))
+                            ) : (
+                              <button
+                                onClick={() => {
+                                  setSelectedCategoryForCreation(cat.id);
+                                  setGoalCreationDialogOpen(true);
+                                }}
+                                className="h-24 rounded-2xl border-2 border-dashed border-gray-100 dark:border-white/5 flex items-center justify-center hover:border-gray-200 dark:hover:border-white/10 hover:bg-gray-50/50 dark:hover:bg-white/5 transition-colors cursor-pointer active:scale-95"
+                              >
+                                <span className="text-xs text-gray-300 dark:text-gray-600">Tap to add goal</span>
+                              </button>
+                            )}
+                          </div>
                         </div>
-                        <div className="flex flex-col gap-3">
-                          {goalsByCategory[cat.id].length > 0 ? (
-                            goalsByCategory[cat.id].map(goal => (
-                              <GoalCard 
-                                key={goal.id} 
-                                goal={goal} 
-                                onDelete={deleteGoal}
-                                showProgress={true}
-                                onProgressChange={(val) => handleProgressUpdate(goal.id, val)}
-                                selectedPeriod={selectedPeriod}
-                                history={progressHistory[goal.id]}
-                              />
-                            ))
-                          ) : (
-                            <button
-                              onClick={() => {
-                                setSelectedCategoryForCreation(cat.id);
-                                setGoalCreationDialogOpen(true);
-                              }}
-                              className="h-24 rounded-2xl border-2 border-dashed border-gray-100 dark:border-white/5 flex items-center justify-center hover:border-gray-200 dark:hover:border-white/10 hover:bg-gray-50/50 dark:hover:bg-white/5 transition-colors cursor-pointer active:scale-95"
-                            >
-                              <span className="text-xs text-gray-300 dark:text-gray-600">Tap to add goal</span>
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    );
+                      );
                     })}
                   </div>
                 )}
-                
+
                 <div className="px-6">
                   <ThoughtInput />
                 </div>
