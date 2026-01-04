@@ -576,7 +576,7 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
       progressDisplayText = formatMinutes(Math.round(screentimeMinutes));
     }
 
-    displayValue = (isHealthGoal || isScreentimeGoal) ? formatMinutes(currentVal) : (goal.target ? `${currentVal}/${goal.target}` : `${currentVal}%`);
+    displayValue = (isHealthGoal || isScreentimeGoal) ? formatMinutes(currentVal) : (isLearnGoal ? `${currentVal} read` : (goal.target ? `${currentVal}/${goal.target}` : `${currentVal}%`));
     displayLabel = "";
     goalLabel = (isHealthGoal || isScreentimeGoal) ? `Goal: ${formatMinutes(dailyTarget)}` : (goal.target ? `Goal: ${goal.target}` : "");
   } else if (healthPeriod === "week") {
@@ -1054,6 +1054,24 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
                   <ThumbsUp className="h-4 w-4" />
                 </Button>
               )}
+
+              {selectedPeriod === 'today' && isLearnGoal && oldestUnreadArticle && (
+                <Button
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    if (!oldestUnreadArticle.url) return;
+                    window.open(oldestUnreadArticle.url, '_blank', 'noopener,noreferrer');
+                    updateNote(oldestUnreadArticle.id, {
+                      checked: true,
+                      checkedAt: new Date(),
+                    });
+                  }}
+                  className="h-8 px-3 rounded-full bg-white/10 hover:bg-white/20 text-white border border-white/10 backdrop-blur-md flex items-center gap-2"
+                >
+                  <BookOpen className="h-3 w-3" />
+                  <span className="text-[10px] font-medium uppercase tracking-wider">Read</span>
+                </Button>
+              )}
             </div>
           </div>
 
@@ -1076,25 +1094,7 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
               {/* Custom Content based on type */}
 
 
-              {selectedPeriod === 'today' && isLearnGoal && oldestUnreadArticle && (
-                <div className="absolute bottom-0 right-[70px]">
-                  <Button
-                    onClick={async (e) => {
-                      e.stopPropagation();
-                      if (!oldestUnreadArticle.url) return;
-                      window.open(oldestUnreadArticle.url, '_blank', 'noopener,noreferrer');
-                      updateNote(oldestUnreadArticle.id, {
-                        checked: true,
-                        checkedAt: new Date(),
-                      });
-                    }}
-                    className="h-10 px-4 rounded-full bg-white/10 hover:bg-white/20 text-white border border-white/10 backdrop-blur-md flex items-center gap-2"
-                  >
-                    <BookOpen className="h-4 w-4" />
-                    <span className="text-xs">Read</span>
-                  </Button>
-                </div>
-              )}
+
 
               {selectedPeriod === 'today' && isScreentimeGoal && isUsageNative && hasUsagePermission && screentimeMinutes > dailyTarget && (
                 <div className="absolute bottom-0 right-[70px]">
