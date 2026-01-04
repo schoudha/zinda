@@ -1036,7 +1036,7 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
                 <Button
                   onClick={async (e) => {
                     e.stopPropagation();
-                    if (!goal.target || isUpdating || todayCompletion >= Math.min(3, goal.target)) return;
+                    if (!goal.target || isUpdating || todayCompletion >= goal.target) return;
                     setIsUpdating(true);
                     try {
                       const result = await api.goals.completions.increment(goal.id, 1);
@@ -1048,7 +1048,7 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
                       setIsUpdating(false);
                     }
                   }}
-                  disabled={isUpdating || !goal.target || todayCompletion >= Math.min(3, goal.target)}
+                  disabled={isUpdating || !goal.target || todayCompletion >= goal.target}
                   className="h-8 w-8 rounded-full bg-white/10 hover:bg-white/20 text-white border border-white/10 backdrop-blur-md flex items-center justify-center p-0"
                 >
                   <ThumbsUp className="h-4 w-4" />
