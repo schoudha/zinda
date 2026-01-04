@@ -577,7 +577,7 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
     }
 
     displayValue = (isHealthGoal || isScreentimeGoal) ? formatMinutes(currentVal) : (goal.target ? `${currentVal}/${goal.target}` : `${currentVal}%`);
-    displayLabel = "Today's progress";
+    displayLabel = "";
     goalLabel = (isHealthGoal || isScreentimeGoal) ? `Goal: ${formatMinutes(dailyTarget)}` : (goal.target ? `Goal: ${goal.target}` : "");
   } else if (healthPeriod === "week") {
     const periodStart = getPeriodStart("week");
@@ -1032,6 +1032,28 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
                   <X className="h-3 w-3" />
                 </Button>
               )}
+              {selectedPeriod === 'today' && isFaithGoal && (
+                <Button
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    if (!goal.target || isUpdating || todayCompletion >= Math.min(3, goal.target)) return;
+                    setIsUpdating(true);
+                    try {
+                      const result = await api.goals.completions.increment(goal.id, 1);
+                      setTodayCompletion(result.completion.completionCount);
+                      onProgressUpdate?.();
+                    } catch (error) {
+                      console.error('Error incrementing completion:', error);
+                    } finally {
+                      setIsUpdating(false);
+                    }
+                  }}
+                  disabled={isUpdating || !goal.target || todayCompletion >= Math.min(3, goal.target)}
+                  className="h-8 w-8 rounded-full bg-white/10 hover:bg-white/20 text-white border border-white/10 backdrop-blur-md flex items-center justify-center p-0"
+                >
+                  <ThumbsUp className="h-4 w-4" />
+                </Button>
+              )}
             </div>
           </div>
 
@@ -1052,17 +1074,7 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
 
             <div className="relative">
               {/* Custom Content based on type */}
-              {selectedPeriod === 'today' && isFaithGoal && (
-                <div className="absolute bottom-0 right-[70px] flex gap-2">
-                  <Button
-                    onClick={handleCompletionIncrement}
-                    disabled={isUpdating || !goal.target || todayCompletion >= Math.min(3, goal.target)}
-                    className="h-10 w-10 rounded-full bg-white/10 hover:bg-white/20 text-white border border-white/10 backdrop-blur-md"
-                  >
-                    <ThumbsUp className="h-5 w-5" />
-                  </Button>
-                </div>
-              )}
+
 
               {selectedPeriod === 'today' && isLearnGoal && oldestUnreadArticle && (
                 <div className="absolute bottom-0 right-[70px]">
