@@ -560,7 +560,7 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
   let progressDisplayText = ""; // For health goals: "15min", "2 days", "3 weeks", "2 months"
 
   if (healthPeriod === "today") {
-    const currentVal = isHealthGoal ? totalMinutes : (isScreentimeGoal ? screentimeMinutes : progressValue);
+    const currentVal = isHealthGoal ? totalMinutes : ((isScreentimeGoal) ? screentimeMinutes : (isFaithGoal ? todayCompletion : progressValue));
     healthProgress = Math.min(100, Math.round((currentVal / dailyTarget) * 100));
 
     if (isScreentimeGoal) {
