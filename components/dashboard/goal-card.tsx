@@ -1149,7 +1149,6 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
       <Dialog open={notificationDialogOpen} onOpenChange={setNotificationDialogOpen}>
         <Suspense fallback={<div />}>
           <NotificationDialog
-            goal={currentGoal}
             open={notificationDialogOpen}
             onOpenChange={setNotificationDialogOpen}
             onSave={handleSaveNotification}
