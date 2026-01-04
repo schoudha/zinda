@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Geist } from "next/font/google";
+import { Geist, Fraunces } from "next/font/google";
 import { PushInit } from "@/components/native/push-init";
 import Providers from "./providers";
 import "./globals.css";
@@ -7,7 +7,13 @@ import "./globals.css";
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
-  display: "swap", // Improve font loading performance
+  display: "swap",
+});
+
+const fraunces = Fraunces({
+  variable: "--font-serif",
+  subsets: ["latin"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -37,7 +43,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body
-        className={`${geistSans.variable} antialiased bg-background text-foreground`}
+        className={`${geistSans.variable} ${fraunces.variable} antialiased bg-background text-foreground`}
       >
         <Providers>
           <PushInit />

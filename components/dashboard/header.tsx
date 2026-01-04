@@ -20,7 +20,7 @@ function getGreeting(): string {
   }
 }
 
-export const Header = memo(function Header({ 
+export const Header = memo(function Header({
   userName = "Salahuddin",
   selectedPeriod = "today"
 }: HeaderProps) {
@@ -31,7 +31,7 @@ export const Header = memo(function Header({
   useEffect(() => {
     // Set initial greeting
     setGreeting(getGreeting());
-    
+
     // Update greeting every minute
     const interval = setInterval(() => {
       setGreeting(getGreeting());
@@ -65,10 +65,10 @@ export const Header = memo(function Header({
   }, [selectedPeriod]);
 
   return (
-    <div className="px-6 pb-4 pt-2 space-y-2">
-      <h1 className="text-3xl font-bold tracking-tight text-foreground mb-2">
+    <div className="px-6 pb-6 pt-4 space-y-2">
+      <h1 className="text-4xl font-serif font-medium tracking-tight text-foreground leading-tight">
         {greeting},<br />
-        <span className="text-muted-foreground">{userName}.</span>
+        <span className="text-muted-foreground italic">{userName}.</span>
       </h1>
       {summary && (
         <p className="text-sm text-muted-foreground leading-relaxed">
