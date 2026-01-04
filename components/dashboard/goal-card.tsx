@@ -1007,7 +1007,7 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
         onClick={handleCardClick}
         onKeyDown={handleKeyDown}
         className={cn(
-          "relative overflow-hidden rounded-3xl border transition-all duration-300 group active:scale-[0.98] min-h-[160px]",
+          "relative overflow-hidden rounded-3xl border transition-all duration-300 group active:scale-[0.98] h-[140px]",
           getCardStyles(),
           (isHealthGoal || isLearnGoal || isScreentimeGoal || isFamilyGoal || isFaithGoal || selectedPeriod !== "today") ? 'cursor-pointer' : ''
         )}
@@ -1016,7 +1016,7 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
         <div className="absolute inset-0 backdrop-blur-xl -z-10" />
 
         {/* Content */}
-        <div className="p-5 flex flex-col gap-4 h-full min-h-[160px]">
+        <div className="p-4 flex flex-col h-full justify-between">
           <div className="flex justify-between items-start">
             <h3 className="font-serif text-xl font-medium tracking-tight text-white/90 leading-tight">
               {goal.text}
