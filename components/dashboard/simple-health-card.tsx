@@ -4,7 +4,7 @@ import { memo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useHealthConnect } from "@/hooks/useHealthConnect";
-import { Lock, Activity } from "lucide-react";
+import { Lock, Activity, Stethoscope } from "lucide-react";
 
 function formatMinutes(minutes: number): string {
   const hours = Math.floor(minutes / 60);
@@ -80,6 +80,18 @@ export const SimpleHealthCard = memo(function SimpleHealthCard({ period = "today
               Not available
             </span>
           )}
+        </div>
+        
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Stethoscope className="h-5 w-5 text-green-600 dark:text-green-400" />
+            <span className="text-sm font-medium text-gray-900 dark:text-white">
+              Medical Records
+            </span>
+          </div>
+          <span className="text-xs font-medium text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 px-2 py-1 rounded-full">
+            Linked
+          </span>
         </div>
         
         {isNative && hasPermission && (
