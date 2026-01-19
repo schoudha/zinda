@@ -3,12 +3,10 @@
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Monitor, Lock, Shield, ShieldOff } from "lucide-react";
+import { Monitor, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Goal } from "@/types";
 import { AppUsage } from "@/hooks/useUsageStats";
-import { useAppBlocking, BLOCKED_APP_PACKAGES } from "@/hooks/useAppBlocking";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface ScreentimeGoalViewProps {
   goal: Goal;
@@ -104,54 +102,6 @@ export function ScreentimeGoalView({
   
   const isOverLimit = totalTime > periodTargetMs;
   const isNearLimit = !isOverLimit && percentage >= 75;
-  
-  // App blocking functionality
-  const {
-    isNative: isBlockingNative,
-    isAccessibilityEnabled,
-    isBlockingEnabled,
-    isLoading: isBlockingLoading,
-    requestAccessibilityPermission,
-    enableBlocking,
-    disableBlocking,
-  } = useAppBlocking();
-  
-  const [showPermissionDialog, setShowPermissionDialog] = useState(false);
-  
-  const handleBlockApps = async () => {
-    if (!isBlockingNative) {
-      alert("App blocking is only available on Android devices.");
-      return;
-    }
-    
-    if (!isAccessibilityEnabled) {
-      setShowPermissionDialog(true);
-      return;
-    }
-    
-    try {
-      await enableBlocking(Array.from(BLOCKED_APP_PACKAGES));
-    } catch (error: any) {
-      alert(error.message || "Failed to enable app blocking");
-    }
-  };
-  
-  const handleUnblockApps = async () => {
-    try {
-      await disableBlocking();
-    } catch (error: any) {
-      alert(error.message || "Failed to disable app blocking");
-    }
-  };
-  
-  const handleRequestPermission = async () => {
-    setShowPermissionDialog(false);
-    try {
-      await requestAccessibilityPermission();
-    } catch (error: any) {
-      alert(error.message || "Failed to open accessibility settings");
-    }
-  };
 
   return (
     <div className="space-y-4">
@@ -230,74 +180,6 @@ export function ScreentimeGoalView({
              </Card>
           )}
           
-          {/* Block Apps Button - Only show when over limit and on today view */}
-          {isBlockingNative && hasPermission && isOverLimit && period === "today" && (
-            <Card className={`border-none shadow-sm ${
-              isBlockingEnabled ? 'bg-red-50 dark:bg-red-950/30' : 'bg-orange-50 dark:bg-orange-950/30'
-            }`}>
-              <CardContent className="p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    {isBlockingEnabled ? (
-                      <Shield className="h-5 w-5 text-red-600 dark:text-red-400" />
-                    ) : (
-                      <ShieldOff className="h-5 w-5 text-orange-600 dark:text-orange-400" />
-                    )}
-                    <div>
-                      <p className="text-sm font-medium">
-                        {isBlockingEnabled ? "Apps are blocked" : "Block distracting apps"}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {isBlockingEnabled 
-                          ? "X, Instagram, YouTube, and Facebook are blocked"
-                          : "Prevent access to X, Instagram, YouTube, and Facebook"}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-                {!isAccessibilityEnabled && !isBlockingEnabled && (
-                  <p className="text-xs text-muted-foreground">
-                    Accessibility permission required to block apps
-                  </p>
-                )}
-                <Button
-                  onClick={isBlockingEnabled ? handleUnblockApps : handleBlockApps}
-                  disabled={isBlockingLoading}
-                  variant={isBlockingEnabled ? "destructive" : "default"}
-                  size="sm"
-                  className="w-full"
-                >
-                  {isBlockingLoading 
-                    ? "Loading..." 
-                    : isBlockingEnabled 
-                    ? "Unblock Apps" 
-                    : "Block Apps"}
-                </Button>
-              </CardContent>
-            </Card>
-          )}
-          
-          {/* Permission Dialog */}
-          <Dialog open={showPermissionDialog} onOpenChange={setShowPermissionDialog}>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Enable Accessibility Service</DialogTitle>
-                <p className="text-sm text-muted-foreground">
-                  To block apps, you need to enable the Zinda accessibility service in Android settings.
-                  This allows the app to detect when blocked apps are opened and prevent access.
-                </p>
-              </DialogHeader>
-              <div className="flex gap-2 justify-end mt-4">
-                <Button variant="outline" onClick={() => setShowPermissionDialog(false)}>
-                  Cancel
-                </Button>
-                <Button onClick={handleRequestPermission}>
-                  Open Settings
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
-
           {/* App Usage List */}
           {isNative && hasPermission && (
             <Card className="border-none shadow-sm">
