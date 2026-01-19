@@ -39,7 +39,7 @@ export const FinancialGoalCard = memo(function FinancialGoalCard() {
               <span className="text-xs font-medium text-white/40 uppercase tracking-widest text-[10px]">
                 {item.label}
               </span>
-              <span className={cn("text-2xl font-semibold tabular-nums", item.color)}>
+              <span className={cn("text-xl font-semibold tabular-nums", item.color)}>
                 ${item.amount.toLocaleString()}
               </span>
             </div>
