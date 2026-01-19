@@ -11,9 +11,7 @@ import { useHealthConnect } from "@/hooks/useHealthConnect";
 import { useGoalProgress } from "@/hooks/useGoals";
 import { useUsageStats } from "@/hooks/useUsageStats";
 import { useNotes } from "@/hooks/useNotes";
-import { useAppBlocking, BLOCKED_APP_PACKAGES } from "@/hooks/useAppBlocking";
 import { useCallLog } from "@/hooks/useCallLog";
-import { Shield, ShieldOff } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { getDateTimestamp, cn } from "@/lib/utils";
 
@@ -154,18 +152,6 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
   const [weeklyCompletedDays, setWeeklyCompletedDays] = useState<number>(0);
   const [isLoadingCompletion, setIsLoadingCompletion] = useState(false);
   const [smartTip, setSmartTip] = useState<string | null>(null);
-  const [showBlockingPermissionDialog, setShowBlockingPermissionDialog] = useState(false);
-
-  // App blocking functionality
-  const {
-    isNative: isBlockingNative,
-    isAccessibilityEnabled,
-    isBlockingEnabled,
-    isLoading: isBlockingLoading,
-    requestAccessibilityPermission,
-    enableBlocking,
-    disableBlocking,
-  } = useAppBlocking();
 
   // Notes for reading list (learn goals)
   const { notes, updateNote } = useNotes();
@@ -1111,35 +1097,6 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
         </Suspense>
       </Dialog>
 
-      <Dialog open={showBlockingPermissionDialog} onOpenChange={setShowBlockingPermissionDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Enable App Blocking</DialogTitle>
-          </DialogHeader>
-          <div className="py-4">
-            <p className="text-muted-foreground mb-4">
-              To use Screen Time Blocking features, Zinda needs Accessibility permissions to detect when distracted apps are opened.
-            </p>
-            <p className="text-muted-foreground mb-4">
-              This permission is ONLY used to:
-            </p>
-            <ul className="list-disc list-inside text-muted-foreground mb-4 ml-2">
-              <li>Detect when you open blocked apps (Instagram, TikTok, etc.)</li>
-              <li>Show the blocking screen when your time is up</li>
-            </ul>
-            <p className="text-muted-foreground text-sm">
-              No other data is collected or transmitted.
-            </p>
-          </div>
-          <div className="flex justify-end gap-2">
-            <Button variant="ghost" onClick={() => setShowBlockingPermissionDialog(false)}>Cancel</Button>
-            <Button onClick={() => {
-              setShowBlockingPermissionDialog(false);
-              requestAccessibilityPermission();
-            }}>Open Settings</Button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </>
   );
 });
