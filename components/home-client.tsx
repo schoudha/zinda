@@ -72,7 +72,7 @@ function HomeContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  // Auto-create default goals (handled by server)
+  // Auto-create default goals (handled by server) and fix learn goal text if needed
   useEffect(() => {
     const ensureDefaults = async () => {
       try {
@@ -80,13 +80,28 @@ function HomeContent() {
         if (created.faith || created.screentime || created.learn) {
           refreshGoals();
         }
+        
+        // Fix learn goal text if it's incorrect (e.g., "x.com" instead of "Learn")
+        const learnGoal = goals.find(g => g.category === "learn");
+        if (learnGoal && learnGoal.text !== "Learn") {
+          // #region agent log
+          fetch('http://127.0.0.1:7242/ingest/ad9ef1e8-7ae3-460a-9763-0841686de40c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'home-client.tsx:85',message:'Fixing learn goal text on load',data:{currentText:learnGoal.text,goalId:learnGoal.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'I'})}).catch(()=>{});
+          // #endregion
+          
+          try {
+            await api.goals.update(learnGoal.id, { text: "Learn" });
+            refreshGoals();
+          } catch (error) {
+            console.error("Error fixing learn goal text:", error);
+          }
+        }
       } catch (error) {
         console.error("Error ensuring default goals:", error);
       }
     };
 
     ensureDefaults();
-  }, [refreshGoals]);
+  }, [refreshGoals, goals]);
 
   const categories: { id: GoalCategory; icon: React.ElementType | React.FC<{ className?: string }>; color: string }[] = [
     { id: "health", icon: HealthIcon, color: "text-rose-500" },
@@ -257,8 +272,19 @@ function HomeContent() {
       let learnGoal = goals.find(g => g.category === "learn");
       
       // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/ad9ef1e8-7ae3-460a-9763-0841686de40c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'home-client.tsx:250',message:'Looking for existing learn goal',data:{learnGoalFound:!!learnGoal,learnGoalId:learnGoal?.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'G'})}).catch(()=>{});
+      fetch('http://127.0.0.1:7242/ingest/ad9ef1e8-7ae3-460a-9763-0841686de40c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'home-client.tsx:257',message:'Looking for existing learn goal',data:{learnGoalFound:!!learnGoal,learnGoalId:learnGoal?.id,learnGoalText:learnGoal?.text},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'I'})}).catch(()=>{});
       // #endregion
+      
+      // If learn goal exists but has wrong text, update it
+      if (learnGoal && learnGoal.text !== "Learn") {
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/ad9ef1e8-7ae3-460a-9763-0841686de40c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'home-client.tsx:263',message:'Learn goal has wrong text, updating',data:{currentText:learnGoal.text,goalId:learnGoal.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'I'})}).catch(()=>{});
+        // #endregion
+        
+        await api.goals.update(learnGoal.id, { text: "Learn" });
+        // Refresh goals to get updated text
+        refreshGoals();
+      }
       
       // If no learn goal exists, create one
       if (!learnGoal) {
