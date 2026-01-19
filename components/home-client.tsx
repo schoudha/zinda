@@ -14,12 +14,14 @@ import { ThoughtInput } from "@/components/dashboard/thought-input";
 import { BottomNav } from "@/components/dashboard/bottom-nav";
 import { GoalCard } from "@/components/dashboard/goal-card";
 import { GoalCreationDialog } from "@/components/goals/goal-creation-dialog";
+import { ShareArticleDialog } from "@/components/goals/share-article-dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { PasswordGate } from "@/components/auth/password-gate";
 import { useGoals, useGoalProgress } from "@/hooks/useGoals";
 import { useNotes } from "@/hooks/useNotes";
 import { GoalPeriod, Goal, GoalCategory } from "@/types";
 import { DashboardSkeleton, GoalCardSkeleton } from "@/components/ui/skeleton";
+import { generateId } from "@/lib/id-utils";
 // Health icon (heart ❤️)
 const HealthIcon = ({ className }: { className?: string }) => (
   <span className={className} style={{ fontSize: 'inherit', lineHeight: 1 }}>❤️</span>
@@ -57,6 +59,15 @@ function HomeContent() {
 
   const [goalCreationDialogOpen, setGoalCreationDialogOpen] = useState(false);
   const [selectedCategoryForCreation, setSelectedCategoryForCreation] = useState<GoalCategory>("health");
+  
+  // Share article dialog state
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const [sharedContent, setSharedContent] = useState<{
+    title?: string;
+    url?: string;
+    text?: string;
+  } | null>(null);
+  const [processedShareKey, setProcessedShareKey] = useState<string | null>(null);
 
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -151,21 +162,109 @@ function HomeContent() {
 
   // Handle shared content from share target
   useEffect(() => {
-    const handleSharedContent = async () => {
+    const handleSharedContent = () => {
       const title = searchParams.get('title');
       const text = searchParams.get('text');
       const url = searchParams.get('url');
 
-      const sharedContent = url || text || title || null;
+      const hasSharedContent = url || text || title;
+      
+      // Create a unique key for this share to prevent duplicate processing
+      const shareKey = hasSharedContent ? `${title || ''}|${url || ''}|${text || ''}` : null;
 
-      if (sharedContent) {
-        await addNote(sharedContent);
-        router.replace('/', { scroll: false });
+      // Only show dialog if content exists and we haven't processed this share yet
+      if (hasSharedContent && shareKey && shareKey !== processedShareKey) {
+        setSharedContent({
+          title: title || undefined,
+          url: url || undefined,
+          text: text || undefined,
+        });
+        setShareDialogOpen(true);
+        setProcessedShareKey(shareKey);
       }
     };
 
     handleSharedContent();
-  }, [searchParams, router, addNote]);
+
+    // Listen for popstate events from Android share intent handling
+    // This ensures we catch URL changes that happen via window.history.replaceState
+    const handlePopState = () => {
+      // Small delay to ensure URL has been updated
+      setTimeout(() => {
+        // Force a re-check of search params after popstate
+        const currentTitle = new URLSearchParams(window.location.search).get('title');
+        const currentText = new URLSearchParams(window.location.search).get('text');
+        const currentUrl = new URLSearchParams(window.location.search).get('url');
+        
+        const hasContent = currentTitle || currentText || currentUrl;
+        const shareKey = hasContent ? `${currentTitle || ''}|${currentUrl || ''}|${currentText || ''}` : null;
+        
+        // Only show dialog if content exists and we haven't processed this share yet
+        if (hasContent && shareKey && shareKey !== processedShareKey) {
+          setSharedContent({
+            title: currentTitle || undefined,
+            url: currentUrl || undefined,
+            text: currentText || undefined,
+          });
+          setShareDialogOpen(true);
+          setProcessedShareKey(shareKey);
+        }
+      }, 100);
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [searchParams, processedShareKey]);
+
+  // Handle confirming article share to learn goals
+  const handleShareConfirm = async (goalTitle: string, goalUrl?: string) => {
+    try {
+      const goalId = generateId();
+      const goalData: Partial<Goal> = {
+        id: goalId,
+        text: goalTitle,
+        period: "week",
+        category: "learn",
+        tips: [],
+        createdAt: new Date(),
+      };
+
+      await api.goals.create(goalData);
+      
+      // If URL exists, also add it as a note for reference
+      if (goalUrl) {
+        try {
+          await addNote(goalUrl);
+        } catch (error) {
+          console.error("Error adding note:", error);
+          // Don't fail the whole operation if note addition fails
+        }
+      }
+
+      // Refresh goals list
+      refreshGoals();
+
+      // Clear URL params
+      router.replace('/', { scroll: false });
+    } catch (error) {
+      console.error("Error creating learn goal:", error);
+      throw error; // Re-throw to let dialog handle error display
+    }
+  };
+
+  // Handle closing share dialog without confirming
+  const handleShareDialogClose = (open: boolean) => {
+    setShareDialogOpen(open);
+    if (!open) {
+      // Clear URL params when dialog is closed
+      router.replace('/', { scroll: false });
+      setSharedContent(null);
+      setProcessedShareKey(null);
+    }
+  };
 
   return (
     <main className="flex min-h-screen justify-center bg-background overflow-x-hidden">
@@ -235,6 +334,15 @@ function HomeContent() {
                   onGoalCreated={() => {
                     refreshGoals();
                   }}
+                />
+                
+                <ShareArticleDialog
+                  open={shareDialogOpen}
+                  onOpenChange={handleShareDialogClose}
+                  title={sharedContent?.title}
+                  url={sharedContent?.url}
+                  text={sharedContent?.text}
+                  onConfirm={handleShareConfirm}
                 />
               </>
             ) : activeTab === "time" ? (
