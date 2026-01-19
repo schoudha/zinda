@@ -242,61 +242,67 @@ function HomeContent() {
   // Handle confirming article share to learn goals
   const handleShareConfirm = async (goalTitle: string, goalUrl?: string) => {
     // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/ad9ef1e8-7ae3-460a-9763-0841686de40c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'home-client.tsx:243',message:'handleShareConfirm called',data:{goalTitle,goalUrl},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
+    fetch('http://127.0.0.1:7242/ingest/ad9ef1e8-7ae3-460a-9763-0841686de40c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'home-client.tsx:243',message:'handleShareConfirm called',data:{goalTitle,goalUrl},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'G'})}).catch(()=>{});
     // #endregion
     
     try {
-      const goalId = generateId();
-      const goalData: Partial<Goal> = {
-        id: goalId,
-        text: goalTitle,
-        period: "week",
-        category: "learn",
-        tips: [],
-        createdAt: new Date(),
-      };
-
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/ad9ef1e8-7ae3-460a-9763-0841686de40c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'home-client.tsx:255',message:'Goal data prepared, calling API',data:{goalId,goalData:JSON.stringify(goalData)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
-      // #endregion
-
-      const result = await api.goals.create(goalData);
+      // Find existing learn goal or ensure one exists
+      let learnGoal = goals.find(g => g.category === "learn");
       
       // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/ad9ef1e8-7ae3-460a-9763-0841686de40c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'home-client.tsx:258',message:'Goal created successfully',data:{result:JSON.stringify(result)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
+      fetch('http://127.0.0.1:7242/ingest/ad9ef1e8-7ae3-460a-9763-0841686de40c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'home-client.tsx:250',message:'Looking for existing learn goal',data:{learnGoalFound:!!learnGoal,learnGoalId:learnGoal?.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'G'})}).catch(()=>{});
       // #endregion
       
-      // If URL exists, also add it as a note for reference
-      if (goalUrl) {
-        try {
-          // #region agent log
-          fetch('http://127.0.0.1:7242/ingest/ad9ef1e8-7ae3-460a-9763-0841686de40c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'home-client.tsx:262',message:'Adding note for URL',data:{goalUrl},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
-          // #endregion
-          
-          await addNote(goalUrl);
-          
-          // #region agent log
-          fetch('http://127.0.0.1:7242/ingest/ad9ef1e8-7ae3-460a-9763-0841686de40c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'home-client.tsx:266',message:'Note added successfully',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
-          // #endregion
-        } catch (error) {
-          // #region agent log
-          fetch('http://127.0.0.1:7242/ingest/ad9ef1e8-7ae3-460a-9763-0841686de40c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'home-client.tsx:269',message:'Error adding note (non-fatal)',data:{error:error instanceof Error ? error.message : String(error)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
-          // #endregion
-          console.error("Error adding note:", error);
-          // Don't fail the whole operation if note addition fails
-        }
+      // If no learn goal exists, create one
+      if (!learnGoal) {
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/ad9ef1e8-7ae3-460a-9763-0841686de40c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'home-client.tsx:255',message:'No learn goal found, creating one',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'G'})}).catch(()=>{});
+        // #endregion
+        
+        const goalId = generateId();
+        const goalData: Partial<Goal> = {
+          id: goalId,
+          text: "Learn",
+          period: "week",
+          category: "learn",
+          tips: [],
+          createdAt: new Date(),
+        };
+
+        learnGoal = await api.goals.create(goalData);
+        
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/ad9ef1e8-7ae3-460a-9763-0841686de40c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'home-client.tsx:267',message:'Learn goal created',data:{learnGoalId:learnGoal.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'G'})}).catch(()=>{});
+        // #endregion
+        
+        // Refresh goals list to include the new goal
+        refreshGoals();
       }
-
-      // Refresh goals list
-      refreshGoals();
+      
+      // Add the article as a note (with URL and title)
+      // Prefer URL if available, otherwise use title
+      // If both exist, combine them so the title is preserved
+      const noteText = goalUrl 
+        ? (goalTitle && goalTitle !== goalUrl ? `${goalTitle} ${goalUrl}` : goalUrl)
+        : goalTitle;
+      
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/ad9ef1e8-7ae3-460a-9763-0841686de40c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'home-client.tsx:283',message:'Adding article as note',data:{noteText,goalUrl,goalTitle},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'G'})}).catch(()=>{});
+      // #endregion
+      
+      await addNote(noteText);
+      
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/ad9ef1e8-7ae3-460a-9763-0841686de40c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'home-client.tsx:279',message:'Note added successfully',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'G'})}).catch(()=>{});
+      // #endregion
 
       // Clear URL params
       router.replace('/', { scroll: false });
     } catch (error) {
       // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/ad9ef1e8-7ae3-460a-9763-0841686de40c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'home-client.tsx:280',message:'Error creating learn goal',data:{error:error instanceof Error ? error.message : String(error),stack:error instanceof Error ? error.stack : undefined,errorType:error?.constructor?.name},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
+      fetch('http://127.0.0.1:7242/ingest/ad9ef1e8-7ae3-460a-9763-0841686de40c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'home-client.tsx:285',message:'Error adding article to learn goals',data:{error:error instanceof Error ? error.message : String(error),stack:error instanceof Error ? error.stack : undefined,errorType:error?.constructor?.name},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'G'})}).catch(()=>{});
       // #endregion
-      console.error("Error creating learn goal:", error);
+      console.error("Error adding article to learn goals:", error);
       throw error; // Re-throw to let dialog handle error display
     }
   };
