@@ -13,7 +13,7 @@ function getLocalDateString(date: Date = new Date()): string {
 // GET - Fetch progress for goals
 export async function GET(request: NextRequest) {
   try {
-    if (!await isAuthenticated()) {
+    if (!await isAuthenticated(request)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -73,7 +73,7 @@ export async function GET(request: NextRequest) {
 // PATCH - Update today's progress for a goal
 export async function PATCH(request: NextRequest) {
   try {
-    if (!await isAuthenticated()) {
+    if (!await isAuthenticated(request)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

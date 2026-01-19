@@ -12,7 +12,7 @@ function getLocalDateString(date: Date = new Date()): string {
 
 export async function GET(request: NextRequest) {
   try {
-    if (!await isAuthenticated()) {
+    if (!await isAuthenticated(request)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

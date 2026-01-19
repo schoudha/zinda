@@ -3,9 +3,9 @@ import { adminClient } from '@/lib/supabase/server';
 import { isAuthenticated } from '@/lib/auth';
 
 // GET - Fetch all thoughts
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    if (!await isAuthenticated()) {
+    if (!await isAuthenticated(request)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -48,7 +48,7 @@ export async function GET() {
 // POST - Create a new thought
 export async function POST(request: NextRequest) {
   try {
-    if (!await isAuthenticated()) {
+    if (!await isAuthenticated(request)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

@@ -8,7 +8,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    if (!await isAuthenticated()) {
+    if (!await isAuthenticated(request)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

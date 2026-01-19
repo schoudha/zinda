@@ -4,7 +4,7 @@ import { isAuthenticated } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
   try {
-    if (!await isAuthenticated()) {
+    if (!await isAuthenticated(request)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

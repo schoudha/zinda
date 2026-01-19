@@ -5,7 +5,7 @@ import { isAuthenticated } from '@/lib/auth';
 // GET - Fetch all notes
 export async function GET(request: NextRequest) {
   try {
-    if (!await isAuthenticated()) {
+    if (!await isAuthenticated(request)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -66,7 +66,7 @@ export async function GET(request: NextRequest) {
 // POST - Create a new note
 export async function POST(request: NextRequest) {
   try {
-    if (!await isAuthenticated()) {
+    if (!await isAuthenticated(request)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -126,7 +126,7 @@ export async function POST(request: NextRequest) {
 // PATCH - Update a note
 export async function PATCH(request: NextRequest) {
   try {
-    if (!await isAuthenticated()) {
+    if (!await isAuthenticated(request)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -191,7 +191,7 @@ export async function PATCH(request: NextRequest) {
 // DELETE - Delete notes (used for cleanup)
 export async function DELETE(request: NextRequest) {
   try {
-    if (!await isAuthenticated()) {
+    if (!await isAuthenticated(request)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
