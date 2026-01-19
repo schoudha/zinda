@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { isYoutubeUrl } from '@/lib/url-utils';
+import { isYoutubeUrl, isTwitterUrl, extractTweetId } from '@/lib/url-utils';
 import { isAuthenticated } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
@@ -42,6 +42,40 @@ export async function POST(request: NextRequest) {
         } catch (error) {
             console.error('Error fetching YouTube oEmbed:', error);
             // Fallback to regular fetch
+        }
+    }
+
+    // Special handling for X/Twitter URLs using fxtwitter API
+    if (isTwitterUrl(url)) {
+        try {
+            const tweetId = extractTweetId(url);
+            if (tweetId) {
+                const fxTwitterUrl = `https://api.fxtwitter.com/status/${tweetId}`;
+                const response = await fetch(fxTwitterUrl, {
+                    headers: {
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                    },
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    const tweet = data?.tweet;
+                    if (tweet) {
+                        // Format: "Tweet text by @username"
+                        const author = tweet.author?.name || tweet.author?.screen_name || 'Twitter';
+                        const text = tweet.text || '';
+                        const title = text.length > 0 
+                            ? `${text.substring(0, 200)}${text.length > 200 ? '...' : ''} - ${author}`
+                            : `Tweet by ${author}`;
+                        return NextResponse.json({ 
+                            title, 
+                            url 
+                        });
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('Error fetching X/Twitter tweet:', error);
+            // Fallback to regular fetch (which will likely fail, but we'll try)
         }
     }
 

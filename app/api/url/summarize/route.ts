@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { isYoutubeUrl } from '@/lib/url-utils';
+import { isYoutubeUrl, isTwitterUrl, extractTweetId } from '@/lib/url-utils';
 import { isAuthenticated } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
@@ -27,6 +27,7 @@ export async function POST(request: NextRequest) {
 
     let pageContent = '';
     const isYoutube = isYoutubeUrl(url);
+    const isTwitter = isTwitterUrl(url);
 
     // Skip YouTube URLs - transcript fetching is disabled
     if (isYoutube) {
@@ -37,6 +38,52 @@ export async function POST(request: NextRequest) {
         },
         { status: 400 }
       );
+    }
+
+    // Handle X/Twitter URLs using fxtwitter API
+    if (isTwitter) {
+      try {
+        const tweetId = extractTweetId(url);
+        if (tweetId) {
+          const fxTwitterUrl = `https://api.fxtwitter.com/status/${tweetId}`;
+          const response = await fetch(fxTwitterUrl, {
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            },
+          });
+          if (response.ok) {
+            const data = await response.json();
+            const tweet = data?.tweet;
+            if (tweet) {
+              const tweetText = tweet.text || '';
+              const author = tweet.author?.name || tweet.author?.screen_name || 'Unknown';
+              
+              // For tweets, the text itself is usually the content
+              // We can optionally use Gemini to expand on it, but for now, return formatted tweet
+              const summary = `Tweet by ${author}:\n\n${tweetText}`;
+              
+              return NextResponse.json({ summary, url });
+            }
+          }
+        }
+        // If we can't fetch tweet, return error
+        return NextResponse.json(
+          { 
+            error: 'Could not fetch tweet content. The tweet may be private or deleted.',
+            url 
+          },
+          { status: 400 }
+        );
+      } catch (error) {
+        console.error('Error fetching X/Twitter tweet:', error);
+        return NextResponse.json(
+          { 
+            error: 'Could not fetch tweet content.',
+            url 
+          },
+          { status: 400 }
+        );
+      }
     }
 
     // If not YouTube, fetch regular page content
