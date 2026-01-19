@@ -195,18 +195,6 @@ export default function GoalDetailPage() {
     );
   }
 
-  const periodColors = {
-    week: "bg-blue-50 text-blue-900 dark:bg-blue-950/50 dark:text-blue-100",
-    month: "bg-purple-50 text-purple-900 dark:bg-purple-950/50 dark:text-purple-100",
-    year: "bg-orange-50 text-orange-900 dark:bg-orange-950/50 dark:text-orange-100",
-  };
-
-  const periodDotColors = {
-    week: "bg-blue-500 dark:bg-blue-400",
-    month: "bg-purple-500 dark:bg-purple-400",
-    year: "bg-orange-500 dark:bg-orange-400",
-  };
-
   return (
     <div className="flex flex-col h-screen bg-background max-w-md mx-auto shadow-2xl relative pt-[env(safe-area-inset-top)]">
       {/* Header */}
@@ -215,7 +203,7 @@ export default function GoalDetailPage() {
           <ArrowLeft className="h-5 w-5 text-muted-foreground" />
         </Button>
         <h1 className="text-lg font-bold text-foreground truncate flex-1">
-          Goal Details
+          {goal?.text || "Goal Details"}
         </h1>
         <Button
           variant="ghost"
@@ -246,18 +234,6 @@ export default function GoalDetailPage() {
 
       {/* Goal Context Card - Scrollable Content */}
       <div className="flex-1 overflow-y-auto p-4 bg-background space-y-4 pb-6">
-        <Card className={`border-none shadow-sm ${periodColors[goal.period]} transition-all`}>
-          <CardContent className="p-4 space-y-2">
-            <div className="flex items-center gap-2 mb-1">
-              <div className={`h-2 w-2 rounded-full ${periodDotColors[goal.period]}`} />
-              <span className="text-xs font-bold uppercase tracking-wider opacity-70">
-                {goal.period === 'week' ? 'Weekly' : goal.period === 'month' ? 'Monthly' : 'Yearly'} Goal
-              </span>
-            </div>
-            <p className="font-bold text-lg leading-tight">{goal.text}</p>
-          </CardContent>
-        </Card>
-
         {/* Quran Quote for Faith Goals */}
         {goal.category === 'faith' && quote && (
           <Card className="border-none shadow-sm bg-violet-50 dark:bg-violet-950/30 text-violet-900 dark:text-violet-100 transition-all">
