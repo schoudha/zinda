@@ -6,8 +6,23 @@ async function fetchApi<T>(url: string, options?: RequestInit): Promise<T> {
   fetch('http://127.0.0.1:7242/ingest/ad9ef1e8-7ae3-460a-9763-0841686de40c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'lib/api.ts:4',message:'fetchApi called',data:{url,method:options?.method || 'GET'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
   // #endregion
   
+  // Check if we're running in Capacitor and add platform header
+  let headers: HeadersInit = { "Content-Type": "application/json" };
+  try {
+    const { Capacitor } = await import("@capacitor/core");
+    const platform = Capacitor.getPlatform();
+    if (platform === "android") {
+      headers = { 
+        ...headers,
+        "X-Capacitor-Platform": "android"
+      };
+    }
+  } catch {
+    // Capacitor not available, continue without custom header
+  }
+  
   const response = await fetch(url, {
-    headers: { "Content-Type": "application/json" },
+    headers,
     ...options,
   });
 

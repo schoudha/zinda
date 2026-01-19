@@ -69,7 +69,18 @@ export async function GET(request: NextRequest) {
 // POST - Create a new goal
 export async function POST(request: NextRequest) {
   try {
-    if (!await isAuthenticated(request)) {
+    // #region agent log
+    const userAgent = request.headers.get("user-agent") || "";
+    const authResult = await isAuthenticated(request);
+    console.log('[Goals API] Auth check:', { 
+      hasRequest: !!request, 
+      userAgent, 
+      authResult,
+      isAndroid: userAgent.toLowerCase().includes("android")
+    });
+    // #endregion
+    
+    if (!authResult) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

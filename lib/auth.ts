@@ -5,53 +5,44 @@ export async function isAuthenticated(request?: NextRequest) {
   // Check if request is from Android - skip auth for Android apps
   if (request) {
     const userAgent = request.headers.get("user-agent") || "";
-    // Capacitor Android apps typically have "Android" in the User-Agent
-    if (userAgent.toLowerCase().includes("android")) {
-      // #region agent log
-      try {
-        await fetch('http://127.0.0.1:7242/ingest/ad9ef1e8-7ae3-460a-9763-0841686de40c', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            location: 'lib/auth.ts:10',
-            message: 'Android detected via User-Agent',
-            data: { userAgent },
-            timestamp: Date.now(),
-            sessionId: 'debug-session',
-            runId: 'post-fix',
-            hypothesisId: 'F'
-          })
-        }).catch(() => {});
-      } catch {}
-      // #endregion
+    const userAgentLower = userAgent.toLowerCase();
+    
+    // Check for custom header that Capacitor might set (if we add it)
+    const capacitorPlatform = request.headers.get("x-capacitor-platform");
+    
+    // Log for debugging
+    console.log('[Auth] Checking authentication:', {
+      hasRequest: true,
+      userAgent,
+      userAgentLower,
+      capacitorPlatform,
+      containsAndroid: userAgentLower.includes("android"),
+      containsCapacitor: userAgentLower.includes("capacitor"),
+      allHeaders: Object.fromEntries(request.headers.entries())
+    });
+    
+    // Check multiple ways to detect Android/Capacitor:
+    // 1. User-Agent contains "android" or "capacitor"
+    // 2. Custom header indicates Android platform
+    // 3. User-Agent contains the app name or package identifier
+    const isAndroidRequest = 
+      userAgentLower.includes("android") || 
+      userAgentLower.includes("capacitor") ||
+      capacitorPlatform?.toLowerCase() === "android" ||
+      userAgentLower.includes("com.zinda.app");
+    
+    if (isAndroidRequest) {
+      console.log('[Auth] Android/Capacitor detected - bypassing auth');
       return true;
     }
+  } else {
+    console.log('[Auth] No request object provided');
   }
   
   const cookieStore = await cookies();
   const cookieAuth = cookieStore.get("zinda_authenticated")?.value === "true";
   
-  // #region agent log
-  try {
-    await fetch('http://127.0.0.1:7242/ingest/ad9ef1e8-7ae3-460a-9763-0841686de40c', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        location: 'lib/auth.ts:16',
-        message: 'Cookie-based auth check',
-        data: { 
-          hasRequest: !!request,
-          userAgent: request?.headers.get("user-agent") || "none",
-          cookieAuth 
-        },
-        timestamp: Date.now(),
-        sessionId: 'debug-session',
-        runId: 'post-fix',
-        hypothesisId: 'F'
-      })
-    }).catch(() => {});
-  } catch {}
-  // #endregion
+  console.log('[Auth] Cookie-based auth result:', { cookieAuth });
   
   return cookieAuth;
 }
