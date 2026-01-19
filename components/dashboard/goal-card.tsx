@@ -875,6 +875,12 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
   }, [router, goal.id]);
 
   const handleCardClick = useCallback(async (e: React.MouseEvent | React.TouchEvent) => {
+    // Don't navigate if clicking on a button or inside a button
+    const target = e.target as HTMLElement;
+    if (target.closest('button') || target.tagName === 'BUTTON') {
+      return;
+    }
+
     // Handle health goals, learn goals, screentime goals, family goals, faith goals or if it's not today view
     // Family goals should be hidden in today view
     if (isFamilyGoal && selectedPeriod === "today") {
@@ -902,7 +908,7 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
       // Navigate to goal detail page
       router.push(`/goals/${goal.id}`);
     }
-  }, [isHealthGoal, isLearnGoal, isScreentimeGoal, isFaithGoal, selectedPeriod, isHealthNative, hasHealthPermission, requestHealthPermission, isUsageNative, hasUsagePermission, requestUsagePermission, router, goal.id]);
+  }, [isHealthGoal, isLearnGoal, isScreentimeGoal, isFamilyGoal, isFaithGoal, selectedPeriod, isHealthNative, hasHealthPermission, requestHealthPermission, isUsageNative, hasUsagePermission, requestUsagePermission, isCallLogNative, hasCallLogPermission, requestCallLogPermission, router, goal.id]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (isHealthGoal || isLearnGoal || isScreentimeGoal || isFamilyGoal || isFaithGoal || selectedPeriod !== "today") {
@@ -1058,6 +1064,7 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
               {selectedPeriod === 'today' && isLearnGoal && oldestUnreadArticle && (
                 <Button
                   onClick={async (e) => {
+                    e.preventDefault();
                     e.stopPropagation();
                     if (!oldestUnreadArticle.url) return;
                     window.open(oldestUnreadArticle.url, '_blank', 'noopener,noreferrer');
@@ -1066,7 +1073,14 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
                       checkedAt: new Date(),
                     });
                   }}
-                  className="h-8 px-3 rounded-full bg-white/10 hover:bg-white/20 text-white border border-white/10 backdrop-blur-md flex items-center gap-2"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }}
+                  onTouchStart={(e) => {
+                    e.stopPropagation();
+                  }}
+                  className="h-8 px-3 rounded-full bg-white/10 hover:bg-white/20 text-white border border-white/10 backdrop-blur-md flex items-center gap-2 z-20 relative"
                 >
                   <BookOpen className="h-3 w-3" />
                   <span className="text-[10px] font-medium uppercase tracking-wider">Read</span>
@@ -1097,15 +1111,23 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
 
 
               {selectedPeriod === 'today' && isScreentimeGoal && isUsageNative && hasUsagePermission && screentimeMinutes > dailyTarget && (
-                <div className="absolute bottom-0 right-[70px]">
+                <div className="absolute bottom-0 right-[80px] z-20">
                   <Button
                     onClick={async (e) => {
+                      e.preventDefault();
                       e.stopPropagation();
                       if (!isBlockingNative) { alert("App blocking is only available on Android devices."); return; }
                       if (!isAccessibilityEnabled) { setShowBlockingPermissionDialog(true); return; }
                       try {
                         if (isBlockingEnabled) { await disableBlocking(); } else { await enableBlocking(Array.from(BLOCKED_APP_PACKAGES)); }
                       } catch (error: any) { alert(error.message || "Failed to toggle app blocking"); }
+                    }}
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                    }}
+                    onTouchStart={(e) => {
+                      e.stopPropagation();
                     }}
                     variant={isBlockingEnabled ? "destructive" : "default"}
                     className="h-10 px-4 rounded-full shadow-lg"
