@@ -13,6 +13,7 @@ import { FinanceCard } from "@/components/dashboard/finance-card";
 import { ThoughtInput } from "@/components/dashboard/thought-input";
 import { BottomNav } from "@/components/dashboard/bottom-nav";
 import { GoalCard } from "@/components/dashboard/goal-card";
+import { FinancialGoalCard } from "@/components/dashboard/financial-goal-card";
 import { GoalCreationDialog } from "@/components/goals/goal-creation-dialog";
 import { ShareArticleDialog } from "@/components/goals/share-article-dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -346,6 +347,8 @@ function HomeContent() {
                         </div>
                       );
                     })}
+                    {/* Financial Goal Card - spans 2 columns at bottom */}
+                    <FinancialGoalCard />
                   </div>
                 )}
 
