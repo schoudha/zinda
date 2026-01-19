@@ -1,12 +1,12 @@
 "use client";
 
 import { memo, useCallback } from "react";
-import { Target, FileText, Lock } from "lucide-react";
+import { Target, FileText, Lock, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface BottomNavProps {
-  activeTab: "goals" | "time" | "notepad";
-  onTabChange: (tab: "goals" | "time" | "notepad") => void;
+  activeTab: "goals" | "time" | "notepad" | "family";
+  onTabChange: (tab: "goals" | "time" | "notepad" | "family") => void;
 }
 
 export const BottomNav = memo(function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
@@ -51,6 +51,20 @@ export const BottomNav = memo(function BottomNav({ activeTab, onTabChange }: Bot
           )}>
             <FileText className="h-5 w-5" />
             {activeTab === "notepad" && (
+              <span className="absolute inset-0 rounded-full bg-white/5 blur-md animate-pulse" />
+            )}
+          </div>
+        </button>
+        <button
+          onClick={() => onTabChange("family")}
+          className="flex-1 flex flex-col items-center justify-center relative py-2 group"
+        >
+          <div className={cn(
+            "p-2.5 rounded-full transition-all duration-300 relative",
+            activeTab === "family" ? "bg-white/10 text-white" : "text-white/50 hover:text-white/80"
+          )}>
+            <Users className="h-5 w-5" />
+            {activeTab === "family" && (
               <span className="absolute inset-0 rounded-full bg-white/5 blur-md animate-pulse" />
             )}
           </div>

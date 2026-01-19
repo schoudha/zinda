@@ -12,6 +12,7 @@ import { LocationCard } from "@/components/dashboard/location-card";
 import { FinanceCard } from "@/components/dashboard/finance-card";
 import { ThoughtInput } from "@/components/dashboard/thought-input";
 import { BottomNav } from "@/components/dashboard/bottom-nav";
+import { FamilyTasksCard } from "@/components/dashboard/family-tasks-card";
 import { GoalCard } from "@/components/dashboard/goal-card";
 import { FinancialGoalCard } from "@/components/dashboard/financial-goal-card";
 import { GoalCreationDialog } from "@/components/goals/goal-creation-dialog";
@@ -48,7 +49,7 @@ function HomeContent() {
   const { goals, isLoading: goalsLoading, refreshGoals, deleteGoal } = useGoals();
   const { progress, history: progressHistory, isLoading: progressLoading, updateProgress } = useGoalProgress();
 
-  const [activeTab, setActiveTab] = useState<"goals" | "notepad" | "time">("goals");
+  const [activeTab, setActiveTab] = useState<"goals" | "notepad" | "time" | "family">("goals");
   const [selectedPeriod, setSelectedPeriod] = useState<"today" | GoalPeriod>("today");
   // Derived state combining goals and progress
   const goalsWithProgress = useMemo(() => {
@@ -155,7 +156,7 @@ function HomeContent() {
   }, [filteredGoals]);
 
   // Memoize tab change handler
-  const handleTabChange = useCallback((tab: "goals" | "notepad" | "time") => {
+  const handleTabChange = useCallback((tab: "goals" | "notepad" | "time" | "family") => {
     setActiveTab(tab);
   }, []);
 
@@ -380,6 +381,10 @@ function HomeContent() {
                 <ScreentimeCard period="today" />
                 <LocationCard />
                 <FinanceCard />
+              </div>
+            ) : activeTab === "family" ? (
+              <div className="flex flex-col gap-6 px-6">
+                <FamilyTasksCard />
               </div>
             ) : (
               <div className="flex flex-col gap-4 px-4 overflow-hidden">
