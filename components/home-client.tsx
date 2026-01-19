@@ -103,39 +103,46 @@ function HomeContent() {
     return goalsWithProgress;
   }, [goalsWithProgress, selectedPeriod]);
 
-  // Group goals by category
+  // Group goals by category - ensure each bucket shows only the most recent goal
   const goalsByCategory = useMemo(() => {
     const grouped: Record<string, Goal[]> = {
       health: [],
       faith: [],
       learn: [],
-      family: []
+      family: [] // This bucket is for screentime/family goals (displayed as "Screen Time")
     };
 
-    // Track if we've already added a screentime/family goal to prevent duplicates
-    let screentimeGoalAdded = false;
+    // Track which categories we've already added a goal to (only show most recent per category)
+    const categoryAdded: Record<string, boolean> = {
+      health: false,
+      faith: false,
+      learn: false,
+      family: false,
+      screentime: false
+    };
 
+    // Goals are already sorted by created_at DESC from the API
     filteredGoals.forEach(goal => {
       const cat = goal.category || 'health'; // Default to health
 
-      // For family/screentime category, only add the first one (most recent, since goals are sorted by created_at DESC)
-      if (cat === 'family' || cat === 'screentime') {
-        if (screentimeGoalAdded) {
-          return; // Skip duplicate screentime goals
-        }
-        grouped['family'].push(goal);
-        screentimeGoalAdded = true;
-        return;
-      }
+      // Map screentime to family bucket (they're the same for display purposes - "Screen Time")
+      const displayCategory = (cat === 'screentime' || cat === 'family') ? 'family' : cat;
 
-      // For other categories, add to their respective group
-      if (grouped[cat]) {
-        grouped[cat].push(goal);
-      } else {
-        // Handle unexpected categories or if category is null/undefined
-        if (grouped.health) grouped.health.push(goal);
+      // Only add the first (most recent) goal for each category
+      if (!categoryAdded[displayCategory] && grouped[displayCategory]) {
+        grouped[displayCategory].push(goal);
+        categoryAdded[displayCategory] = true;
+        // Also mark screentime as added if it's a screentime goal
+        if (cat === 'screentime') {
+          categoryAdded['screentime'] = true;
+        }
       }
     });
+    
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/ad9ef1e8-7ae3-460a-9763-0841686de40c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'home-client.tsx:140',message:'Goals grouped by category',data:{grouped:Object.keys(grouped).map(k => ({category:k,count:grouped[k].length,goals:grouped[k].map(g => ({id:g.id,text:g.text,category:g.category}))})),totalGoals:filteredGoals.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H'})}).catch(()=>{});
+    // #endregion
+    
     return grouped;
   }, [filteredGoals]);
 
