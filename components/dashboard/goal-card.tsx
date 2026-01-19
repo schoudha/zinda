@@ -250,43 +250,42 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
   }, [isLearnGoal, notes]);
 
   // Calculate completion count for learn goals (using manual progress tracking)
+  // Based on 5 points per day target
   const learnProgress = useMemo(() => {
     if (!isLearnGoal) return { periodPoints: 0, target: 0, percentage: 0 };
 
-    // Get targets for each period
-    const targets = {
-      today: 0, // No target for today
-      week: 10,
-      month: 40,
-      year: 100,
-    };
-
-    const target = targets[healthPeriod as keyof typeof targets] || 0;
+    const pointsPerDay = 5;
 
     // Calculate total points in the period from goal_progress history
     let periodPoints = 0;
+    let daysInPeriod = 1; // Default for today
+    
     if (selectedPeriod === "today") {
       // For today, use today's progress
       periodPoints = progress[goal.id] || 0;
+      daysInPeriod = 1;
     } else {
       // For week/month/year, sum all progress values in the period
       const periodStart = getPeriodStart(healthPeriod);
       const now = new Date();
       const goalHistory = progressHistory[goal.id] || {};
 
+      // Calculate days in period
+      const periodDays = dateRange(periodStart, now);
+      daysInPeriod = periodDays.length;
+
       // Sum progress for all days in the period
-      Object.keys(goalHistory).forEach(dateStr => {
-        const date = new Date(dateStr + 'T00:00:00');
-        if (date >= periodStart && date <= now) {
-          periodPoints += (goalHistory as Record<string, number>)[dateStr] || 0;
-        }
+      periodDays.forEach(dateStr => {
+        periodPoints += goalHistory[dateStr] || 0;
       });
     }
 
+    // Target is 5 points per day
+    const target = daysInPeriod * pointsPerDay;
     const percentage = target > 0 ? Math.min(100, Math.round((periodPoints / target) * 100)) : 0;
 
     return { periodPoints, target, percentage };
-  }, [isLearnGoal, goal.id, selectedPeriod, healthPeriod, progress, progressHistory, getPeriodStart]);
+  }, [isLearnGoal, goal.id, selectedPeriod, healthPeriod, progress, progressHistory, getPeriodStart, dateRange]);
 
   // Helper function for date ranges (used by faith and learn progress calculation)
   const getDateStr = useCallback((date: Date) => {
@@ -336,109 +335,58 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
     }
   }, []);
 
-  // Calculate completion stats for learn goals (days/weeks/months where points >= 2)
+  // Calculate completion stats for learn goals based on 5 points per day
   const learnProgressCompletion = useMemo(() => {
     if (!isLearnGoal) return { completedDays: 0, totalDays: 7, completedWeeks: 0, totalWeeks: 4, completedMonths: 0, totalMonths: 12, expectedMonths: 0, statusColor: 'red' as const, percentage: 0 };
 
-    if (selectedPeriod === "today") {
-      // For today, check if points >= 2
-      const todayPoints = progress[goal.id] || 0;
-      const completed = todayPoints >= 2 ? 1 : 0;
-      return { completedDays: completed, totalDays: 7, completedWeeks: 0, totalWeeks: 4, completedMonths: 0, totalMonths: 12, expectedMonths: 0, statusColor: 'red' as const, percentage: completed * 100 };
-    }
-
+    const pointsPerDay = 5;
     const periodStart = getPeriodStart(healthPeriod);
     const now = new Date();
     const goalHistory = progressHistory[goal.id] || {};
-    const dailyThreshold = 2; // Points needed to count as a completed day
 
-    if (healthPeriod === "week") {
-      // For week view: count days where points >= 2 (out of 7)
-      let completedDays = 0;
-      const current = new Date(periodStart);
-      while (current <= now) {
-        const dateStr = current.toLocaleDateString('en-CA');
-        const progressValue = goalHistory[dateStr] || 0;
-        if (progressValue >= dailyThreshold) {
-          completedDays++;
-        }
-        current.setDate(current.getDate() + 1);
+    // Calculate total points in the period
+    let totalPoints = 0;
+    const daysInPeriod = selectedPeriod === "today" 
+      ? [now.toLocaleDateString('en-CA')]
+      : dateRange(periodStart, now);
+    
+    daysInPeriod.forEach(dateStr => {
+      totalPoints += goalHistory[dateStr] || 0;
+    });
+
+    // For today, also include current progress if not yet saved to history
+    if (selectedPeriod === "today") {
+      const todayStr = now.toLocaleDateString('en-CA');
+      if (!goalHistory[todayStr]) {
+        totalPoints = progress[goal.id] || 0;
       }
-
-      // Always show out of 7 days for weekly view
-      const percentage = Math.round((completedDays / 7) * 100);
-      const statusColor = getCompletionStatusColor('week', completedDays, 7);
-      return { completedDays, totalDays: 7, completedWeeks: 0, totalWeeks: 4, completedMonths: 0, totalMonths: 12, expectedMonths: 0, statusColor, percentage };
-    } else if (healthPeriod === "month") {
-      // For month view: count weeks where at least 5 days had points >= 2 (out of 4 weeks)
-      const daysInPeriod = dateRange(periodStart, now);
-
-      // Group days into weeks (7-day blocks)
-      const weeks: string[][] = [];
-      for (let i = 0; i < daysInPeriod.length; i += 7) {
-        weeks.push(daysInPeriod.slice(i, i + 7));
-      }
-
-      let weeksMet = 0;
-      weeks.forEach(weekDays => {
-        let daysMetInWeek = 0;
-        weekDays.forEach(date => {
-          const progressValue = goalHistory[date] || 0;
-          if (progressValue >= dailyThreshold) {
-            daysMetInWeek++;
-          }
-        });
-        // Need at least 5 days in a week to count (or all days if week is incomplete)
-        const requiredDays = weekDays.length < 7 ? Math.ceil(weekDays.length * 5 / 7) : 5;
-        if (daysMetInWeek >= requiredDays) weeksMet++;
-      });
-
-      // Always show out of 4 weeks for monthly view
-      const totalWeeks = 4;
-      const percentage = Math.round((weeksMet / totalWeeks) * 100);
-      const statusColor = getCompletionStatusColor('month', weeksMet, totalWeeks);
-      return { completedDays: 0, totalDays: 7, completedWeeks: weeksMet, totalWeeks, completedMonths: 0, totalMonths: 12, expectedMonths: 0, statusColor, percentage };
-    } else if (healthPeriod === "year") {
-      // For year view: count months where at least 20 days had points >= 2
-      const daysInPeriod = dateRange(periodStart, now);
-
-      // Group days into months
-      const months: string[][] = [];
-      const currentMonthStart = new Date(periodStart);
-      while (currentMonthStart <= now) {
-        const monthEnd = new Date(currentMonthStart.getFullYear(), currentMonthStart.getMonth() + 1, 0);
-        const monthEndDate = monthEnd > now ? now : monthEnd;
-        const monthDays = dateRange(new Date(currentMonthStart), monthEndDate);
-        if (monthDays.length > 0) months.push(monthDays);
-
-        currentMonthStart.setMonth(currentMonthStart.getMonth() + 1);
-        currentMonthStart.setDate(1);
-      }
-
-      let monthsMet = 0;
-      months.forEach(monthDays => {
-        let daysMetInMonth = 0;
-        monthDays.forEach(date => {
-          const progressValue = goalHistory[date] || 0;
-          if (progressValue >= dailyThreshold) {
-            daysMetInMonth++;
-          }
-        });
-        // Need at least 20 days in a month (or proportional if month is incomplete)
-        const requiredDays = monthDays.length < 30 ? Math.ceil(monthDays.length * 20 / 30) : 20;
-        if (daysMetInMonth >= requiredDays) monthsMet++;
-      });
-
-      // Calculate expected months based on current date
-      const expectedMonths = getExpectedMonthsCompleted(now);
-      const totalMonths = 12;
-      const percentage = Math.round((monthsMet / totalMonths) * 100);
-      const statusColor = getCompletionStatusColor('year', monthsMet, totalMonths, expectedMonths);
-      return { completedDays: 0, totalDays: 7, completedWeeks: 0, totalWeeks: 4, completedMonths: monthsMet, totalMonths, expectedMonths, statusColor, percentage };
     }
 
-    return { completedDays: 0, totalDays: 7, completedWeeks: 0, totalWeeks: 4, completedMonths: 0, totalMonths: 12, expectedMonths: 0, statusColor: 'red' as const, percentage: 0 };
-  }, [isLearnGoal, goal.id, selectedPeriod, healthPeriod, progress, progressHistory, getPeriodStart, getCompletionStatusColor, getExpectedMonthsCompleted, dateRange]);
+    // Calculate target points: 5 points per day
+    const targetPoints = daysInPeriod.length * pointsPerDay;
+    const percentage = targetPoints > 0 ? Math.min(100, Math.round((totalPoints / targetPoints) * 100)) : 0;
+    
+    // Determine status color based on percentage
+    const getStatusColor = (pct: number): 'green' | 'yellow' | 'red' => {
+      if (pct >= 80) return 'green';
+      if (pct >= 50) return 'yellow';
+      return 'red';
+    };
+    
+    const statusColor = getStatusColor(percentage);
+
+    return { 
+      completedDays: 0, 
+      totalDays: 0, 
+      completedWeeks: 0, 
+      totalWeeks: 0, 
+      completedMonths: 0, 
+      totalMonths: 0, 
+      expectedMonths: 0, 
+      statusColor, 
+      percentage 
+    };
+  }, [isLearnGoal, goal.id, selectedPeriod, healthPeriod, progress, progressHistory, getPeriodStart, dateRange]);
 
   // Calculate completion stats for faith goals (using goal_progress history)
   const faithProgress = useMemo(() => {

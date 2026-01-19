@@ -35,7 +35,7 @@ export function LearnGoalView({
   setPeriod,
 }: LearnGoalViewProps) {
   const { progress, history: progressHistory } = useGoalProgress();
-  const dailyThreshold = 2; // Points needed to count as a completed day
+  const pointsPerDay = 5; // Target points per day
 
   // Helper function to get normalized start date for period
   const getPeriodStart = useCallback((period: string): Date => {
@@ -77,122 +77,67 @@ export function LearnGoalView({
     return dates;
   }, [getDateStr]);
 
-  // Helper function to calculate expected months completed for year view
-  const getExpectedMonthsCompleted = useCallback((currentDate: Date): number => {
-    const monthIndex = currentDate.getMonth(); // 0-11
-    const dayOfMonth = currentDate.getDate();
-    const monthsCompleted = monthIndex + (dayOfMonth >= 20 ? 1 : 0);
-    return Math.ceil((monthsCompleted / 12) * 10);
-  }, []);
-
-  // Helper function to determine completion status color
+  // Helper function to determine completion status color based on percentage
   const getCompletionStatusColor = useCallback((
-    period: 'week' | 'month' | 'year',
-    completed: number,
-    total: number,
-    expected?: number
+    percentage: number
   ): 'green' | 'yellow' | 'red' => {
-    if (period === 'week') {
-      if (completed >= 5) return 'green';
-      if (completed >= 3) return 'yellow';
-      return 'red';
-    } else if (period === 'month') {
-      if (completed >= 4) return 'green';
-      if (completed >= 2) return 'yellow';
-      return 'red';
-    } else { // year
-      const target = expected || 10;
-      if (completed >= target) return 'green';
-      if (completed >= Math.ceil(target * 0.7)) return 'yellow';
-      return 'red';
-    }
+    if (percentage >= 80) return 'green';
+    if (percentage >= 50) return 'yellow';
+    return 'red';
   }, []);
 
-  // Calculate completion stats for learn goals
+  // Calculate completion stats for learn goals based on 5 points per day
   const completionStats = useMemo(() => {
-    if (period === "today") {
-      const completed = learnProgress >= dailyThreshold ? 1 : 0;
-      return { completedDays: completed, totalDays: 7, completedWeeks: 0, totalWeeks: 4, completedMonths: 0, totalMonths: 12, expectedMonths: 0, statusColor: 'red' as const, percentage: completed * 100 };
-    }
-    
     const periodStart = getPeriodStart(period);
     const now = new Date();
     const goalHistory = progressHistory[goal.id] || {};
     
-    if (period === "week") {
-      let completedDays = 0;
-      const current = new Date(periodStart);
-      while (current <= now) {
-        const dateStr = current.toLocaleDateString('en-CA');
-        const progressValue = goalHistory[dateStr] || 0;
-        if (progressValue >= dailyThreshold) {
-          completedDays++;
-        }
-        current.setDate(current.getDate() + 1);
-      }
-      const percentage = Math.round((completedDays / 7) * 100);
-      const statusColor = getCompletionStatusColor('week', completedDays, 7);
-      return { completedDays, totalDays: 7, completedWeeks: 0, totalWeeks: 4, completedMonths: 0, totalMonths: 12, expectedMonths: 0, statusColor, percentage };
-    } else if (period === "month") {
-      const daysInPeriod = dateRange(periodStart, now);
-      const weeks: string[][] = [];
-      for (let i = 0; i < daysInPeriod.length; i += 7) {
-        weeks.push(daysInPeriod.slice(i, i + 7));
-      }
-      
-      let weeksMet = 0;
-      weeks.forEach(weekDays => {
-        let daysMetInWeek = 0;
-        weekDays.forEach(date => {
-          const progressValue = goalHistory[date] || 0;
-          if (progressValue >= dailyThreshold) {
-            daysMetInWeek++;
-          }
-        });
-        const requiredDays = weekDays.length < 7 ? Math.ceil(weekDays.length * 5 / 7) : 5;
-        if (daysMetInWeek >= requiredDays) weeksMet++;
-      });
-      
-      const totalWeeks = 4;
-      const percentage = Math.round((weeksMet / totalWeeks) * 100);
-      const statusColor = getCompletionStatusColor('month', weeksMet, totalWeeks);
-      return { completedDays: 0, totalDays: 7, completedWeeks: weeksMet, totalWeeks, completedMonths: 0, totalMonths: 12, expectedMonths: 0, statusColor, percentage };
-    } else if (period === "year") {
-      const daysInPeriod = dateRange(periodStart, now);
-      const months: string[][] = [];
-      const currentMonthStart = new Date(periodStart);
-      while (currentMonthStart <= now) {
-        const monthEnd = new Date(currentMonthStart.getFullYear(), currentMonthStart.getMonth() + 1, 0);
-        const monthEndDate = monthEnd > now ? now : monthEnd;
-        const monthDays = dateRange(new Date(currentMonthStart), monthEndDate);
-        if (monthDays.length > 0) months.push(monthDays);
-        
-        currentMonthStart.setMonth(currentMonthStart.getMonth() + 1);
-        currentMonthStart.setDate(1);
-      }
-      
-      let monthsMet = 0;
-      months.forEach(monthDays => {
-        let daysMetInMonth = 0;
-        monthDays.forEach(date => {
-          const progressValue = goalHistory[date] || 0;
-          if (progressValue >= dailyThreshold) {
-            daysMetInMonth++;
-          }
-        });
-        const requiredDays = monthDays.length < 30 ? Math.ceil(monthDays.length * 20 / 30) : 20;
-        if (daysMetInMonth >= requiredDays) monthsMet++;
-      });
-      
-      const expectedMonths = getExpectedMonthsCompleted(now);
-      const totalMonths = 12;
-      const percentage = Math.round((monthsMet / totalMonths) * 100);
-      const statusColor = getCompletionStatusColor('year', monthsMet, totalMonths, expectedMonths);
-      return { completedDays: 0, totalDays: 7, completedWeeks: 0, totalWeeks: 4, completedMonths: monthsMet, totalMonths, expectedMonths, statusColor, percentage };
+    if (period === "today") {
+      // For today: percentage = (current points / 5) * 100
+      const percentage = Math.min(100, Math.round((learnProgress / pointsPerDay) * 100));
+      const statusColor = getCompletionStatusColor(percentage);
+      return { 
+        completedDays: 0, 
+        totalDays: 0, 
+        completedWeeks: 0, 
+        totalWeeks: 0, 
+        completedMonths: 0, 
+        totalMonths: 0, 
+        expectedMonths: 0, 
+        statusColor, 
+        percentage,
+        totalPoints: learnProgress,
+        targetPoints: pointsPerDay
+      };
     }
     
-    return { completedDays: 0, totalDays: 7, completedWeeks: 0, totalWeeks: 4, completedMonths: 0, totalMonths: 12, expectedMonths: 0, statusColor: 'red' as const, percentage: 0 };
-  }, [goal.id, period, progressHistory, learnProgress, getPeriodStart, getCompletionStatusColor, getExpectedMonthsCompleted, dailyThreshold, dateRange]);
+    // Calculate total points in the period
+    let totalPoints = 0;
+    const daysInPeriod = dateRange(periodStart, now);
+    
+    daysInPeriod.forEach(dateStr => {
+      totalPoints += goalHistory[dateStr] || 0;
+    });
+    
+    // Calculate target points: 5 points per day
+    const targetPoints = daysInPeriod.length * pointsPerDay;
+    const percentage = targetPoints > 0 ? Math.min(100, Math.round((totalPoints / targetPoints) * 100)) : 0;
+    const statusColor = getCompletionStatusColor(percentage);
+    
+    return { 
+      completedDays: 0, 
+      totalDays: 0, 
+      completedWeeks: 0, 
+      totalWeeks: 0, 
+      completedMonths: 0, 
+      totalMonths: 0, 
+      expectedMonths: 0, 
+      statusColor, 
+      percentage,
+      totalPoints,
+      targetPoints
+    };
+  }, [goal.id, period, progressHistory, learnProgress, getPeriodStart, getCompletionStatusColor, pointsPerDay, dateRange]);
 
   // Get status color class
   const getStatusColorClass = (statusColor: 'green' | 'yellow' | 'red') => {
@@ -210,16 +155,10 @@ export function LearnGoalView({
     : getStatusColorClass(completionStats.statusColor);
 
   const displayText = period === "today"
-    ? `${learnProgress} points`
-    : period === "week"
-    ? `${completionStats.completedDays} / 7 days`
-    : period === "month"
-    ? `${completionStats.completedWeeks} / ${completionStats.totalWeeks} weeks`
-    : `${completionStats.completedMonths} / ${completionStats.expectedMonths || completionStats.totalMonths} months`;
+    ? `${learnProgress} / ${completionStats.targetPoints} points`
+    : `${completionStats.totalPoints} / ${completionStats.targetPoints} points`;
 
-  const percentage = period === "today" 
-    ? 0 // No percentage for today view
-    : completionStats.percentage;
+  const percentage = completionStats.percentage;
 
   return (
     <div className="space-y-4">
@@ -238,21 +177,23 @@ export function LearnGoalView({
               <CardContent className="p-4 space-y-4">
                 <div className="flex items-center justify-between mb-2">
                   <span className={`text-sm font-medium ${period === "today" ? "text-blue-900 dark:text-blue-100" : ""}`}>
-                    {period === "today" ? "Today's Progress" : period === "week" ? "Days Completed" : period === "month" ? "Weeks Completed" : "Months Completed"}
+                    {period === "today" ? "Today's Progress" : period === "week" ? "Week Progress" : period === "month" ? "Month Progress" : "Year Progress"}
                   </span>
                   <span className={`text-lg font-bold ${period === "today" ? "text-blue-700 dark:text-blue-300" : ""}`}>
                     {displayText}
                   </span>
                 </div>
                 
-                {period !== "today" && (
-                  <div className={`w-full rounded-full h-2.5 mb-4 ${completionStats.statusColor === 'green' ? "bg-green-200 dark:bg-green-900" : completionStats.statusColor === 'yellow' ? "bg-yellow-200 dark:bg-yellow-900" : "bg-red-200 dark:bg-red-900"}`}>
-                    <div 
-                      className={`h-2.5 rounded-full transition-all duration-500 ease-in-out ${completionStats.statusColor === 'green' ? "bg-green-600" : completionStats.statusColor === 'yellow' ? "bg-yellow-600" : "bg-red-600"}`}
-                      style={{ width: `${percentage}%` }}
-                    ></div>
-                  </div>
-                )}
+                <div className={`w-full rounded-full h-2.5 mb-4 ${completionStats.statusColor === 'green' ? "bg-green-200 dark:bg-green-900" : completionStats.statusColor === 'yellow' ? "bg-yellow-200 dark:bg-yellow-900" : "bg-red-200 dark:bg-red-900"}`}>
+                  <div 
+                    className={`h-2.5 rounded-full transition-all duration-500 ease-in-out ${completionStats.statusColor === 'green' ? "bg-green-600" : completionStats.statusColor === 'yellow' ? "bg-yellow-600" : "bg-red-600"}`}
+                    style={{ width: `${percentage}%` }}
+                  ></div>
+                </div>
+                
+                <div className="text-xs text-center text-gray-600 dark:text-gray-400">
+                  {percentage}% of daily target (5 pts/day)
+                </div>
 
                 {period === "today" && (
                   <div className="flex gap-3">
