@@ -1107,36 +1107,6 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
             <div className="relative">
               {/* Custom Content based on type */}
 
-
-
-
-              {selectedPeriod === 'today' && isScreentimeGoal && isUsageNative && hasUsagePermission && screentimeMinutes > dailyTarget && (
-                <div className="absolute bottom-0 right-[80px] z-20">
-                  <Button
-                    onClick={async (e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      if (!isBlockingNative) { alert("App blocking is only available on Android devices."); return; }
-                      if (!isAccessibilityEnabled) { setShowBlockingPermissionDialog(true); return; }
-                      try {
-                        if (isBlockingEnabled) { await disableBlocking(); } else { await enableBlocking(Array.from(BLOCKED_APP_PACKAGES)); }
-                      } catch (error: any) { alert(error.message || "Failed to toggle app blocking"); }
-                    }}
-                    onMouseDown={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                    }}
-                    onTouchStart={(e) => {
-                      e.stopPropagation();
-                    }}
-                    variant={isBlockingEnabled ? "destructive" : "default"}
-                    className="h-10 px-4 rounded-full shadow-lg"
-                  >
-                    {isBlockingLoading ? "..." : (isBlockingEnabled ? <Shield className="h-4 w-4" /> : <ShieldOff className="h-4 w-4" />)}
-                  </Button>
-                </div>
-              )}
-
               {showProgress && healthPeriod === 'today' && (
                 <div className="scale-90 origin-bottom-right">
                   <RadialProgress
