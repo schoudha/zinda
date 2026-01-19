@@ -36,10 +36,10 @@ export const FinancialGoalCard = memo(function FinancialGoalCard() {
         <div className="flex items-center gap-6 flex-1 overflow-x-auto">
           {spendData.map((item, index) => (
             <div key={item.label} className="flex flex-col gap-1 min-w-[70px]">
-              <span className="text-[10px] font-medium text-white/60 uppercase tracking-wider">
+              <span className="text-[10px] font-medium text-white/60 uppercase tracking-widest">
                 {item.label}
               </span>
-              <span className={cn("text-lg font-semibold font-serif", item.color)}>
+              <span className={cn("text-lg font-medium font-serif tracking-tight", item.color)}>
                 ${item.amount.toLocaleString()}
               </span>
             </div>

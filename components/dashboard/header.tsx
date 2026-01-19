@@ -65,7 +65,7 @@ export const Header = memo(function Header({
   }, [selectedPeriod]);
 
   return (
-    <div className="px-6 pb-6 pt-4 space-y-2">
+    <div className="px-6 pb-2 pt-4 space-y-2">
       <h1 className="text-4xl font-serif font-medium tracking-tight text-foreground leading-tight">
         {greeting},<br />
         <span className="text-muted-foreground italic">{userName}.</span>
