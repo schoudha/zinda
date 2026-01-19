@@ -84,10 +84,6 @@ function HomeContent() {
         // Fix learn goal text if it's incorrect (e.g., "x.com" instead of "Learn")
         const learnGoal = goals.find(g => g.category === "learn");
         if (learnGoal && learnGoal.text !== "Learn") {
-          // #region agent log
-          fetch('http://127.0.0.1:7242/ingest/ad9ef1e8-7ae3-460a-9763-0841686de40c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'home-client.tsx:85',message:'Fixing learn goal text on load',data:{currentText:learnGoal.text,goalId:learnGoal.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'I'})}).catch(()=>{});
-          // #endregion
-          
           try {
             await api.goals.update(learnGoal.id, { text: "Learn" });
             refreshGoals();
@@ -154,10 +150,6 @@ function HomeContent() {
       }
     });
     
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/ad9ef1e8-7ae3-460a-9763-0841686de40c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'home-client.tsx:140',message:'Goals grouped by category',data:{grouped:Object.keys(grouped).map(k => ({category:k,count:grouped[k].length,goals:grouped[k].map(g => ({id:g.id,text:g.text,category:g.category}))})),totalGoals:filteredGoals.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H'})}).catch(()=>{});
-    // #endregion
-    
     return grouped;
   }, [filteredGoals]);
 
@@ -189,10 +181,6 @@ function HomeContent() {
       const text = searchParams.get('text');
       const url = searchParams.get('url');
 
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/ad9ef1e8-7ae3-460a-9763-0841686de40c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'home-client.tsx:165',message:'handleSharedContent called',data:{title,text,url,windowLocation:window.location.href},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-      // #endregion
-
       const hasSharedContent = url || text || title;
       
       // Create a unique key for this share to prevent duplicate processing
@@ -200,10 +188,6 @@ function HomeContent() {
 
       // Only show dialog if content exists and we haven't processed this share yet
       if (hasSharedContent && shareKey && shareKey !== processedShareKey) {
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/ad9ef1e8-7ae3-460a-9763-0841686de40c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'home-client.tsx:177',message:'Setting shared content and opening dialog',data:{shareKey,processedShareKey},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-        // #endregion
-        
         setSharedContent({
           title: title || undefined,
           url: url || undefined,
@@ -219,10 +203,6 @@ function HomeContent() {
     // Listen for popstate events from Android share intent handling
     // This ensures we catch URL changes that happen via window.history.replaceState
     const handlePopState = (e: PopStateEvent) => {
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/ad9ef1e8-7ae3-460a-9763-0841686de40c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'home-client.tsx:191',message:'PopState event received',data:{windowLocation:window.location.href,state:e.state},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-      // #endregion
-      
       // Small delay to ensure URL has been updated
       setTimeout(() => {
         // Force a re-check of search params after popstate
@@ -230,19 +210,11 @@ function HomeContent() {
         const currentText = new URLSearchParams(window.location.search).get('text');
         const currentUrl = new URLSearchParams(window.location.search).get('url');
         
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/ad9ef1e8-7ae3-460a-9763-0841686de40c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'home-client.tsx:195',message:'PopState handler checking URL params',data:{currentTitle,currentText,currentUrl,windowLocation:window.location.href},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-        // #endregion
-        
         const hasContent = currentTitle || currentText || currentUrl;
         const shareKey = hasContent ? `${currentTitle || ''}|${currentUrl || ''}|${currentText || ''}` : null;
         
         // Only show dialog if content exists and we haven't processed this share yet
         if (hasContent && shareKey && shareKey !== processedShareKey) {
-          // #region agent log
-          fetch('http://127.0.0.1:7242/ingest/ad9ef1e8-7ae3-460a-9763-0841686de40c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'home-client.tsx:203',message:'PopState handler setting shared content',data:{shareKey,processedShareKey},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-          // #endregion
-          
           setSharedContent({
             title: currentTitle || undefined,
             url: currentUrl || undefined,
@@ -263,24 +235,12 @@ function HomeContent() {
 
   // Handle confirming article share to learn goals
   const handleShareConfirm = async (goalTitle: string, goalUrl?: string) => {
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/ad9ef1e8-7ae3-460a-9763-0841686de40c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'home-client.tsx:243',message:'handleShareConfirm called',data:{goalTitle,goalUrl},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'G'})}).catch(()=>{});
-    // #endregion
-    
     try {
       // Find existing learn goal or ensure one exists
       let learnGoal = goals.find(g => g.category === "learn");
       
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/ad9ef1e8-7ae3-460a-9763-0841686de40c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'home-client.tsx:257',message:'Looking for existing learn goal',data:{learnGoalFound:!!learnGoal,learnGoalId:learnGoal?.id,learnGoalText:learnGoal?.text},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'I'})}).catch(()=>{});
-      // #endregion
-      
       // If learn goal exists but has wrong text, update it
       if (learnGoal && learnGoal.text !== "Learn") {
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/ad9ef1e8-7ae3-460a-9763-0841686de40c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'home-client.tsx:263',message:'Learn goal has wrong text, updating',data:{currentText:learnGoal.text,goalId:learnGoal.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'I'})}).catch(()=>{});
-        // #endregion
-        
         await api.goals.update(learnGoal.id, { text: "Learn" });
         // Refresh goals to get updated text
         refreshGoals();
@@ -288,10 +248,6 @@ function HomeContent() {
       
       // If no learn goal exists, create one
       if (!learnGoal) {
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/ad9ef1e8-7ae3-460a-9763-0841686de40c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'home-client.tsx:255',message:'No learn goal found, creating one',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'G'})}).catch(()=>{});
-        // #endregion
-        
         const goalId = generateId();
         const goalData: Partial<Goal> = {
           id: goalId,
@@ -304,10 +260,6 @@ function HomeContent() {
 
         learnGoal = await api.goals.create(goalData);
         
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/ad9ef1e8-7ae3-460a-9763-0841686de40c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'home-client.tsx:267',message:'Learn goal created',data:{learnGoalId:learnGoal.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'G'})}).catch(()=>{});
-        // #endregion
-        
         // Refresh goals list to include the new goal
         refreshGoals();
       }
@@ -319,22 +271,11 @@ function HomeContent() {
         ? (goalTitle && goalTitle !== goalUrl ? `${goalTitle} ${goalUrl}` : goalUrl)
         : goalTitle;
       
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/ad9ef1e8-7ae3-460a-9763-0841686de40c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'home-client.tsx:283',message:'Adding article as note',data:{noteText,goalUrl,goalTitle},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'G'})}).catch(()=>{});
-      // #endregion
-      
       await addNote(noteText);
-      
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/ad9ef1e8-7ae3-460a-9763-0841686de40c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'home-client.tsx:279',message:'Note added successfully',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'G'})}).catch(()=>{});
-      // #endregion
 
       // Clear URL params
       router.replace('/', { scroll: false });
     } catch (error) {
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/ad9ef1e8-7ae3-460a-9763-0841686de40c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'home-client.tsx:285',message:'Error adding article to learn goals',data:{error:error instanceof Error ? error.message : String(error),stack:error instanceof Error ? error.stack : undefined,errorType:error?.constructor?.name},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'G'})}).catch(()=>{});
-      // #endregion
       console.error("Error adding article to learn goals:", error);
       throw error; // Re-throw to let dialog handle error display
     }
