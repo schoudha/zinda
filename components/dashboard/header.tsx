@@ -65,13 +65,13 @@ export const Header = memo(function Header({
   }, [selectedPeriod]);
 
   return (
-    <div className="px-6 pb-2 pt-4 space-y-2">
+    <div className="px-6 pb-1 pt-4 space-y-1">
       <h1 className="text-4xl font-serif font-medium tracking-tight text-foreground leading-tight">
         {greeting},<br />
         <span className="text-muted-foreground italic">{userName}.</span>
       </h1>
       {summary && (
-        <p className="text-sm text-muted-foreground leading-relaxed">
+        <p className="text-sm text-muted-foreground leading-relaxed line-clamp-3">
           {summary}
         </p>
       )}
