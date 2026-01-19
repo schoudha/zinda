@@ -235,6 +235,21 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
     return sorted[0];
   }, [isLearnGoal, notes]);
 
+  // Helper function for date ranges (used by faith and learn progress calculation)
+  const getDateStr = useCallback((date: Date) => {
+    return date.toLocaleDateString('en-CA');
+  }, []);
+
+  const dateRange = useCallback((start: Date, end: Date): string[] => {
+    const dates: string[] = [];
+    const current = new Date(start);
+    while (current <= end) {
+      dates.push(getDateStr(current));
+      current.setDate(current.getDate() + 1);
+    }
+    return dates;
+  }, [getDateStr]);
+
   // Calculate completion count for learn goals (using manual progress tracking)
   // Based on 5 points per day target
   const learnProgress = useMemo(() => {
@@ -272,21 +287,6 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
 
     return { periodPoints, target, percentage };
   }, [isLearnGoal, goal.id, selectedPeriod, healthPeriod, progress, progressHistory, getPeriodStart, dateRange]);
-
-  // Helper function for date ranges (used by faith and learn progress calculation)
-  const getDateStr = useCallback((date: Date) => {
-    return date.toLocaleDateString('en-CA');
-  }, []);
-
-  const dateRange = useCallback((start: Date, end: Date): string[] => {
-    const dates: string[] = [];
-    const current = new Date(start);
-    while (current <= end) {
-      dates.push(getDateStr(current));
-      current.setDate(current.getDate() + 1);
-    }
-    return dates;
-  }, [getDateStr]);
 
   // Helper function to calculate expected months completed for year view
   const getExpectedMonthsCompleted = useCallback((currentDate: Date): number => {
