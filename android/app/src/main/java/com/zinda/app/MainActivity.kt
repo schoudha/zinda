@@ -52,9 +52,49 @@ class MainActivity : BridgeActivity() {
     }
 
     private fun handleShareIntent(intent: Intent?) {
+        // #region agent log
+        try {
+            val logData = org.json.JSONObject().apply {
+                put("sessionId", "debug-session")
+                put("runId", "run1")
+                put("hypothesisId", "A")
+                put("location", "MainActivity.kt:54")
+                put("message", "handleShareIntent called")
+                put("timestamp", System.currentTimeMillis())
+                put("data", org.json.JSONObject().apply {
+                    put("intentAction", intent?.action)
+                    put("intentIsNull", intent == null)
+                })
+            }
+            android.util.Log.d("DebugAgent", "LOG: $logData")
+        } catch (e: Exception) {
+            android.util.Log.e("DebugAgent", "Logging failed", e)
+        }
+        // #endregion
+        
         if (intent?.action == Intent.ACTION_SEND) {
             val sharedText = intent.getStringExtra(Intent.EXTRA_TEXT)
             val sharedSubject = intent.getStringExtra(Intent.EXTRA_SUBJECT)
+            
+            // #region agent log
+            try {
+                val logData = org.json.JSONObject().apply {
+                    put("sessionId", "debug-session")
+                    put("runId", "run1")
+                    put("hypothesisId", "A")
+                    put("location", "MainActivity.kt:57")
+                    put("message", "Intent ACTION_SEND matched, extracted extras")
+                    put("timestamp", System.currentTimeMillis())
+                    put("data", org.json.JSONObject().apply {
+                        put("sharedText", sharedText)
+                        put("sharedSubject", sharedSubject)
+                    })
+                }
+                android.util.Log.d("DebugAgent", "LOG: $logData")
+            } catch (e: Exception) {
+                android.util.Log.e("DebugAgent", "Logging failed", e)
+            }
+            // #endregion
             
             if (sharedText != null || sharedSubject != null) {
                 android.util.Log.d("ShareIntent", "Received share: text=$sharedText, subject=$sharedSubject")
@@ -64,6 +104,25 @@ class MainActivity : BridgeActivity() {
                     android.util.Patterns.WEB_URL.matcher(it).find() 
                 } ?: ""
                 
+                // #region agent log
+                try {
+                    val logData = org.json.JSONObject().apply {
+                        put("sessionId", "debug-session")
+                        put("runId", "run1")
+                        put("hypothesisId", "D")
+                        put("location", "MainActivity.kt:63")
+                        put("message", "URL extracted from shared text")
+                        put("timestamp", System.currentTimeMillis())
+                        put("data", org.json.JSONObject().apply {
+                            put("extractedUrl", extractedUrl)
+                        })
+                    }
+                    android.util.Log.d("DebugAgent", "LOG: $logData")
+                } catch (e: Exception) {
+                    android.util.Log.e("DebugAgent", "Logging failed", e)
+                }
+                // #endregion
+                
                 // Build query parameters with proper encoding
                 val textParam = sharedText?.let { "text=${android.net.Uri.encode(it)}" } ?: ""
                 val titleParam = sharedSubject?.let { "title=${android.net.Uri.encode(it)}" } ?: ""
@@ -71,18 +130,71 @@ class MainActivity : BridgeActivity() {
                 
                 val params = listOfNotNull(textParam, titleParam, urlParam).joinToString("&")
                 
+                // #region agent log
+                try {
+                    val logData = org.json.JSONObject().apply {
+                        put("sessionId", "debug-session")
+                        put("runId", "run1")
+                        put("hypothesisId", "D")
+                        put("location", "MainActivity.kt:72")
+                        put("message", "Query params built")
+                        put("timestamp", System.currentTimeMillis())
+                        put("data", org.json.JSONObject().apply {
+                            put("params", params)
+                            put("textParam", textParam)
+                            put("titleParam", titleParam)
+                            put("urlParam", urlParam)
+                        })
+                    }
+                    android.util.Log.d("DebugAgent", "LOG: $logData")
+                } catch (e: Exception) {
+                    android.util.Log.e("DebugAgent", "Logging failed", e)
+                }
+                // #endregion
+                
                 // Use JavaScript to update the URL without reloading the page
                 val jsCode = """
                     (function() {
                         const queryString = '$params';
+                        const logEndpoint = 'http://127.0.0.1:7242/ingest/ad9ef1e8-7ae3-460a-9763-0841686de40c';
+                        const log = (msg, data) => {
+                            fetch(logEndpoint, {
+                                method: 'POST',
+                                headers: {'Content-Type': 'application/json'},
+                                body: JSON.stringify({
+                                    sessionId: 'debug-session',
+                                    runId: 'run1',
+                                    hypothesisId: 'C',
+                                    location: 'MainActivity.kt:JS',
+                                    message: msg,
+                                    data: data || {},
+                                    timestamp: Date.now()
+                                })
+                            }).catch(() => {});
+                        };
+                        console.log('[ShareIntent] Executing JS with queryString:', queryString);
+                        log('JS execution started', {queryString, currentUrl: window.location.href});
                         if (queryString) {
-                            const url = new URL(window.location.href);
-                            const params = new URLSearchParams(queryString);
-                            params.forEach((value, key) => {
-                                url.searchParams.set(key, value);
-                            });
-                            window.history.replaceState({}, '', url.toString());
-                            window.dispatchEvent(new PopStateEvent('popstate'));
+                            try {
+                                const url = new URL(window.location.href);
+                                const params = new URLSearchParams(queryString);
+                                params.forEach((value, key) => {
+                                    url.searchParams.set(key, value);
+                                });
+                                const newUrl = url.toString();
+                                console.log('[ShareIntent] New URL:', newUrl);
+                                log('URL constructed', {newUrl, oldUrl: window.location.href});
+                                window.history.replaceState({}, '', newUrl);
+                                log('history.replaceState called', {newUrl});
+                                console.log('[ShareIntent] Dispatching popstate event');
+                                window.dispatchEvent(new PopStateEvent('popstate'));
+                                log('PopStateEvent dispatched', {newUrl});
+                                console.log('[ShareIntent] JS execution complete');
+                            } catch (e) {
+                                log('JS execution error', {error: e.message, stack: e.stack});
+                            }
+                        } else {
+                            log('No query string to process', {});
                         }
                     })();
                 """.trimIndent()
@@ -90,20 +202,121 @@ class MainActivity : BridgeActivity() {
                 // Execute JavaScript after ensuring the webview is ready
                 val handler = android.os.Handler(android.os.Looper.getMainLooper())
                 
+                var retryCount = 0
+                val maxRetries = 10
+                
                 // Local function that can reference itself recursively
                 fun executeJs() {
                     val webView = bridge?.webView
+                    
+                    // #region agent log
+                    try {
+                        val logData = org.json.JSONObject().apply {
+                            put("sessionId", "debug-session")
+                            put("runId", "run1")
+                            put("hypothesisId", "B")
+                            put("location", "MainActivity.kt:94")
+                            put("message", "Attempting to execute JS")
+                            put("timestamp", System.currentTimeMillis())
+                            put("data", org.json.JSONObject().apply {
+                                put("webViewIsNull", webView == null)
+                                put("bridgeIsNull", bridge == null)
+                                put("retryCount", retryCount)
+                            })
+                        }
+                        android.util.Log.d("DebugAgent", "LOG: $logData")
+                    } catch (e: Exception) {
+                        android.util.Log.e("DebugAgent", "Logging failed", e)
+                    }
+                    // #endregion
+                    
                     if (webView != null) {
+                        // #region agent log
+                        try {
+                            val logData = org.json.JSONObject().apply {
+                                put("sessionId", "debug-session")
+                                put("runId", "run1")
+                                put("hypothesisId", "C")
+                                put("location", "MainActivity.kt:97")
+                                put("message", "WebView available, executing JS")
+                                put("timestamp", System.currentTimeMillis())
+                                put("data", org.json.JSONObject().apply {
+                                    put("jsCodeLength", jsCode.length)
+                                })
+                            }
+                            android.util.Log.d("DebugAgent", "LOG: $logData")
+                        } catch (e: Exception) {
+                            android.util.Log.e("DebugAgent", "Logging failed", e)
+                        }
+                        // #endregion
+                        
                         webView.evaluateJavascript(jsCode, null)
                     } else {
-                        // Retry after a delay if bridge isn't ready yet
-                        handler.postDelayed({ executeJs() }, 200)
+                        retryCount++
+                        if (retryCount < maxRetries) {
+                            // Retry after a delay if bridge isn't ready yet
+                            handler.postDelayed({ executeJs() }, 200)
+                        } else {
+                            // #region agent log
+                            try {
+                                val logData = org.json.JSONObject().apply {
+                                    put("sessionId", "debug-session")
+                                    put("runId", "run1")
+                                    put("hypothesisId", "B")
+                                    put("location", "MainActivity.kt:100")
+                                    put("message", "WebView not available, max retries reached")
+                                    put("timestamp", System.currentTimeMillis())
+                                    put("data", org.json.JSONObject().apply {
+                                        put("retryCount", retryCount)
+                                    })
+                                }
+                                android.util.Log.e("DebugAgent", "LOG: $logData")
+                            } catch (e: Exception) {
+                                android.util.Log.e("DebugAgent", "Logging failed", e)
+                            }
+                            // #endregion
+                        }
                     }
                 }
                 
                 // Start trying to execute after a short delay
                 handler.postDelayed({ executeJs() }, 500)
+            } else {
+                // #region agent log
+                try {
+                    val logData = org.json.JSONObject().apply {
+                        put("sessionId", "debug-session")
+                        put("runId", "run1")
+                        put("hypothesisId", "A")
+                        put("location", "MainActivity.kt:106")
+                        put("message", "No shared text or subject found")
+                        put("timestamp", System.currentTimeMillis())
+                    }
+                    android.util.Log.d("DebugAgent", "LOG: $logData")
+                } catch (e: Exception) {
+                    android.util.Log.e("DebugAgent", "Logging failed", e)
+                }
+                // #endregion
             }
+        } else {
+            // #region agent log
+            try {
+                val logData = org.json.JSONObject().apply {
+                    put("sessionId", "debug-session")
+                    put("runId", "run1")
+                    put("hypothesisId", "A")
+                    put("location", "MainActivity.kt:107")
+                    put("message", "Intent action does not match ACTION_SEND")
+                    put("timestamp", System.currentTimeMillis())
+                    put("data", org.json.JSONObject().apply {
+                        put("intentAction", intent?.action)
+                    })
+                }
+                android.util.Log.d("DebugAgent", "LOG: $logData")
+            } catch (e: Exception) {
+                android.util.Log.e("DebugAgent", "Logging failed", e)
+            }
+            // #endregion
         }
     }
     

@@ -2,13 +2,26 @@ import { Note, Goal, Message, Thought, ChatContext } from "@/types";
 
 // Helper for standardized API calls
 async function fetchApi<T>(url: string, options?: RequestInit): Promise<T> {
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/ad9ef1e8-7ae3-460a-9763-0841686de40c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'lib/api.ts:4',message:'fetchApi called',data:{url,method:options?.method || 'GET'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
+  // #endregion
+  
   const response = await fetch(url, {
     headers: { "Content-Type": "application/json" },
     ...options,
   });
 
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/ad9ef1e8-7ae3-460a-9763-0841686de40c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'lib/api.ts:9',message:'fetchApi response received',data:{url,status:response.status,statusText:response.statusText,ok:response.ok},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
+  // #endregion
+
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
+    
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/ad9ef1e8-7ae3-460a-9763-0841686de40c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'lib/api.ts:15',message:'fetchApi error response',data:{url,status:response.status,statusText:response.statusText,errorData:JSON.stringify(errorData)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
+    // #endregion
+    
     if (response.status === 404) {
       // Return null or throw specific error for 404
       throw new Error(`Goal not found: ${response.statusText}`);
@@ -16,7 +29,13 @@ async function fetchApi<T>(url: string, options?: RequestInit): Promise<T> {
     throw new Error(errorData.error || `API error: ${response.statusText}`);
   }
 
-  return response.json();
+  const jsonData = await response.json();
+  
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/ad9ef1e8-7ae3-460a-9763-0841686de40c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'lib/api.ts:25',message:'fetchApi success',data:{url,responseKeys:Object.keys(jsonData)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
+  // #endregion
+
+  return jsonData;
 }
 
 export const api = {
@@ -30,11 +49,27 @@ export const api = {
       return data.goal;
     },
     create: async (goal: Partial<Goal>) => {
-      const data = await fetchApi<{ goal: Goal }>("/api/goals", {
-        method: "POST",
-        body: JSON.stringify(goal),
-      });
-      return data.goal;
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/ad9ef1e8-7ae3-460a-9763-0841686de40c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'lib/api.ts:32',message:'api.goals.create called',data:{goal:JSON.stringify(goal)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
+      // #endregion
+      
+      try {
+        const response = await fetchApi<{ goal: Goal }>("/api/goals", {
+          method: "POST",
+          body: JSON.stringify(goal),
+        });
+        
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/ad9ef1e8-7ae3-460a-9763-0841686de40c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'lib/api.ts:37',message:'api.goals.create response received',data:{goal:JSON.stringify(response.goal)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
+        // #endregion
+        
+        return response.goal;
+      } catch (error) {
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/ad9ef1e8-7ae3-460a-9763-0841686de40c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'lib/api.ts:42',message:'api.goals.create error',data:{error:error instanceof Error ? error.message : String(error),stack:error instanceof Error ? error.stack : undefined},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
+        // #endregion
+        throw error;
+      }
     },
     update: async (id: string, updates: Partial<Goal>) => {
       const data = await fetchApi<{ goal: Goal }>("/api/goals", {

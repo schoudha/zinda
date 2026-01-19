@@ -167,6 +167,10 @@ function HomeContent() {
       const text = searchParams.get('text');
       const url = searchParams.get('url');
 
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/ad9ef1e8-7ae3-460a-9763-0841686de40c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'home-client.tsx:165',message:'handleSharedContent called',data:{title,text,url,windowLocation:window.location.href},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+      // #endregion
+
       const hasSharedContent = url || text || title;
       
       // Create a unique key for this share to prevent duplicate processing
@@ -174,6 +178,10 @@ function HomeContent() {
 
       // Only show dialog if content exists and we haven't processed this share yet
       if (hasSharedContent && shareKey && shareKey !== processedShareKey) {
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/ad9ef1e8-7ae3-460a-9763-0841686de40c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'home-client.tsx:177',message:'Setting shared content and opening dialog',data:{shareKey,processedShareKey},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+        // #endregion
+        
         setSharedContent({
           title: title || undefined,
           url: url || undefined,
@@ -188,7 +196,11 @@ function HomeContent() {
 
     // Listen for popstate events from Android share intent handling
     // This ensures we catch URL changes that happen via window.history.replaceState
-    const handlePopState = () => {
+    const handlePopState = (e: PopStateEvent) => {
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/ad9ef1e8-7ae3-460a-9763-0841686de40c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'home-client.tsx:191',message:'PopState event received',data:{windowLocation:window.location.href,state:e.state},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+      // #endregion
+      
       // Small delay to ensure URL has been updated
       setTimeout(() => {
         // Force a re-check of search params after popstate
@@ -196,11 +208,19 @@ function HomeContent() {
         const currentText = new URLSearchParams(window.location.search).get('text');
         const currentUrl = new URLSearchParams(window.location.search).get('url');
         
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/ad9ef1e8-7ae3-460a-9763-0841686de40c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'home-client.tsx:195',message:'PopState handler checking URL params',data:{currentTitle,currentText,currentUrl,windowLocation:window.location.href},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+        // #endregion
+        
         const hasContent = currentTitle || currentText || currentUrl;
         const shareKey = hasContent ? `${currentTitle || ''}|${currentUrl || ''}|${currentText || ''}` : null;
         
         // Only show dialog if content exists and we haven't processed this share yet
         if (hasContent && shareKey && shareKey !== processedShareKey) {
+          // #region agent log
+          fetch('http://127.0.0.1:7242/ingest/ad9ef1e8-7ae3-460a-9763-0841686de40c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'home-client.tsx:203',message:'PopState handler setting shared content',data:{shareKey,processedShareKey},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+          // #endregion
+          
           setSharedContent({
             title: currentTitle || undefined,
             url: currentUrl || undefined,
@@ -221,6 +241,10 @@ function HomeContent() {
 
   // Handle confirming article share to learn goals
   const handleShareConfirm = async (goalTitle: string, goalUrl?: string) => {
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/ad9ef1e8-7ae3-460a-9763-0841686de40c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'home-client.tsx:243',message:'handleShareConfirm called',data:{goalTitle,goalUrl},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
+    // #endregion
+    
     try {
       const goalId = generateId();
       const goalData: Partial<Goal> = {
@@ -232,13 +256,32 @@ function HomeContent() {
         createdAt: new Date(),
       };
 
-      await api.goals.create(goalData);
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/ad9ef1e8-7ae3-460a-9763-0841686de40c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'home-client.tsx:255',message:'Goal data prepared, calling API',data:{goalId,goalData:JSON.stringify(goalData)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
+      // #endregion
+
+      const result = await api.goals.create(goalData);
+      
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/ad9ef1e8-7ae3-460a-9763-0841686de40c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'home-client.tsx:258',message:'Goal created successfully',data:{result:JSON.stringify(result)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
+      // #endregion
       
       // If URL exists, also add it as a note for reference
       if (goalUrl) {
         try {
+          // #region agent log
+          fetch('http://127.0.0.1:7242/ingest/ad9ef1e8-7ae3-460a-9763-0841686de40c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'home-client.tsx:262',message:'Adding note for URL',data:{goalUrl},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
+          // #endregion
+          
           await addNote(goalUrl);
+          
+          // #region agent log
+          fetch('http://127.0.0.1:7242/ingest/ad9ef1e8-7ae3-460a-9763-0841686de40c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'home-client.tsx:266',message:'Note added successfully',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
+          // #endregion
         } catch (error) {
+          // #region agent log
+          fetch('http://127.0.0.1:7242/ingest/ad9ef1e8-7ae3-460a-9763-0841686de40c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'home-client.tsx:269',message:'Error adding note (non-fatal)',data:{error:error instanceof Error ? error.message : String(error)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
+          // #endregion
           console.error("Error adding note:", error);
           // Don't fail the whole operation if note addition fails
         }
@@ -250,6 +293,9 @@ function HomeContent() {
       // Clear URL params
       router.replace('/', { scroll: false });
     } catch (error) {
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/ad9ef1e8-7ae3-460a-9763-0841686de40c',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'home-client.tsx:280',message:'Error creating learn goal',data:{error:error instanceof Error ? error.message : String(error),stack:error instanceof Error ? error.stack : undefined,errorType:error?.constructor?.name},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
+      // #endregion
       console.error("Error creating learn goal:", error);
       throw error; // Re-throw to let dialog handle error display
     }

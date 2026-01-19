@@ -4,9 +4,9 @@ import { isAuthenticated } from '@/lib/auth';
 import { extractIntegerTarget } from '@/lib/utils';
 
 // GET - Fetch all goals
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    if (!await isAuthenticated()) {
+    if (!await isAuthenticated(request)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -69,7 +69,7 @@ export async function GET() {
 // POST - Create a new goal
 export async function POST(request: NextRequest) {
   try {
-    if (!await isAuthenticated()) {
+    if (!await isAuthenticated(request)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -176,7 +176,7 @@ export async function POST(request: NextRequest) {
 // PATCH - Update a goal
 export async function PATCH(request: NextRequest) {
   try {
-    if (!await isAuthenticated()) {
+    if (!await isAuthenticated(request)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -325,7 +325,7 @@ export async function PATCH(request: NextRequest) {
 // DELETE - Delete a goal
 export async function DELETE(request: NextRequest) {
   try {
-    if (!await isAuthenticated()) {
+    if (!await isAuthenticated(request)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
