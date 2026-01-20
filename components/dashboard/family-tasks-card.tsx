@@ -1,8 +1,11 @@
 "use client";
 
-import { memo } from "react";
+import { memo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogClose } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import { Bot, CreditCard, AlertCircle } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface FamilyTasksCardProps {
   // Future: can accept tasks as props when we integrate with backend
@@ -13,6 +16,8 @@ type TaskItem =
   | { type: 'financial'; title: string; price: number; unusual?: boolean };
 
 export const FamilyTasksCard = memo(function FamilyTasksCard({}: FamilyTasksCardProps) {
+  const [agentDialogOpen, setAgentDialogOpen] = useState(false);
+
   // Hardcoded tasks for now
   const tasks: TaskItem[] = [
     "Shikansen Tickets for Osaka",
@@ -32,6 +37,16 @@ export const FamilyTasksCard = memo(function FamilyTasksCard({}: FamilyTasksCard
 
   const isFinancialItem = (item: TaskItem): item is { type: 'financial'; title: string; price: number; unusual?: boolean } => {
     return typeof item === 'object' && item !== null && 'type' in item && item.type === 'financial';
+  };
+
+  const handleStartAgent = () => {
+    // Placeholder for agent start logic
+    console.log("Starting agent for Shinkansen task");
+    setAgentDialogOpen(false);
+  };
+
+  const isShinkansenTask = (task: TaskItem): boolean => {
+    return typeof task === 'string' && task.toLowerCase().includes('shikansen');
   };
 
   return (
@@ -70,10 +85,16 @@ export const FamilyTasksCard = memo(function FamilyTasksCard({}: FamilyTasksCard
                 );
               }
               
+              const isShinkansen = isShinkansenTask(task);
+              
               return (
                 <div
                   key={index}
-                  className="flex items-center justify-between gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800 hover:bg-gray-100 dark:hover:bg-gray-900 transition-colors"
+                  onClick={isShinkansen ? () => setAgentDialogOpen(true) : undefined}
+                  className={cn(
+                    "flex items-center justify-between gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800 hover:bg-gray-100 dark:hover:bg-gray-900 transition-colors",
+                    isShinkansen && "cursor-pointer"
+                  )}
                 >
                   <span className="text-sm font-medium text-gray-900 dark:text-white flex-1">
                     {task}
@@ -91,6 +112,35 @@ export const FamilyTasksCard = memo(function FamilyTasksCard({}: FamilyTasksCard
           </p>
         )}
       </CardContent>
+
+      <Dialog open={agentDialogOpen} onOpenChange={setAgentDialogOpen}>
+        <DialogContent className="max-w-md bg-background">
+          <DialogHeader>
+            <DialogTitle>Start Agent</DialogTitle>
+            <DialogClose onClose={() => setAgentDialogOpen(false)} />
+          </DialogHeader>
+          <DialogBody className="space-y-4">
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Start an AI agent to help you execute this task.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <Button
+                variant="outline"
+                onClick={() => setAgentDialogOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleStartAgent}
+                className="gap-2"
+              >
+                <Bot className="h-4 w-4" />
+                Start Agent
+              </Button>
+            </div>
+          </DialogBody>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 });
