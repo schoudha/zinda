@@ -18,6 +18,7 @@ export const FamilyTasksCard = memo(function FamilyTasksCard({}: FamilyTasksCard
     "Shikansen Tickets for Osaka",
     "Universal Osaka + Nintendo World",
     { type: 'financial', title: 'United', price: 7442.26 },
+    "Create Mileage Plus for Kids",
   ];
 
   const formatPrice = (price: number): string => {
