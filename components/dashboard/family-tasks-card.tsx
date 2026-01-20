@@ -2,7 +2,7 @@
 
 import { memo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Bot, CreditCard } from "lucide-react";
+import { Bot, CreditCard, AlertCircle } from "lucide-react";
 
 interface FamilyTasksCardProps {
   // Future: can accept tasks as props when we integrate with backend
@@ -10,14 +10,14 @@ interface FamilyTasksCardProps {
 
 type TaskItem = 
   | string 
-  | { type: 'financial'; title: string; price: number };
+  | { type: 'financial'; title: string; price: number; unusual?: boolean };
 
 export const FamilyTasksCard = memo(function FamilyTasksCard({}: FamilyTasksCardProps) {
   // Hardcoded tasks for now
   const tasks: TaskItem[] = [
     "Shikansen Tickets for Osaka",
     "Universal Osaka + Nintendo World",
-    { type: 'financial', title: 'United', price: 7442.26 },
+    { type: 'financial', title: 'United', price: 7442.26, unusual: true },
     "Create Mileage Plus for Kids",
   ];
 
@@ -30,7 +30,7 @@ export const FamilyTasksCard = memo(function FamilyTasksCard({}: FamilyTasksCard
     }).format(price);
   };
 
-  const isFinancialItem = (item: TaskItem): item is { type: 'financial'; title: string; price: number } => {
+  const isFinancialItem = (item: TaskItem): item is { type: 'financial'; title: string; price: number; unusual?: boolean } => {
     return typeof item === 'object' && item !== null && 'type' in item && item.type === 'financial';
   };
 
@@ -58,9 +58,14 @@ export const FamilyTasksCard = memo(function FamilyTasksCard({}: FamilyTasksCard
                         {task.title}
                       </span>
                     </div>
-                    <span className="text-sm font-semibold text-gray-900 dark:text-white">
-                      {formatPrice(task.price)}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                        {formatPrice(task.price)}
+                      </span>
+                      {task.unusual && (
+                        <AlertCircle className="h-4 w-4 text-amber-500 dark:text-amber-400 shrink-0" />
+                      )}
+                    </div>
                   </div>
                 );
               }
