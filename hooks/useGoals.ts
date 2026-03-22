@@ -4,6 +4,9 @@ import { Goal } from "@/types";
 import { api } from "@/lib/api";
 import { normalizeDate } from "@/lib/utils";
 
+type GoalProgressTodayMap = Record<string, number>;
+type GoalProgressHistoryRow = { goalId: string; progressValue: number; date: string };
+
 export function useGoals() {
   const queryClient = useQueryClient();
 
@@ -49,15 +52,15 @@ export function useGoals() {
 export function useGoalProgress() {
   const queryClient = useQueryClient();
 
-  const { data: progress = {}, isLoading: todayLoading } = useQuery({
+  const { data: progress = {}, isLoading: todayLoading } = useQuery<GoalProgressTodayMap>({
     queryKey: ["goal-progress", "today"],
-    queryFn: api.goals.progress.getToday,
+    queryFn: async () => (await api.goals.progress.getToday()).progress,
     staleTime: 5 * 60 * 1000,
   });
 
-  const { data: history = [], isLoading: historyLoading } = useQuery({
+  const { data: history = [], isLoading: historyLoading } = useQuery<GoalProgressHistoryRow[]>({
     queryKey: ["goal-progress", "history"],
-    queryFn: api.goals.progress.getHistory,
+    queryFn: async () => (await api.goals.progress.getHistory()).progress,
     staleTime: 5 * 60 * 1000,
   });
 
