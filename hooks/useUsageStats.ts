@@ -125,15 +125,57 @@ export function useUsageStats(period: string = 'today', startHour?: number, endH
 
   useEffect(() => {
     setIsNative(Capacitor.isNativePlatform());
-    if (Capacitor.isNativePlatform()) {
-      checkPermission();
-      loadStats();
-      
-      // Refresh every minute
-      const interval = setInterval(loadStats, 60000);
-      return () => clearInterval(interval);
+    if (!Capacitor.isNativePlatform()) {
+      return;
     }
-  }, [loadStats]); // Use loadStats as dependency instead of period
+
+    let intervalId: ReturnType<typeof setInterval> | undefined;
+    let cleanupResume: (() => void) | undefined;
+    let removeVisibility: (() => void) | undefined;
+
+    const init = async () => {
+      // Order matters: permission state must update before first read (matches HealthConnect pattern)
+      await checkPermission();
+      await loadStats();
+
+      intervalId = setInterval(loadStats, 60000);
+
+      const refreshFromForeground = () => {
+        setTimeout(() => {
+          void checkPermission();
+          void loadStats();
+        }, 300);
+      };
+
+      try {
+        const { App } = await import("@capacitor/app");
+        const handle = await App.addListener("resume", refreshFromForeground);
+        cleanupResume = () => {
+          void handle.remove();
+        };
+      } catch {
+        // @capacitor/app unavailable (e.g. some web builds)
+      }
+
+      if (typeof document !== "undefined") {
+        const onVisibility = () => {
+          if (document.visibilityState === "visible") {
+            refreshFromForeground();
+          }
+        };
+        document.addEventListener("visibilitychange", onVisibility);
+        removeVisibility = () => document.removeEventListener("visibilitychange", onVisibility);
+      }
+    };
+
+    void init();
+
+    return () => {
+      if (intervalId !== undefined) clearInterval(intervalId);
+      cleanupResume?.();
+      removeVisibility?.();
+    };
+  }, [loadStats]);
 
   return {
     isNative,
