@@ -1,12 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { isAuthenticated } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
   try {
-    if (!await isAuthenticated(request)) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
     const { usage, goals, period } = await request.json();
 
     if (!usage) {

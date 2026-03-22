@@ -18,7 +18,6 @@ import { FinancialGoalCard } from "@/components/dashboard/financial-goal-card";
 import { GoalCreationDialog } from "@/components/goals/goal-creation-dialog";
 import { ShareArticleDialog } from "@/components/goals/share-article-dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { PasswordGate } from "@/components/auth/password-gate";
 import { useGoals, useGoalProgress } from "@/hooks/useGoals";
 import { useNotes } from "@/hooks/useNotes";
 import { GoalPeriod, Goal, GoalCategory } from "@/types";
@@ -401,11 +400,9 @@ function HomeContent() {
 
 export default function HomeClient() {
   return (
-    <PasswordGate>
-      <Suspense fallback={<DashboardSkeleton />}>
-        <HomeContent />
-      </Suspense>
-    </PasswordGate>
+    <Suspense fallback={<DashboardSkeleton />}>
+      <HomeContent />
+    </Suspense>
   );
 }
 

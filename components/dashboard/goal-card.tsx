@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, memo, lazy, Suspense, useCallback, useMemo } from "react";
+import { useState, useEffect, memo, useCallback, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { X, Bell, MessageCircle, Plus, Minus, Calendar, CalendarRange, CalendarCheck, Lock, BookOpen, ExternalLink, ThumbsUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -12,13 +12,7 @@ import { useGoalProgress } from "@/hooks/useGoals";
 import { useUsageStats } from "@/hooks/useUsageStats";
 import { useNotes } from "@/hooks/useNotes";
 import { useCallLog } from "@/hooks/useCallLog";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { getDateTimestamp, cn } from "@/lib/utils";
-
-// Lazy load NotificationDialog - only needed when user clicks bell icon
-const NotificationDialog = lazy(() =>
-  import("@/components/goals/notification-dialog").then(mod => ({ default: mod.NotificationDialog }))
-);
 
 function RadialProgress({
   value,
@@ -142,7 +136,6 @@ interface GoalCardProps {
 
 export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = false, onProgressChange, onProgressUpdate, selectedPeriod = "today", history }: GoalCardProps) {
   const router = useRouter();
-  const [notificationDialogOpen, setNotificationDialogOpen] = useState(false);
   const [currentGoal, setCurrentGoal] = useState<Goal>(goal);
   const [progressValue, setProgressValue] = useState<number>(goal.todayProgress ?? 0);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -789,25 +782,6 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
     }
   }, [onDelete, goal.id]);
 
-  const handleBellClick = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
-    setNotificationDialogOpen(true);
-  }, []);
-
-  const handleSaveNotification = useCallback(async (time: Goal["notificationTime"] | null, days: Goal["notificationDays"] | null) => {
-    const updatedGoal = await api.goals.updateNotifications(
-      currentGoal.id,
-      time ?? undefined,
-      days ?? undefined
-    );
-    setCurrentGoal(updatedGoal);
-  }, [currentGoal.id]);
-
-  const handleDiscussClick = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
-    router.push(`/goals/${goal.id}`);
-  }, [router, goal.id]);
-
   const handleCardClick = useCallback(async (e: React.MouseEvent | React.TouchEvent) => {
     // Don't navigate if clicking on a button or inside a button
     const target = e.target as HTMLElement;
@@ -1083,19 +1057,6 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
         {/* Shine Effect on Hover */}
         <div className="absolute inset-0 bg-gradient-to-tr from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
       </div>
-
-      <Dialog open={notificationDialogOpen} onOpenChange={setNotificationDialogOpen}>
-        <Suspense fallback={<div />}>
-          <NotificationDialog
-            open={notificationDialogOpen}
-            onOpenChange={setNotificationDialogOpen}
-            onSave={handleSaveNotification}
-            goalId={currentGoal.id}
-            currentTime={currentGoal.notificationTime}
-            currentDays={currentGoal.notificationDays}
-          />
-        </Suspense>
-      </Dialog>
 
     </>
   );

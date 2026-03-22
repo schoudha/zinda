@@ -1,13 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { isYoutubeUrl, isTwitterUrl, extractTweetId } from '@/lib/url-utils';
-import { isAuthenticated } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
   try {
-    if (!await isAuthenticated(request)) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
     const { url, transcript } = await request.json();
 
     if (!url || typeof url !== 'string') {

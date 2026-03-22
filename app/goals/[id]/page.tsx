@@ -2,14 +2,13 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Bell, Edit2, Sparkles, Loader2 } from "lucide-react";
+import { ArrowLeft, Edit2, Sparkles, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogClose } from "@/components/ui/dialog";
 import { Goal } from "@/types";
 import { api } from "@/lib/api";
-import { NotificationDialog } from "@/components/goals/notification-dialog";
 import { GoalChatDialog } from "@/components/goals/goal-chat-dialog";
 import { getRandomQuranQuote, type QuranQuote } from "@/lib/quran-quotes";
 import { useHealthConnect } from "@/hooks/useHealthConnect";
@@ -24,13 +23,27 @@ import { FaithGoalView } from "@/components/goals/faith-goal-view";
 import { ScreentimeGoalView } from "@/components/goals/screentime-goal-view";
 import { FamilyGoalView } from "@/components/goals/family-goal-view";
 
+/** Next.js `useParams().id` may be string | string[] | undefined */
+function goalIdFromParams(raw: string | string[] | undefined): string {
+  let s = "";
+  if (raw === undefined) s = "";
+  else if (typeof raw === "string") s = raw.trim();
+  else s = (raw[0] ?? "").trim();
+  if (!s) return "";
+  try {
+    return decodeURIComponent(s).trim();
+  } catch {
+    return s;
+  }
+}
+
 export default function GoalDetailPage() {
   const params = useParams();
   const router = useRouter();
   const queryClient = useQueryClient();
-  const id = params.id as string;
-  
-  const [notificationDialogOpen, setNotificationDialogOpen] = useState(false);
+  const id = goalIdFromParams(params.id);
+  const goalIdValid = id.length > 0 && id !== "undefined";
+
   const [chatDialogOpen, setChatDialogOpen] = useState(false);
   const [quote, setQuote] = useState<QuranQuote | null>(null);
   const [healthPeriod, setHealthPeriod] = useState<"today" | "week" | "month" | "year">("today");
@@ -44,14 +57,28 @@ export default function GoalDetailPage() {
   const [learnProgress, setLearnProgress] = useState<number>(0);
   const [isUpdatingLearnProgress, setIsUpdatingLearnProgress] = useState(false);
   const [isUpdatingFaith, setIsUpdatingFaith] = useState(false);
-  
+
   // React Query for Goal Data
-  const { data: goal, isLoading: isGoalLoading, error: goalError } = useQuery({
+  const { data: goal, isPending, isFetching, error: goalError } = useQuery({
     queryKey: ['goal', id],
-    queryFn: () => api.goals.get(id),
-    enabled: !!id,
+    queryFn: async () => {
+      try {
+        return await api.goals.get(id);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : "";
+        if (msg.includes("Goal not found")) {
+          const list = queryClient.getQueryData<Goal[]>(["goals"]);
+          const fromList = list?.find((g) => g.id === id);
+          if (fromList) return fromList;
+        }
+        throw err;
+      }
+    },
+    enabled: goalIdValid,
     retry: false, // Don't retry if it fails (e.g. 404)
   });
+
+  const isGoalQueryLoading = goalIdValid && (isPending || isFetching);
 
   // Faith goal completions
   const { data: completionStats, refetch: refetchCompletions } = useQuery({
@@ -125,12 +152,6 @@ export default function GoalDetailPage() {
     }
   };
 
-  const handleSaveNotification = async (time: Goal["notificationTime"] | null, days: Goal["notificationDays"] | null) => {
-    if (!goal) return;
-    await api.goals.updateNotifications(goal.id, time ?? undefined, days ?? undefined);
-    queryClient.invalidateQueries({ queryKey: ['goal', id] });
-  };
-  
   // Update learn progress when progress data changes
   useEffect(() => {
     if (goal?.category === 'learn') {
@@ -170,7 +191,16 @@ export default function GoalDetailPage() {
     }
   };
 
-  if (isGoalLoading) {
+  if (!goalIdValid) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gray-50 flex-col gap-4 px-6 text-center">
+        <p className="text-gray-500">This goal link is invalid or incomplete.</p>
+        <Button onClick={() => router.back()}>Go Back</Button>
+      </div>
+    );
+  }
+
+  if (isGoalQueryLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-50">
         <div className="h-8 w-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
@@ -178,19 +208,11 @@ export default function GoalDetailPage() {
     );
   }
 
-  if (goalError || (!isGoalLoading && !goal)) {
+  if (goalError || !goal) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-50 flex-col gap-4">
         <p className="text-gray-500">Goal not found</p>
         <Button onClick={() => router.back()}>Go Back</Button>
-      </div>
-    );
-  }
-
-  if (!goal) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50 flex-col gap-4">
-        <p className="text-gray-500">Loading goal...</p>
       </div>
     );
   }
@@ -209,28 +231,11 @@ export default function GoalDetailPage() {
           variant="ghost"
           size="icon"
           onClick={() => setEditDialogOpen(true)}
-          className="hover:bg-muted"
+          className="-mr-2 hover:bg-muted"
         >
           <Edit2 className="h-5 w-5 text-muted-foreground" />
         </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setNotificationDialogOpen(true)}
-          className="-mr-2 hover:bg-muted"
-        >
-          <Bell className={`h-5 w-5 ${goal.notificationTime && goal.notificationDays ? 'fill-current text-blue-600 dark:text-blue-400' : 'text-muted-foreground'}`} />
-        </Button>
       </div>
-
-      <NotificationDialog
-        open={notificationDialogOpen}
-        onOpenChange={setNotificationDialogOpen}
-        goalId={goal.id}
-        currentTime={goal.notificationTime}
-        currentDays={goal.notificationDays}
-        onSave={handleSaveNotification}
-      />
 
       {/* Goal Context Card - Scrollable Content */}
       <div className="flex-1 overflow-y-auto p-4 bg-background space-y-4 pb-6">

@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect, memo } from "react";
+import { storage } from "@/lib/storage";
+import { buildDashboardGoalsContext } from "@/lib/build-dashboard-goals-context";
 
 interface HeaderProps {
   userName?: string;
@@ -45,12 +47,18 @@ export const Header = memo(function Header({
     const fetchSummary = async () => {
       setIsLoadingSummary(true);
       try {
-        const response = await fetch(`/api/dashboard/summary?period=${selectedPeriod}`);
+        const { goals, progress } = storage.exportForDashboard();
+        const goalsContext = buildDashboardGoalsContext(goals, progress, selectedPeriod);
+        const response = await fetch("/api/dashboard/summary", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ period: selectedPeriod, goalsContext }),
+        });
         if (response.ok) {
           const data = await response.json();
           setSummary(data.summary);
         } else {
-          console.error('Failed to fetch summary');
+          console.error("Failed to fetch summary");
           setSummary(null);
         }
       } catch (error) {

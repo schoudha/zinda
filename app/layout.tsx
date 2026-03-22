@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Fraunces } from "next/font/google";
-import { PushInit } from "@/components/native/push-init";
 import Providers from "./providers";
 import "./globals.css";
 
@@ -46,7 +45,6 @@ export default function RootLayout({
         className={`${geistSans.variable} ${fraunces.variable} antialiased bg-background text-foreground`}
       >
         <Providers>
-          <PushInit />
           {children}
         </Providers>
       </body>
