@@ -70,14 +70,15 @@ export function buildDashboardGoalsContext(
       });
     } else {
       if (goal.target) {
-        const completedDays = goalProgress.filter((p) => Number(p.progressValue) >= goal.target).length;
+        const target = goal.target;
+        const completedDays = goalProgress.filter((p) => Number(p.progressValue) >= target).length;
         const totalDays = Math.ceil((now.getTime() - periodStart.getTime()) / (1000 * 60 * 60 * 24)) + 1;
         const progressPercentage = totalDays > 0 ? Math.round((completedDays / totalDays) * 100) : 0;
 
         goalsSummary.push({
           text: goal.text,
           category: goal.category || "general",
-          target: goal.target,
+          target,
           progress: completedDays,
           progressPercentage,
         });
