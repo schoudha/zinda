@@ -220,7 +220,7 @@ export const storage = {
       const created = { faith: false, health: false, screentime: false, learn: false };
       if (!ls) return created;
 
-      const goals = readGoals(ls);
+      let goals = readGoals(ls);
 
       if (!goals.some((g) => g.category === "faith")) {
         this.create({
@@ -248,8 +248,28 @@ export const storage = {
         created.health = true;
       }
 
-      const hasScreen = goals.some((g) => g.category === "family" || g.category === "screentime");
-      if (!hasScreen) {
+      // Legacy: default "Screen Time" was category `family`, which is hidden on the Today tab and
+      // blocked creation of a real `screentime` goal (hasScreen included family). Migrate to screentime.
+      const legacyScreenFamily = goals.find(
+        (g) =>
+          g.category === "family" &&
+          g.text.trim().toLowerCase() === "screen time" &&
+          !goals.some((x) => x.category === "screentime")
+      );
+      if (legacyScreenFamily) {
+        this.update(legacyScreenFamily.id, {
+          category: "screentime",
+          minutesPerDay: legacyScreenFamily.minutesPerDay ?? 15,
+          screentimeStartHour: 17,
+          screentimeStartMinute: 30,
+          screentimeEndHour: 19,
+          screentimeEndMinute: 0,
+        });
+        created.screentime = true;
+        goals = readGoals(ls);
+      }
+
+      if (!goals.some((g) => g.category === "screentime")) {
         this.create({
           id: generateId(),
           text: "Screen Time",
