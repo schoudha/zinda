@@ -78,7 +78,7 @@ function HomeContent() {
     const ensureDefaults = async () => {
       try {
         const { created } = await api.goals.ensureDefaults();
-        if (created.faith || created.screentime || created.learn) {
+        if (created.faith || created.health || created.screentime || created.learn) {
           refreshGoals();
         }
         

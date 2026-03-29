@@ -215,9 +215,9 @@ export const storage = {
       });
     },
 
-    ensureDefaults(): { faith: boolean; screentime: boolean; learn: boolean } {
+    ensureDefaults(): { faith: boolean; health: boolean; screentime: boolean; learn: boolean } {
       const ls = getLS();
-      const created = { faith: false, screentime: false, learn: false };
+      const created = { faith: false, health: false, screentime: false, learn: false };
       if (!ls) return created;
 
       const goals = readGoals(ls);
@@ -233,6 +233,19 @@ export const storage = {
           createdAt: new Date(),
         });
         created.faith = true;
+      }
+
+      if (!goals.some((g) => g.category === "health")) {
+        this.create({
+          id: generateId(),
+          text: "Daily movement",
+          period: "week",
+          category: "health",
+          tips: [],
+          minutesPerDay: 30,
+          createdAt: new Date(),
+        });
+        created.health = true;
       }
 
       const hasScreen = goals.some((g) => g.category === "family" || g.category === "screentime");
@@ -253,9 +266,7 @@ export const storage = {
         created.screentime = true;
       }
 
-      const rawNotes = parseJson<Record<string, unknown>[]>(ls.getItem(K.notes), []);
-      const hasUrlNote = rawNotes.some((n) => Boolean(n.url));
-      if (!goals.some((g) => g.category === "learn") && hasUrlNote) {
+      if (!goals.some((g) => g.category === "learn")) {
         this.create({
           id: generateId(),
           text: "Learn",
