@@ -103,10 +103,18 @@ export function useFinance() {
     onExit: () => setLinkToken(null),
   });
 
+  /** `open` from react-plaid-link can change identity every render; depending on it alone retriggers this effect and can exceed max update depth (#185). Only open once per link token. */
+  const openedLinkTokenRef = useRef<string | null>(null);
+
   useEffect(() => {
-    if (linkToken && ready) {
-      open();
+    if (!linkToken) {
+      openedLinkTokenRef.current = null;
+      return;
     }
+    if (!ready) return;
+    if (openedLinkTokenRef.current === linkToken) return;
+    openedLinkTokenRef.current = linkToken;
+    open();
   }, [linkToken, ready, open]);
 
   const startConnect = useCallback(async () => {
