@@ -1,4 +1,4 @@
-import { Note, Goal, Message, Thought, ChatContext } from "@/types";
+import { Note, Goal, Message, Thought, ChatContext, PlaidAccount, PlaidTransaction } from "@/types";
 import { storage } from "@/lib/storage";
 import { generateId } from "@/lib/id-utils";
 
@@ -263,5 +263,35 @@ export const api = {
     list: async () => storage.thoughts.list(),
 
     create: async (thought: Partial<Thought>) => storage.thoughts.create(thought),
+  },
+
+  finance: {
+    createLinkToken: async () =>
+      fetchAi<{ link_token: string }>("/api/plaid/create-link-token", { method: "POST" }),
+
+    exchangeToken: async (publicToken: string) =>
+      fetchAi<{
+        access_token: string;
+        item_id: string;
+        institution_name: string;
+        accounts: PlaidAccount[];
+      }>("/api/plaid/exchange-token", {
+        method: "POST",
+        body: JSON.stringify({ public_token: publicToken }),
+      }),
+
+    getTransactions: async (accessToken: string, startDate?: string, endDate?: string) =>
+      fetchAi<{
+        transactions: PlaidTransaction[];
+        accounts: PlaidAccount[];
+        item_id: string;
+      }>("/api/plaid/transactions", {
+        method: "POST",
+        body: JSON.stringify({
+          access_token: accessToken,
+          start_date: startDate,
+          end_date: endDate,
+        }),
+      }),
   },
 };

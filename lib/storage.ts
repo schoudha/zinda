@@ -3,7 +3,7 @@
  * Used by lib/api.ts (browser only).
  */
 
-import type { Goal, GoalCategory, Note, Thought, Message } from "@/types";
+import type { Goal, GoalCategory, Note, Thought, Message, PlaidItem, PlaidTransaction } from "@/types";
 import { extractIntegerTarget, normalizeDate } from "@/lib/utils";
 import { generateId } from "@/lib/id-utils";
 
@@ -13,6 +13,8 @@ const K = {
   thoughts: "zinda:thoughts",
   messages: "zinda:goal_messages",
   progress: "zinda:goal_progress",
+  plaidItems: "zinda:plaid_items",
+  plaidTransactions: "zinda:plaid_transactions",
 } as const;
 
 function getLS(): Storage | null {
@@ -22,6 +24,11 @@ function getLS(): Storage | null {
   } catch {
     return null;
   }
+}
+
+function notifyFinanceChanged(): void {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new Event("zinda-finance"));
 }
 
 function parseJson<T>(raw: string | null, fallback: T): T {
@@ -603,5 +610,58 @@ export const storage = {
     const ls = getLS();
     if (!ls) return { goals: [] as Goal[], progress: [] as ProgressRow[] };
     return { goals: readGoals(ls), progress: readProgressRows(ls) };
+  },
+
+  finance: {
+    getItems(): PlaidItem[] {
+      const ls = getLS();
+      if (!ls) return [];
+      return parseJson<PlaidItem[]>(ls.getItem(K.plaidItems), []);
+    },
+
+    saveItem(item: PlaidItem): void {
+      const ls = getLS();
+      if (!ls) return;
+      const items = this.getItems().filter((i) => i.itemId !== item.itemId);
+      items.push(item);
+      ls.setItem(K.plaidItems, JSON.stringify(items));
+      notifyFinanceChanged();
+    },
+
+    removeItem(itemId: string): void {
+      const ls = getLS();
+      if (!ls) return;
+      const items = this.getItems().filter((i) => i.itemId !== itemId);
+      ls.setItem(K.plaidItems, JSON.stringify(items));
+      const txs = this.getTransactions().filter((t) => t.itemId !== itemId);
+      ls.setItem(K.plaidTransactions, JSON.stringify(txs));
+      notifyFinanceChanged();
+    },
+
+    getTransactions(): PlaidTransaction[] {
+      const ls = getLS();
+      if (!ls) return [];
+      return parseJson<PlaidTransaction[]>(ls.getItem(K.plaidTransactions), []);
+    },
+
+    /** Replace cached transactions for one item, keep others. */
+    mergeTransactionsForItem(itemId: string, transactions: PlaidTransaction[]): void {
+      const ls = getLS();
+      if (!ls) return;
+      const rest = this.getTransactions().filter((t) => t.itemId !== itemId);
+      ls.setItem(K.plaidTransactions, JSON.stringify([...rest, ...transactions]));
+      notifyFinanceChanged();
+    },
+
+    setLastSyncedForItem(itemId: string, iso: string): void {
+      const items = this.getItems();
+      const idx = items.findIndex((i) => i.itemId === itemId);
+      if (idx < 0) return;
+      items[idx] = { ...items[idx], lastSynced: iso };
+      const ls = getLS();
+      if (!ls) return;
+      ls.setItem(K.plaidItems, JSON.stringify(items));
+      notifyFinanceChanged();
+    },
   },
 };

@@ -76,6 +76,38 @@ export interface UsageStatsData {
   periodLabel: string;
 }
 
+/** Plaid-linked financial account (cached client-side). */
+export interface PlaidAccount {
+  id: string;
+  name: string;
+  mask: string | null;
+  type: string;
+  subtype: string | null;
+  institutionName?: string;
+}
+
+/** Normalized transaction row for UI and aggregates. */
+export interface PlaidTransaction {
+  id: string;
+  itemId: string;
+  accountId: string;
+  amount: number;
+  date: string; // YYYY-MM-DD
+  name: string;
+  merchantName: string | null;
+  category: string[];
+  pending: boolean;
+}
+
+/** One Plaid Item (bank connection) stored in localStorage. */
+export interface PlaidItem {
+  itemId: string;
+  accessToken: string;
+  institutionName: string;
+  accounts: PlaidAccount[];
+  lastSynced?: string; // ISO timestamp
+}
+
 export interface ChatContext {
   progressData?: ProgressData;
   healthData?: HealthData;
