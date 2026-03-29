@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { DollarSign, Loader2, RefreshCw } from "lucide-react";
 import { useFinance } from "@/hooks/useFinance";
+import { PlaidLinkSession } from "@/components/plaid/plaid-link-session";
 import { sumSpendingInRange, startOfToday, endOfToday } from "@/lib/finance-aggregates";
 import { cn } from "@/lib/utils";
 
@@ -21,6 +22,9 @@ export const FinanceCard = memo(function FinanceCard() {
     startConnect,
     refreshAll,
     disconnect,
+    linkToken,
+    onPlaidSuccess,
+    onPlaidExit,
   } = useFinance();
 
   const todaySpend =
@@ -36,6 +40,10 @@ export const FinanceCard = memo(function FinanceCard() {
   const connected = items.length > 0;
 
   return (
+    <>
+      {linkToken ? (
+        <PlaidLinkSession token={linkToken} onSuccess={onPlaidSuccess} onExit={onPlaidExit} />
+      ) : null}
     <Card className="border-none bg-white dark:bg-card shadow-xl shadow-emerald-900/5 dark:shadow-black/20 rounded-3xl ring-1 ring-black/5 dark:ring-white/10 overflow-hidden">
       <CardHeader className="pb-2 pt-6 px-6">
         <CardTitle className="text-[10px] font-bold uppercase tracking-widest text-emerald-600/80 dark:text-emerald-400 flex items-center gap-2">
@@ -172,5 +180,6 @@ export const FinanceCard = memo(function FinanceCard() {
         )}
       </CardContent>
     </Card>
+    </>
   );
 });

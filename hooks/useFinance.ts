@@ -1,13 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
-import { usePlaidLink } from "react-plaid-link";
 import { api } from "@/lib/api";
 import { storage } from "@/lib/storage";
 import { formatYmd } from "@/lib/finance-aggregates";
-import type { PlaidItem } from "@/types";
+import type { PlaidItem, PlaidTransaction } from "@/types";
 
 const FINANCE_EVENT = "zinda-finance";
+const PLAID_ITEMS_KEY = "zinda:plaid_items";
+const PLAID_TX_KEY = "zinda:plaid_transactions";
 
 function subscribe(cb: () => void) {
   if (typeof window === "undefined") return () => {};
@@ -16,15 +17,39 @@ function subscribe(cb: () => void) {
   return () => window.removeEventListener(FINANCE_EVENT, handler);
 }
 
+/**
+ * getSnapshot must return a referentially stable value when the underlying
+ * data hasn't changed — otherwise useSyncExternalStore re-renders in a loop.
+ * We compare the raw localStorage JSON strings to decide when to re-parse.
+ */
+let _prevItemsRaw: string | null = null;
+let _prevTxRaw: string | null = null;
+let _cached: { items: PlaidItem[]; transactions: PlaidTransaction[] } = {
+  items: [],
+  transactions: [],
+};
+
 function getSnapshot() {
-  return {
-    items: storage.finance.getItems(),
-    transactions: storage.finance.getTransactions(),
-  };
+  const ls = typeof window !== "undefined" ? window.localStorage : null;
+  if (!ls) return _cached;
+
+  const itemsRaw = ls.getItem(PLAID_ITEMS_KEY);
+  const txRaw = ls.getItem(PLAID_TX_KEY);
+
+  if (itemsRaw !== _prevItemsRaw || txRaw !== _prevTxRaw) {
+    _prevItemsRaw = itemsRaw;
+    _prevTxRaw = txRaw;
+    _cached = {
+      items: storage.finance.getItems(),
+      transactions: storage.finance.getTransactions(),
+    };
+  }
+
+  return _cached;
 }
 
 function getServerSnapshot() {
-  return { items: [] as PlaidItem[], transactions: [] as ReturnType<typeof storage.finance.getTransactions> };
+  return { items: [] as PlaidItem[], transactions: [] as PlaidTransaction[] };
 }
 
 export function useFinance() {
@@ -62,7 +87,7 @@ export function useFinance() {
     }
   }, [refreshForItem]);
 
-  const onSuccess = useCallback(
+  const onPlaidSuccess = useCallback(
     async (publicToken: string) => {
       setLoading(true);
       setError(null);
@@ -97,25 +122,9 @@ export function useFinance() {
     []
   );
 
-  const { open, ready } = usePlaidLink({
-    token: linkToken,
-    onSuccess,
-    onExit: () => setLinkToken(null),
-  });
-
-  /** `open` from react-plaid-link can change identity every render; depending on it alone retriggers this effect and can exceed max update depth (#185). Only open once per link token. */
-  const openedLinkTokenRef = useRef<string | null>(null);
-
-  useEffect(() => {
-    if (!linkToken) {
-      openedLinkTokenRef.current = null;
-      return;
-    }
-    if (!ready) return;
-    if (openedLinkTokenRef.current === linkToken) return;
-    openedLinkTokenRef.current = linkToken;
-    open();
-  }, [linkToken, ready, open]);
+  const onPlaidExit = useCallback(() => {
+    setLinkToken(null);
+  }, []);
 
   const startConnect = useCallback(async () => {
     setError(null);
@@ -176,6 +185,8 @@ export function useFinance() {
     startConnect,
     refreshAll,
     disconnect,
-    linkReady: ready,
+    linkToken,
+    onPlaidSuccess,
+    onPlaidExit,
   };
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense, useMemo, useCallback } from "react";
+import { useState, useEffect, useRef, Suspense, useMemo, useCallback } from "react";
 import { api } from "@/lib/api";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Header } from "@/components/dashboard/header";
@@ -73,32 +73,31 @@ function HomeContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  // Auto-create default goals (handled by server) and fix learn goal text if needed
+  const didEnsureDefaults = useRef(false);
   useEffect(() => {
-    const ensureDefaults = async () => {
+    if (didEnsureDefaults.current) return;
+    didEnsureDefaults.current = true;
+
+    const run = async () => {
       try {
         const { created } = await api.goals.ensureDefaults();
-        if (created.faith || created.health || created.screentime || created.learn) {
-          refreshGoals();
-        }
-        
-        // Fix learn goal text if it's incorrect (e.g., "x.com" instead of "Learn")
-        const learnGoal = goals.find(g => g.category === "learn");
+        let needsRefresh = created.faith || created.health || created.screentime || created.learn;
+
+        const currentGoals = await api.goals.list();
+        const learnGoal = currentGoals.find((g) => g.category === "learn");
         if (learnGoal && learnGoal.text !== "Learn") {
-          try {
-            await api.goals.update(learnGoal.id, { text: "Learn" });
-            refreshGoals();
-          } catch (error) {
-            console.error("Error fixing learn goal text:", error);
-          }
+          await api.goals.update(learnGoal.id, { text: "Learn" });
+          needsRefresh = true;
         }
+
+        if (needsRefresh) refreshGoals();
       } catch (error) {
         console.error("Error ensuring default goals:", error);
       }
     };
 
-    ensureDefaults();
-  }, [refreshGoals, goals]);
+    run();
+  }, [refreshGoals]);
 
   const categories: { id: GoalCategory; icon: React.ElementType | React.FC<{ className?: string }>; color: string }[] = [
     { id: "health", icon: HealthIcon, color: "text-rose-500" },
