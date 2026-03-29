@@ -75,20 +75,25 @@ export function ScreentimeGoalView({
   setPeriod 
 }: ScreentimeGoalViewProps) {
   
-  // Get time window from goal (defaults to 6pm-8pm)
-  const startHour = goal.screentimeStartHour ?? 18;
-  const endHour = goal.screentimeEndHour ?? 20;
-  
-  // Format time window for display
-  const formatHour = (hour: number): string => {
-    const period = hour >= 12 ? 'pm' : 'am';
+  const windowUnset =
+    goal.screentimeStartHour == null &&
+    goal.screentimeEndHour == null &&
+    goal.screentimeStartMinute == null &&
+    goal.screentimeEndMinute == null;
+  const startHour = windowUnset ? 17 : (goal.screentimeStartHour ?? 17);
+  const startMinute = windowUnset ? 30 : (goal.screentimeStartMinute ?? 0);
+  const endHour = windowUnset ? 19 : (goal.screentimeEndHour ?? 19);
+  const endMinute = windowUnset ? 0 : (goal.screentimeEndMinute ?? 0);
+
+  const formatClock = (hour: number, minute: number): string => {
+    const ampm = hour >= 12 ? "pm" : "am";
     const displayHour = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour;
-    return `${displayHour}${period}`;
+    const mm = minute === 0 ? "" : `:${minute.toString().padStart(2, "0")}`;
+    return `${displayHour}${mm}${ampm}`;
   };
-  const timeWindowText = `${formatHour(startHour)} - ${formatHour(endHour)}`;
-  
-  // Default target is 10 minutes (in ms) for time-windowed screentime goals
-  const targetMinutes = goal.minutesPerDay || 10; // 10 minutes default
+  const timeWindowText = `${formatClock(startHour, startMinute)} - ${formatClock(endHour, endMinute)}`;
+
+  const targetMinutes = goal.minutesPerDay || 15;
   const targetMs = targetMinutes * 60 * 1000;
   
   // For time-windowed goals, we only track "today" since the window is daily

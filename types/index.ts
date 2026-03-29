@@ -27,8 +27,10 @@ export interface Goal {
   todayProgress?: number; // Progress value for today (0-100 or custom scale)
   target?: number; // Integer target for completion-based goals (e.g., "Pray namaz 3 times" -> 3)
   minutesPerDay?: number; // Minutes per day target for health goals
-  screentimeStartHour?: number; // Start hour (0-23) for screentime time window, default 18 (6pm)
-  screentimeEndHour?: number; // End hour (0-23) for screentime time window, default 20 (8pm)
+  screentimeStartHour?: number; // Start hour (0-23) for screentime time window
+  screentimeStartMinute?: number; // Start minute (0-59), default 0
+  screentimeEndHour?: number; // End hour (0-23) for screentime time window
+  screentimeEndMinute?: number; // End minute (0-59), default 0
   familyPhoneNumbers?: string[]; // Phone numbers to track for family goals
 }
 

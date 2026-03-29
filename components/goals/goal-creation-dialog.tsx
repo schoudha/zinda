@@ -51,8 +51,8 @@ export function GoalCreationDialog({ open, onOpenChange, category, onGoalCreated
     if (open) {
       setSelectedCategory(category);
       setMessage("");
-      // Set default minutesPerDay: 10 for screentime, 150 for family, 30 for health
-      setMinutesPerDay(category === "screentime" || category === "family" ? (category === "screentime" ? "10" : "150") : "30");
+      // Set default minutesPerDay: 15 for screentime, 150 for family, 30 for health
+      setMinutesPerDay(category === "screentime" || category === "family" ? (category === "screentime" ? "15" : "150") : "30");
       // Set default phone numbers for family goals
       if (category === "family") {
         setMomPhoneNumber("707 813 9151");
@@ -159,10 +159,16 @@ export function GoalCreationDialog({ open, onOpenChange, category, onGoalCreated
         }
       }
 
-      // Set time window defaults for screentime goals (6pm-8pm)
-      if (selectedCategory === "screentime" || selectedCategory === "family") {
-        goalData.screentimeStartHour = 18; // 6pm
-        goalData.screentimeEndHour = 20; // 8pm
+      if (selectedCategory === "screentime") {
+        goalData.screentimeStartHour = 17;
+        goalData.screentimeStartMinute = 30;
+        goalData.screentimeEndHour = 19;
+        goalData.screentimeEndMinute = 0;
+      } else if (selectedCategory === "family") {
+        goalData.screentimeStartHour = 18;
+        goalData.screentimeEndHour = 20;
+        goalData.screentimeStartMinute = 0;
+        goalData.screentimeEndMinute = 0;
       }
 
       // Set family phone numbers for family goals
@@ -235,8 +241,8 @@ export function GoalCreationDialog({ open, onOpenChange, category, onGoalCreated
                   key={cat.id}
                   onClick={() => {
                     setSelectedCategory(cat.id);
-                    // Set default minutesPerDay: 10 for screentime, 150 for family, 30 for health
-                    setMinutesPerDay(cat.id === "screentime" ? "10" : cat.id === "family" ? "150" : "30");
+                    // Set default minutesPerDay: 15 for screentime, 150 for family, 30 for health
+                    setMinutesPerDay(cat.id === "screentime" ? "15" : cat.id === "family" ? "150" : "30");
                     // Set default phone numbers for family goals
                     if (cat.id === "family") {
                       setMomPhoneNumber("707 813 9151");
@@ -269,7 +275,7 @@ export function GoalCreationDialog({ open, onOpenChange, category, onGoalCreated
                 value={minutesPerDay}
                 onChange={(e) => setMinutesPerDay(e.target.value)}
                 className="w-full h-12 px-4 border border-input bg-background text-base"
-                placeholder={selectedCategory === "screentime" ? "10" : selectedCategory === "family" ? "150" : "30"}
+                placeholder={selectedCategory === "screentime" ? "15" : selectedCategory === "family" ? "150" : "30"}
                 disabled={isLoading}
               />
             </div>

@@ -31,6 +31,8 @@ class UsageStatsPlugin : Plugin() {
         val period = call.getString("period", "today")
         val startHour = call.getInt("startHour") ?: -1 // -1 means no time window filter
         val endHour = call.getInt("endHour") ?: -1
+        val startMinute = (call.getInt("startMinute") ?: 0).coerceIn(0, 59)
+        val endMinute = (call.getInt("endMinute") ?: 0).coerceIn(0, 59)
 
         val context = context
         val pm = context.packageManager
@@ -98,7 +100,7 @@ class UsageStatsPlugin : Plugin() {
         // This prevents counting background usage (e.g., Instagram playing music in background)
         Log.d(TAG, "Using queryEvents for precise foreground-only tracking")
         if (startHour >= 0 && endHour >= 0) {
-            Log.d(TAG, "Time window filter: $startHour:00 - $endHour:00")
+            Log.d(TAG, "Time window filter: $startHour:${String.format("%02d", startMinute)} - $endHour:${String.format("%02d", endMinute)}")
         }
         
         // Helper function to check if a timestamp falls within the time window (if specified)
@@ -136,7 +138,7 @@ class UsageStatsPlugin : Plugin() {
                 windowStartCal.set(Calendar.YEAR, year)
                 windowStartCal.set(Calendar.DAY_OF_YEAR, dayOfYear)
                 windowStartCal.set(Calendar.HOUR_OF_DAY, startHour)
-                windowStartCal.set(Calendar.MINUTE, 0)
+                windowStartCal.set(Calendar.MINUTE, startMinute)
                 windowStartCal.set(Calendar.SECOND, 0)
                 windowStartCal.set(Calendar.MILLISECOND, 0)
                 
@@ -151,7 +153,7 @@ class UsageStatsPlugin : Plugin() {
                     windowEndCal.add(Calendar.DAY_OF_YEAR, 1)
                     windowEndCal.set(Calendar.HOUR_OF_DAY, endHour)
                 }
-                windowEndCal.set(Calendar.MINUTE, 0)
+                windowEndCal.set(Calendar.MINUTE, endMinute)
                 windowEndCal.set(Calendar.SECOND, 0)
                 windowEndCal.set(Calendar.MILLISECOND, 0)
                 

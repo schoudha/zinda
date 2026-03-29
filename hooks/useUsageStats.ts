@@ -7,7 +7,13 @@ export interface AppUsage {
   timeInForeground: number;
 }
 
-export function useUsageStats(period: string = 'today', startHour?: number, endHour?: number) {
+export function useUsageStats(
+  period: string = 'today',
+  startHour?: number,
+  endHour?: number,
+  startMinute?: number,
+  endMinute?: number
+) {
   const [totalTime, setTotalTime] = useState<number>(0);
   const [apps, setApps] = useState<AppUsage[]>([]);
   const [hasPermission, setHasPermission] = useState<boolean>(false);
@@ -27,10 +33,18 @@ export function useUsageStats(period: string = 'today', startHour?: number, endH
     if (!Capacitor.isNativePlatform()) return;
     
     try {
-      const options: { period: string; startHour?: number; endHour?: number } = { period };
+      const options: {
+        period: string;
+        startHour?: number;
+        endHour?: number;
+        startMinute?: number;
+        endMinute?: number;
+      } = { period };
       if (startHour !== undefined && endHour !== undefined) {
         options.startHour = startHour;
         options.endHour = endHour;
+        options.startMinute = startMinute ?? 0;
+        options.endMinute = endMinute ?? 0;
       }
       const stats = await UsageStats.getUsage(options);
       
@@ -113,7 +127,7 @@ export function useUsageStats(period: string = 'today', startHour?: number, endH
     } catch (e) {
       console.error('Failed to load usage stats', e);
     }
-  }, [period, startHour, endHour]); // Add period and time window as dependencies
+  }, [period, startHour, endHour, startMinute, endMinute]);
 
   const requestPermission = async () => {
     if (!Capacitor.isNativePlatform()) return;

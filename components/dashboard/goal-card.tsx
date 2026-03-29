@@ -159,12 +159,22 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
   const { totalMinutes, dailyStats, hasPermission: hasHealthPermission, isNative: isHealthNative, requestPermission: requestHealthPermission } = useHealthConnect(isHealthGoal ? healthPeriod : "week");
 
   // Usage Stats for screentime goals - pass time window if specified (only for screentime, not family)
-  const screentimeStartHour = goal.category === "screentime" ? (goal.screentimeStartHour ?? 18) : undefined;
-  const screentimeEndHour = goal.category === "screentime" ? (goal.screentimeEndHour ?? 20) : undefined;
+  const screentimeWindowUnset =
+    goal.category === "screentime" &&
+    goal.screentimeStartHour == null &&
+    goal.screentimeEndHour == null &&
+    goal.screentimeStartMinute == null &&
+    goal.screentimeEndMinute == null;
+  const screentimeStartHour = goal.category === "screentime" ? (screentimeWindowUnset ? 17 : (goal.screentimeStartHour ?? 17)) : undefined;
+  const screentimeStartMinute = goal.category === "screentime" ? (screentimeWindowUnset ? 30 : (goal.screentimeStartMinute ?? 0)) : undefined;
+  const screentimeEndHour = goal.category === "screentime" ? (screentimeWindowUnset ? 19 : (goal.screentimeEndHour ?? 19)) : undefined;
+  const screentimeEndMinute = goal.category === "screentime" ? (screentimeWindowUnset ? 0 : (goal.screentimeEndMinute ?? 0)) : undefined;
   const { totalTime: screentimeMs, hasPermission: hasUsagePermission, isNative: isUsageNative, requestPermission: requestUsagePermission } = useUsageStats(
     isScreentimeGoal ? healthPeriod : "today",
     screentimeStartHour,
-    screentimeEndHour
+    screentimeEndHour,
+    screentimeStartMinute,
+    screentimeEndMinute
   );
   const screentimeMinutes = Math.round(screentimeMs / 60000);
 
@@ -473,7 +483,7 @@ export const GoalCard = memo(function GoalCard({ goal, onDelete, showProgress = 
   const stats = isHealthGoal ? dailyStats : (history || {});
 
   // Calculate goal stats
-  const minutesPerDay = goal.minutesPerDay || (isScreentimeGoal ? 10 : 21); // Default 10 min for screentime (time-windowed), 21 min/day for health
+  const minutesPerDay = goal.minutesPerDay || (isScreentimeGoal ? 15 : 21); // Default 15 min for screentime (time-windowed), 21 min/day for health
   const dailyTarget = (isHealthGoal || isScreentimeGoal) ? minutesPerDay : (goal.target || 100);
   const threshold = (isHealthGoal || isScreentimeGoal) ? (0.7 * dailyTarget) : (goal.target ? (0.7 * goal.target) : 70);
 

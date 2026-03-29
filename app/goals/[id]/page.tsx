@@ -91,7 +91,7 @@ export default function GoalDetailPage() {
   useEffect(() => {
     if (goal) {
       setEditText(goal.text);
-      setEditMinutesPerDay(goal.minutesPerDay?.toString() || (goal.category === 'screentime' ? "10" : goal.category === 'family' ? "150" : "30"));
+      setEditMinutesPerDay(goal.minutesPerDay?.toString() || (goal.category === 'screentime' ? "15" : goal.category === 'family' ? "150" : "30"));
       setEditTarget(goal.target?.toString() || (goal.category === 'faith' ? "3" : ""));
       if (goal.category === 'faith' && !quote) {
         setQuote(getRandomQuranQuote());
@@ -103,16 +103,30 @@ export default function GoalDetailPage() {
   const { totalMinutes, hasPermission, sessions } = useHealthConnect(healthPeriod);
   
   // Usage Stats data - for screentime goals only, use time window if specified
+  const screentimeWindowUnset =
+    goal?.category === "screentime" &&
+    goal.screentimeStartHour == null &&
+    goal.screentimeEndHour == null &&
+    goal.screentimeStartMinute == null &&
+    goal.screentimeEndMinute == null;
   const screentimeStartHour = goal?.category === 'screentime'
-    ? (goal.screentimeStartHour ?? 18) 
+    ? (screentimeWindowUnset ? 17 : (goal.screentimeStartHour ?? 17))
+    : undefined;
+  const screentimeStartMinute = goal?.category === 'screentime'
+    ? (screentimeWindowUnset ? 30 : (goal.screentimeStartMinute ?? 0))
     : undefined;
   const screentimeEndHour = goal?.category === 'screentime'
-    ? (goal.screentimeEndHour ?? 20)
+    ? (screentimeWindowUnset ? 19 : (goal.screentimeEndHour ?? 19))
+    : undefined;
+  const screentimeEndMinute = goal?.category === 'screentime'
+    ? (screentimeWindowUnset ? 0 : (goal.screentimeEndMinute ?? 0))
     : undefined;
   const { totalTime: screentimeMs, apps: screentimeApps, isNative: isUsageNative, hasPermission: hasUsagePermission, requestPermission: requestUsagePermission } = useUsageStats(
     healthPeriod,
     screentimeStartHour,
-    screentimeEndHour
+    screentimeEndHour,
+    screentimeStartMinute,
+    screentimeEndMinute
   );
 
   // Notes for learn goals
@@ -457,10 +471,10 @@ export default function GoalDetailPage() {
           usageStats: (goal.category === 'screentime' || goal.category === 'family') && hasUsagePermission ? {
             totalTime: screentimeMs,
             apps: screentimeApps,
-            goalMinutes: healthPeriod === "today" ? (goal.minutesPerDay || (goal.category === 'screentime' ? 10 : 150)) :
-                         healthPeriod === "week" ? (goal.minutesPerDay || (goal.category === 'screentime' ? 10 : 150)) * 7 :
-                         healthPeriod === "month" ? (goal.minutesPerDay || (goal.category === 'screentime' ? 10 : 150)) * 30 :
-                         (goal.minutesPerDay || (goal.category === 'screentime' ? 10 : 150)) * 365,
+            goalMinutes: healthPeriod === "today" ? (goal.minutesPerDay || (goal.category === 'screentime' ? 15 : 150)) :
+                         healthPeriod === "week" ? (goal.minutesPerDay || (goal.category === 'screentime' ? 15 : 150)) * 7 :
+                         healthPeriod === "month" ? (goal.minutesPerDay || (goal.category === 'screentime' ? 15 : 150)) * 30 :
+                         (goal.minutesPerDay || (goal.category === 'screentime' ? 15 : 150)) * 365,
             period: healthPeriod,
             percentage: goal.minutesPerDay ? Math.round((screentimeMs / 60000) / ((healthPeriod === "today" ? goal.minutesPerDay :
                          healthPeriod === "week" ? goal.minutesPerDay * 7 :

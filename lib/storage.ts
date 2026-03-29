@@ -78,7 +78,9 @@ function mapDbGoalToGoal(g: Record<string, unknown>): Goal {
     target: g.target as number | undefined,
     minutesPerDay: g.minutesPerDay as number | undefined,
     screentimeStartHour: g.screentimeStartHour as number | undefined,
+    screentimeStartMinute: g.screentimeStartMinute as number | undefined,
     screentimeEndHour: g.screentimeEndHour as number | undefined,
+    screentimeEndMinute: g.screentimeEndMinute as number | undefined,
     familyPhoneNumbers: g.familyPhoneNumbers as string[] | undefined,
   };
 }
@@ -145,7 +147,9 @@ export const storage = {
         target: target ?? undefined,
         minutesPerDay: partial.minutesPerDay,
         screentimeStartHour: partial.screentimeStartHour,
+        screentimeStartMinute: partial.screentimeStartMinute,
         screentimeEndHour: partial.screentimeEndHour,
+        screentimeEndMinute: partial.screentimeEndMinute,
         familyPhoneNumbers: partial.familyPhoneNumbers,
       };
 
@@ -237,11 +241,13 @@ export const storage = {
           id: generateId(),
           text: "Screen Time",
           period: "week",
-          category: "family",
+          category: "screentime",
           tips: [],
-          minutesPerDay: 150,
-          screentimeStartHour: 18,
-          screentimeEndHour: 20,
+          minutesPerDay: 15,
+          screentimeStartHour: 17,
+          screentimeStartMinute: 30,
+          screentimeEndHour: 19,
+          screentimeEndMinute: 0,
           createdAt: new Date(),
         });
         created.screentime = true;
