@@ -1,36 +1,27 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+This repository is now a local-first Android native app built with Kotlin, Jetpack Compose, and Room.
 
-## Getting Started
+## Android Setup
 
-First, run the development server:
+1. Install Android Studio. **Use JDK 17 or newer** for Gradle/AGP 8.x (the build fails on Java 13). Point `JAVA_HOME` to that JDK, or use Android Studio’s bundled JBR via **Settings → Build, Execution, Deployment → Build Tools → Gradle → Gradle JDK**.
+2. Open the `android/` project in Android Studio.
+3. Build and run the `app` module on an emulator or physical device.
+
+## CLI Commands
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm run android:build
+npm run android:test
+npm run android:lint
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Architecture
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- UI: Jetpack Compose with a bottom bar: **Faith**, **Knowledge**, **Exercise**, **Family** (placeholder content per tab for now).
+- Older data/platform packages may still exist under `android/app/.../data` and `platform` for future wiring; the current shell does not depend on them.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Migration Notes
 
-## Learn More
+- Legacy Next.js and API route files remain in the repository during migration, but are no longer part of the primary runtime.
+- Capacitor web runtime is deprecated.
+- Cloud integrations (Supabase/Plaid/Vercel) are out of scope for the native v1.
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
